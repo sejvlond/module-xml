@@ -22,6 +22,8 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+//! @file xml.q defines the functions exported by the module
+
 #include "qore-xml-module.h"
 
 #include "QoreXmlReader.h"
@@ -668,6 +670,15 @@ static AbstractQoreNode *makeXMLStringIntern(const QoreStringNode *pstr, const Q
    return str.release();
 }
 
+//! serializes a hash into an XML string without whitespace formatting but with an XML header
+/** @param $key top-level key
+    @param $h the rest of the data to serialize under the top-level key
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+    @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref serialization
+ */
+//# string makeXMLString(string key, hash $h, *string $encoding) {}
 static AbstractQoreNode *f_makeXMLString_str(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(pstr, const QoreStringNode, params, 0);
    HARD_QORE_PARAM(pobj, const QoreHashNode, params, 1);
@@ -676,6 +687,15 @@ static AbstractQoreNode *f_makeXMLString_str(const QoreListNode *params, Excepti
    return makeXMLStringIntern(pstr, pobj, ccsid, false, xsink);
 }
 
+//! serializes a hash into an XML string without whitespace formatting but with an XML header
+/** @param $h a hash of data to serialize: the hash must have one top-level key and no more or an exception will be raised
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+    @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
+    @throw MAKE-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref serialization
+ */
+//# string makeXMLString(hash $h, *string $encoding) {}
 static AbstractQoreNode *f_makeXMLString(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(pobj, const QoreHashNode, params, 0);
    
@@ -689,6 +709,15 @@ static AbstractQoreNode *f_makeXMLString(const QoreListNode *params, ExceptionSi
    return makeXMLStringIntern(0, pobj, ccsid, false, xsink);
 }
 
+//! serializes a hash into an XML string with whitespace formatting and with an XML header
+/** @param $key top-level key
+    @param $h the rest of the data to serialize under the top-level key
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+    @return an XML string corresponding to the input data, with whitespace formatting and with an XML header
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref serialization
+*/
+//# string makeFormattedXMLString(string key, hash $h, *string $encoding) {}
 static AbstractQoreNode *f_makeFormattedXMLString_str(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(pstr, const QoreStringNode, params, 0);
    HARD_QORE_PARAM(pobj, const QoreHashNode, params, 1);
@@ -697,6 +726,15 @@ static AbstractQoreNode *f_makeFormattedXMLString_str(const QoreListNode *params
    return makeXMLStringIntern(pstr, pobj, ccsid, true, xsink);
 }
 
+//! serializes a hash into an XML string with whitespace formatting and with an XML header
+/** @param $h a hash of data to serialize: the hash must have one top-level key and no more or an exception will be raised
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+    @return an XML string corresponding to the input data, with whitespace formatting and with an XML header
+    @throw MAKE-FORMATTED-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref serialization
+ */
+//# string makeFormattedXMLString(hash $h, *string $encoding) {}
 static AbstractQoreNode *f_makeFormattedXMLString(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(pobj, const QoreHashNode, params, 0);
    
@@ -710,6 +748,14 @@ static AbstractQoreNode *f_makeFormattedXMLString(const QoreListNode *params, Ex
    return makeXMLStringIntern(0, pobj, ccsid, true, xsink);
 }
 
+//! serializes a hash into an XML string without whitespace formatting and without an XML header
+/** @param $h a hash of data to serialize: the hash can have any number of keys
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+    @return an XML string corresponding to the input data, without whitespace formatting and without an XML header
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref serialization
+ */
+//# string makeXMLFragment(hash $h, *string $encoding) {}
 static AbstractQoreNode *f_makeXMLFragment(const QoreListNode *params, ExceptionSink *xsink) {
    QORE_TRACE("f_makeXMLFragment()");
 
@@ -723,6 +769,14 @@ static AbstractQoreNode *f_makeXMLFragment(const QoreListNode *params, Exception
    return str.release();
 }
 
+//! serializes a hash into an XML string with whitespace formatting but without an XML header
+/** @param $h a hash of data to serialize: the hash can have any number of keys
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+    @return an XML string corresponding to the input data, with whitespace formatting but without an XML header
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref serialization
+ */
+//# string makeFormattedXMLFragment(hash $h, *string $encoding) {}
 static AbstractQoreNode *f_makeFormattedXMLFragment(const QoreListNode *params, ExceptionSink *xsink) {
    QORE_TRACE("f_makeFormattedXMLFragment()");
 
@@ -939,17 +993,31 @@ QoreStringNode *makeXMLRPCCallString(const QoreEncoding *ccs, int offset, const 
    return str.release();
 }
 
-// makeXMLRPCCallString(string (function name), params, ...)
+//! Serializes the argument into an XML string in XML-RPC call format without whitespace formatting
+/** @param $method the method name for the XML-RPC call
+    Additional arguments are serialized according to the default XML-RPC serialization rules
+    @return an XML string in XML-RPC call format in the default encoding, without whitespace formatting
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref XMLRPC
+*/
+//# string makeXMLRPCCallString(string $method, ...) {}
 static AbstractQoreNode *f_makeXMLRPCCallString(const QoreListNode *params, ExceptionSink *xsink) {
    return makeXMLRPCCallString(QCS_DEFAULT, 0, params, xsink);
 }
 
-// makeXMLRPCCallString(enc. name, string (function name), params, ...)
+//! Serializes the argument into an XML string in XML-RPC call format without whitespace formatting
+/** @param $encoding a string giving the output encoding for the resulting XML string
+    @param $method the method name for the XML-RPC call
+    Additional arguments are serialized according to the default XML-RPC serialization rules
+    @return an XML string in XML-RPC call format in the encoding given by the first argument, without whitespace formatting
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref XMLRPC
+*/
+//# string makeXMLRPCCallStringWithEncoding(string $encoding, string $method, ...) {}
 static AbstractQoreNode *f_makeXMLRPCCallStringWithEncoding(const QoreListNode *params, ExceptionSink *xsink) {
    return makeXMLRPCCallString(get_hard_qore_encoding_param(params, 0), 1, params, xsink);
 }
 
-// makeXMLRPCCallStringArgs(string (function name), list of params)
 QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, const QoreListNode *params, ExceptionSink *xsink) {
    QORE_TRACE("makeXMLRPCCallStringArgs()");
 
@@ -992,12 +1060,27 @@ QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, co
    return str.release();
 }
 
-// makeXMLRPCCallStringArgs(string (function name), list of params)
+//! Serializes the argument into an XML string in XML-RPC call format without whitespace formatting
+/** @param $method the method name for the XML-RPC call
+    @param $args a single argument or a list of arguments to the call
+    @return an XML string in XML-RPC call format in the default encoding, without whitespace formatting
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref XMLRPC
+*/
+//# string makeXMLRPCCallStringArgs(string $method, any $args) {}
 static AbstractQoreNode *f_makeXMLRPCCallStringArgs(const QoreListNode *params, ExceptionSink *xsink) {
    return makeXMLRPCCallStringArgs(QCS_DEFAULT, 0, params, xsink);
 }
 
-// makeXMLRPCCallStringArgs(string (function name), list of params)
+//! Serializes the argument into an XML string in XML-RPC call format without whitespace formatting
+/** @param $encoding a string giving the output encoding for the resulting XML string
+    @param $method the method name for the XML-RPC call
+    @param $args a single argument or a list of arguments to the call
+    @return a string in XML-RPC call format in the encoding given by the first argument, without whitespace formatting
+    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @see @ref XMLRPC
+*/
+//# string makeXMLRPCCallStringArgsWithEncoding(string $encoding, string $method, any $args) {}
 static AbstractQoreNode *f_makeXMLRPCCallStringArgsWithEncoding(const QoreListNode *params, ExceptionSink *xsink) {
    return makeXMLRPCCallStringArgs(get_hard_qore_encoding_param(params, 0), 0, params, xsink);
 }
@@ -1863,10 +1946,32 @@ static AbstractQoreNode *parseXMLIntern(bool as_data, const QoreListNode *params
    return reader.parseXMLData(ccsid, as_data, xsink);
 }
 
+//! Parses an XML string and returns a Qore hash structure
+/** If duplicate, out-of-order XML elements are found in the input string, they are deserialized to Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the Qore hash as in the input XML string.
+    
+    This function should only be used when it is important to maintain the XML element order in the resulting Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.   In all other cases, parseXMLAsData() should be used instead.
+    @param $xml the XML string to parse
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, all strings in the output hash will have the default encoding
+    @return a Qore hash structure corresponding to the XML input string
+    @throw PARSE-XML-EXCEPTION Error parsing the XML string
+*/
+//# hash parseXML(string $xml, *string $encoding) {}
 static AbstractQoreNode *f_parseXML(const QoreListNode *params, ExceptionSink *xsink) {
    return parseXMLIntern(false, params, xsink);
 }
 
+//! Parses an XML string as data (does not necessarily preserve key order) and returns a Qore hash structure
+/** This function does not preserve hash order with out-of-order duplicate keys; all duplicate keys are collapsed to the same list.
+
+    Note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
+
+    For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXML().
+    @param $xml the XML string to parse
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, all strings in the output hash will have the default encoding
+    @return a Qore hash structure corresponding to the XML input string
+    @throw PARSE-XML-EXCEPTION Error parsing the XML string
+*/
+//# hash parseXMLAsData(string $xml, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLAsData(const QoreListNode *params, ExceptionSink *xsink) {
    return parseXMLIntern(true, params, xsink);
 }

@@ -211,7 +211,7 @@ class filter {
 	my File $if();
 	$if.open2($ifn);
 
-	my string $ofn = basename($ifn);
+	my string $ofn = shift $ARGV; #basename($ifn);
 
 	printf("processing API file %s -> %s\n", $ifn, $ofn);
 
@@ -221,41 +221,22 @@ class filter {
 	my string $comment = "";
 	my *string $api;
 	while (exists (my *string $line = $if.readLine())) {
-	    if ($line =~ /#!/) {
-		$line =~ s/#!/\/\/!/;
+	    if ($line =~ /\/\/!/) {
 		if ($line =~ /@file/) {
 		    $of.print($line + "\n");
 		    continue;
 		}
 		$comment = $.getComment($line, $if, $of);
+                my *string $sig = $if.readLine();
+                if ($sig !~ /^\/\/#/) {
+                    printf("ERROR: signature line has wrong format: %n\n", $sig);
+                    exit(1);
+                }
+                splice $sig, 0, 4;
+                $of.printf("%s%s\n", $comment, $sig);
 		continue;
 	    }
-	    if (strlen($comment) && !exists $api && (exists ($api = ($line =~ x/\"(omq\.[-a-z\.\[\]]+)\"/[0])))) {
-		#printf("api=%s()\n", $api);
-		continue;
-	    }
-	    if (strlen($comment) && exists $api && (exists (my ($rv, $args) = ($line =~ x/\"code\"[ \t]*:(.*)sub[ \t]*\(([^{]*)\)/)))) {
-                trim $rv;
-                $rv += " ";
-                printf("api: %s, rv: %s, sig: %s", $api, $rv, $line);
-		$args =~ s/^hash \$[a-z_]+(,( )?)?//;
-		$args =~ s/\*/__3_/g;
-		$args =~ s/\$/__6_/g;
-		#printf("args=%s\n", $args);
-		my string $orig_api = $api;
-		$orig_api =~ s/[\.-]/_/g;
-		$orig_api =~ s/_\[.+//g;
-		
-                $rv =~ s/\*/__3_/g;
-
-		$of.printf("/** @anchor %s */\n\n", $orig_api);
-		$of.print($comment);
-		filter::fixAPI(\$api);
-		$of.printf("%s%s(%s) {}\n\n", $rv, $api, $args);
-		$comment = "";
-		delete $api;
-	    }
-	}
+        }
     }
 
     static fixAPI(any $api) returns string {

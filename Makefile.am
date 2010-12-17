@@ -47,7 +47,7 @@ docs/doxyfile: docs/doxyfile.tmpl
 	sed s/__VERSION__/${VERSION}/ $< > $@
 
 docs/xml.q: src/ql_xml.cpp
-	touch $@
+	$(DOXYGEN_QORE_API_FILTER) $< $@
 
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
