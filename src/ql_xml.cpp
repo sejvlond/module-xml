@@ -310,19 +310,19 @@ public:
    DLLLOCAL int readXmlRpcNode(ExceptionSink *xsink) {
       int nt = nodeTypeSkipWhitespace();
       if (nt == -1 && !*xsink)
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string");
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string");
       return nt;
    }
 
    DLLLOCAL int checkXmlRpcMemberName(const char *member, ExceptionSink *xsink) {
       const char *name = (const char *)xmlTextReaderConstName(reader);
       if (!name) {
-	 xsink->raiseExceptionArg("XML-RPC-PARSE-VALUE-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting element '%s', got NOTHING", member);
+	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting element '%s', got NOTHING", member);
 	 return -1;
       }
 	 
       if (strcmp(name, member)) {
-	 xsink->raiseExceptionArg("XML-RPC-PARSE-VALUE-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting element '%s', got '%s'", member, name);
+	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting element '%s', got '%s'", member, name);
 	 return -1;
       }
       return 0;
@@ -678,7 +678,7 @@ static AbstractQoreNode *makeXMLStringIntern(const QoreStringNode *pstr, const Q
     @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
     @see @ref serialization
  */
-//# string makeXMLString(string key, hash $h, *string $encoding) {}
+//# string makeXMLString(string $key, hash $h, *string $encoding) {}
 static AbstractQoreNode *f_makeXMLString_str(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(pstr, const QoreStringNode, params, 0);
    HARD_QORE_PARAM(pobj, const QoreHashNode, params, 1);
@@ -717,7 +717,7 @@ static AbstractQoreNode *f_makeXMLString(const QoreListNode *params, ExceptionSi
     @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
     @see @ref serialization
 */
-//# string makeFormattedXMLString(string key, hash $h, *string $encoding) {}
+//# string makeFormattedXMLString(string $key, hash $h, *string $encoding) {}
 static AbstractQoreNode *f_makeFormattedXMLString_str(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(pstr, const QoreStringNode, params, 0);
    HARD_QORE_PARAM(pobj, const QoreHashNode, params, 1);
@@ -799,7 +799,7 @@ static inline void addXMLRPCValueInternHash(QoreString *str, const QoreHashNode 
    while (hi.next()) {
       std::auto_ptr<QoreString> member(hi.getKeyString());
       if (!member->strlen()) {
-	 xsink->raiseException("XML-RPC-STRUCT-ERROR", "missing member name in struct");
+	 xsink->raiseException("XMLRPC-SERIALIZATION-ERROR", "empty member name in hash");
 	 return;
       }
       // convert string if needed
@@ -920,7 +920,7 @@ static void addXMLRPCValueIntern(QoreString *str, const AbstractQoreNode *n, int
       //if (format) str->concat('\n');
    }
    else {
-      xsink->raiseException("XML-RPC-SERIALIZATION-ERROR", "don't know how to serialize type '%s' to XML-RPC", get_type_name(n));
+      xsink->raiseException("XMLRPC-SERIALIZATION-ERROR", "don't know how to serialize type '%s' to XML-RPC", get_type_name(n));
       return;
    }
 
@@ -997,7 +997,7 @@ QoreStringNode *makeXMLRPCCallString(const QoreEncoding *ccs, int offset, const 
 /** @param $method the method name for the XML-RPC call
     Additional arguments are serialized according to the default XML-RPC serialization rules
     @return an XML string in XML-RPC call format in the default encoding, without whitespace formatting
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @see @ref XMLRPC
 */
 //# string makeXMLRPCCallString(string $method, ...) {}
@@ -1005,12 +1005,12 @@ static AbstractQoreNode *f_makeXMLRPCCallString(const QoreListNode *params, Exce
    return makeXMLRPCCallString(QCS_DEFAULT, 0, params, xsink);
 }
 
-//! Serializes the argument into an XML string in XML-RPC call format without whitespace formatting
+//! Serializes the argument into an XML string in XML-RPC call format without whitespace formatting with an explicit encoding
 /** @param $encoding a string giving the output encoding for the resulting XML string
     @param $method the method name for the XML-RPC call
     Additional arguments are serialized according to the default XML-RPC serialization rules
     @return an XML string in XML-RPC call format in the encoding given by the first argument, without whitespace formatting
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @see @ref XMLRPC
 */
 //# string makeXMLRPCCallStringWithEncoding(string $encoding, string $method, ...) {}
@@ -1064,7 +1064,7 @@ QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, co
 /** @param $method the method name for the XML-RPC call
     @param $args a single argument or a list of arguments to the call
     @return an XML string in XML-RPC call format in the default encoding, without whitespace formatting
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @see @ref XMLRPC
 */
 //# string makeXMLRPCCallStringArgs(string $method, any $args) {}
@@ -1072,12 +1072,12 @@ static AbstractQoreNode *f_makeXMLRPCCallStringArgs(const QoreListNode *params, 
    return makeXMLRPCCallStringArgs(QCS_DEFAULT, 0, params, xsink);
 }
 
-//! Serializes the argument into an XML string in XML-RPC call format without whitespace formatting
+//! Serializes the argument into an XML string in XML-RPC call format without whitespace formatting with an explicit encoding
 /** @param $encoding a string giving the output encoding for the resulting XML string
     @param $method the method name for the XML-RPC call
     @param $args a single argument or a list of arguments to the call
     @return a string in XML-RPC call format in the encoding given by the first argument, without whitespace formatting
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @see @ref XMLRPC
 */
 //# string makeXMLRPCCallStringArgsWithEncoding(string $encoding, string $method, any $args) {}
@@ -1306,7 +1306,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	 break;
       
       if (nt != XML_READER_TYPE_ELEMENT) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string, expecting 'member' element (got type %d)", nt);
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting 'member' element (got type %d)", nt);
 	 return -1;
       }
       
@@ -1319,7 +1319,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	 return -1;
       
       if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_ELEMENT) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string, expecting struct 'name'");
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting struct 'name'");
 	 return -1;
       }
       
@@ -1334,13 +1334,13 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	 return -1;
       
       if (nt != XML_READER_TYPE_TEXT) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "missing member name in struct");
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "empty member name in hash");
 	 return -1;
       }
       
       const char *member_name = constValue();
       if (!member_name) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "empty member name in struct");
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "empty member name in struct");
 	 return -1;
       }
       
@@ -1353,7 +1353,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
       if (nt != XML_READER_TYPE_END_ELEMENT) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string, expecting name close element");
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting name close element");
 	 return -1;
       }
       
@@ -1364,7 +1364,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
       if (nt != XML_READER_TYPE_ELEMENT) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string, expecting struct 'value' for key '%s'", member.getBuffer());
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting struct 'value' for key '%s'", member.getBuffer());
 	 return -1;
       }
       
@@ -1393,7 +1393,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	       return -1;
 	    if (nt != XML_READER_TYPE_END_ELEMENT) {
 	       //printd(5, "EXCEPTION close /value: %d: %s\n", nt, (char *)constName());
-	       xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string, expecting value close element");
+	       xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting value close element");
 	       return -1;
 	    }
 	    //printd(5, "close /value: %s\n", (char *)constName());
@@ -1405,7 +1405,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
       if (nt != XML_READER_TYPE_END_ELEMENT) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string, expecting member close element");
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting member close element");
 	 return -1;
       }
       //printd(5, "close /member: %s\n", (char *)constName());
@@ -1437,7 +1437,7 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	 return 0;
       
       if (nt != XML_READER_TYPE_ELEMENT) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string, expecting 'param' open element");
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting 'param' open element");
 	 return -1;
       }
       
@@ -1480,7 +1480,7 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 		     return -1;
 		  
 		  if (nt != XML_READER_TYPE_END_ELEMENT) {
-		     xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra data in params, expecting value close tag");
+		     xsink->raiseException("PARSE-XMLRPC-ERROR", "extra data in params, expecting value close tag");
 		     return -1;
 		  }
 	       }
@@ -1490,12 +1490,12 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	    }
 
 	    if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
-	       xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra data in params, expecting param close tag (got node type %s instead)", get_xml_node_type_name(nt));
+	       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra data in params, expecting param close tag (got node type %s instead)", get_xml_node_type_name(nt));
 	       return -1;
 	    }	    
 	 }
 	 else if (nt != XML_READER_TYPE_END_ELEMENT) {
-	    xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra data in params, expecting value element");
+	    xsink->raiseException("PARSE-XMLRPC-ERROR", "extra data in params, expecting value element");
 	    return -1;
 	 }
 	 // just read a param close tag, position reader at next element
@@ -1520,7 +1520,7 @@ int QoreXmlRpcReader::getString(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 
    if (nt != XML_READER_TYPE_TEXT && nt != XML_READER_TYPE_SIGNIFICANT_WHITESPACE) {
       //printd(5, "getString() unexpected node type %d (expecting text %s)\n", nt, constName());
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra information in string");
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in string");
       return -1;
    }
 
@@ -1539,7 +1539,7 @@ int QoreXmlRpcReader::getString(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
    
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       printd(5, "getString() unexpected node type %d (expecting end element %s)\n", nt, constName());
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra information in string (%d)", nt);
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in string (%d)", nt);
       return -1;
    }
 
@@ -1569,7 +1569,7 @@ int QoreXmlRpcReader::getBoolean(XmlRpcValue *v, ExceptionSink *xsink) {
       v->set(boolean_false());
    
    if (nt != XML_READER_TYPE_END_ELEMENT) {
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra information in boolean (%d)", nt);
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in boolean (%d)", nt);
       return -1;
    }
    return 0;
@@ -1599,7 +1599,7 @@ int QoreXmlRpcReader::getInt(XmlRpcValue *v, ExceptionSink *xsink) {
       v->set(new QoreBigIntNode());
    
    if (nt != XML_READER_TYPE_END_ELEMENT) {
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra information in int (%d)", nt);
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in int (%d)", nt);
       return -1;
    }
    return 0;
@@ -1629,7 +1629,7 @@ int QoreXmlRpcReader::getDouble(XmlRpcValue *v, ExceptionSink *xsink) {
       v->set(zero_float());
    
    if (nt != XML_READER_TYPE_END_ELEMENT) {
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra information in float (%d)", nt);
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in float (%d)", nt);
       return -1;
    }
    return 0;
@@ -1657,7 +1657,7 @@ int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink *xsink) {
       v->set(zero_date());
    
    if (nt != XML_READER_TYPE_END_ELEMENT) {
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra information in float (%d)", nt);
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in float (%d)", nt);
       return -1;
    }
    return 0;
@@ -1691,7 +1691,7 @@ int QoreXmlRpcReader::getBase64(XmlRpcValue *v, ExceptionSink *xsink) {
       v->set(new BinaryNode());
    
    if (nt != XML_READER_TYPE_END_ELEMENT) {
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "extra information in base64 (%d)", nt);
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in base64 (%d)", nt);
       return -1;
    }
    return 0;
@@ -1717,7 +1717,7 @@ static int doEmptyValue(XmlRpcValue *v, const char *name, int depth, ExceptionSi
    else if (!strcmp(name, "ex:nil"))
       v->set(0);
    else {
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "unknown XML-RPC type '%s' at level %d", name, depth);
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "unknown XML-RPC type '%s' at level %d", name, depth);
       return -1;
    }
    return 0;
@@ -1757,7 +1757,7 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
       return 0;
       
    if (nt != XML_READER_TYPE_ELEMENT) {
-      xsink->raiseExceptionArg("XML-RPC-PARSE-VALUE-ERROR", new QoreStringNode(*xml), "error parsing XML string, expecting data open element");
+      xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", new QoreStringNode(*xml), "error parsing XML string, expecting data open element");
       return -1;
    }
       
@@ -1783,7 +1783,7 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
 	 
 	 // get "value" element
 	 if (nt != XML_READER_TYPE_ELEMENT) {
-	    xsink->raiseExceptionArg("XML-RPC-PARSE-VALUE-ERROR", new QoreStringNode(*xml), "extra data in array, expecting value element");
+	    xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", new QoreStringNode(*xml), "extra data in array, expecting value element");
 	    return -1;
 	 }
 	 
@@ -1813,7 +1813,7 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
 		  return -1;
 
 	       if (nt != XML_READER_TYPE_END_ELEMENT) {
-		  xsink->raiseExceptionArg("XML-RPC-PARSE-VALUE-ERROR", new QoreStringNode(*xml), "extra data in array, expecting value close tag");
+		  xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", new QoreStringNode(*xml), "extra data in array, expecting value close tag");
 		  return -1;
 	       }
 	    }
@@ -1834,9 +1834,9 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
    // check for array close tag
    if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
       if (nt == XML_READER_TYPE_ELEMENT)
-	 xsink->raiseExceptionArg("XML-RPC-PARSE-ARRAY-ERROR", new QoreStringNode(*xml), "expecting array close tag, got element '%s' instead", constName());
+	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", new QoreStringNode(*xml), "expecting array close tag, got element '%s' instead", constName());
       else
-	 xsink->raiseExceptionArg("XML-RPC-PARSE-ARRAY-ERROR", new QoreStringNode(*xml), "extra data in array, expecting array close tag, got node type %d", nt);
+	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", new QoreStringNode(*xml), "extra data in array, expecting array close tag, got node type %d", nt);
       return -1;
    }
    return 0;
@@ -1845,7 +1845,7 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
 int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsid, bool read_next, ExceptionSink *xsink) {
    int nt = nodeTypeSkipWhitespace();
    if (nt == -1) {
-      xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "error parsing XML string");
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string");
       return -1;
    }
 
@@ -1855,7 +1855,7 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
       // get xmlrpc type name
       const char *name = constName();
       if (!name) {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "expecting type name, got NOTHING at level %d", depth);
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "expecting type name, got NOTHING at level %d", depth);
 	 return -1;
       }
 
@@ -1866,7 +1866,7 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
 	 if (!read_next)
 	    return doEmptyValue(v, name, depth, xsink);
 
-	 xsink->raiseException("XML-RPC-PARSE-ERROR", "error parsing XML string");
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string");
 	 return -1;
       }
 
@@ -1907,7 +1907,7 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
 	    return -1;
       }
       else {
-	 xsink->raiseException("XML-RPC-PARSE-VALUE-ERROR", "unknown XML-RPC type '%s' at level %d", name, depth);
+	 xsink->raiseException("PARSE-XMLRPC-ERROR", "unknown XML-RPC type '%s' at level %d", name, depth);
 	 return -1;
       }
       
@@ -1976,14 +1976,18 @@ static AbstractQoreNode *f_parseXMLAsData(const QoreListNode *params, ExceptionS
    return parseXMLIntern(true, params, xsink);
 }
 
-// makeXMLRPCFaultResponseString(param)
+//! Serializes the argument into an XML string in XML-RPC fault response format without whitespace formatting
+/** @param $code the fault code for the response; will be converted to an integer
+    @param $msg the fault message string; the encoding of this argument will define the output encoding of the fault string returned
+    @return a string in XML-RPC fault format in the same encoding as given by the $msg argument, without whitespace formatting
+    @see @ref XMLRPC
+*/
+//# string makeXMLRPCFaultResponseString(softint $code, string $msg) {}
 static AbstractQoreNode *f_makeXMLRPCFaultResponseString(const QoreListNode *params, ExceptionSink *xsink) {
    QORE_TRACE("f_makeXMLRPCFaultResponseString()");
 
-   const AbstractQoreNode *p0 = get_param(params, 0);
+   int code = (int)HARD_QORE_INT(params, 0);
    HARD_QORE_PARAM(p1, const QoreStringNode, params, 1);
-
-   int code = p0 ? p0->getAsInt() : 0;
    const QoreEncoding *ccsid = p1->getEncoding();
 
    // for speed, the XML is created directly here
@@ -1996,15 +2000,19 @@ static AbstractQoreNode *f_makeXMLRPCFaultResponseString(const QoreListNode *par
    return str;
 }
 
-// makeXMLRPCFaultResponseStringWithEncoding(param)
+//! Serializes the argument into an XML string in XML-RPC fault response format without whitespace formatting with an explicit output encoding
+/** @param $encoding a string giving the output encoding for the resulting XML string
+    @param $code the fault code for the response; will be converted to an integer
+    @param $msg the fault message string
+    @return a string in XML-RPC fault format in the encoding given by the first argument, without whitespace formatting
+    @see @ref XMLRPC
+*/
+//# string makeXMLRPCFaultResponseStringWithEncoding(string $encoding, softint $code, string $msg) {}
 static AbstractQoreNode *f_makeXMLRPCFaultResponseStringWithEncoding(const QoreListNode *params, ExceptionSink *xsink) {
    QORE_TRACE("f_makeXMLRPCFaultResponseStringWithEncoding()");
 
    const QoreEncoding *ccs = get_hard_qore_encoding_param(params, 0);
-
-   const AbstractQoreNode *p0 = get_param(params, 1);
-   int code = p0 ? p0->getAsInt() : 0;
-
+   int code = (int)HARD_QORE_INT(params, 1);
    HARD_QORE_PARAM(pstr, const QoreStringNode, params, 2);
 
    // for speed, the XML is created directly here
@@ -2021,15 +2029,13 @@ static AbstractQoreNode *f_makeXMLRPCFaultResponseStringWithEncoding(const QoreL
    return rv.release();
 }
 
-// makeFormattedXMLRPCFaultResponseString(param)
 static AbstractQoreNode *makeFormattedXMLRPCFaultResponseString(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
    QORE_TRACE("makeFormattedXMLRPCFaultResponseString()");
 
    int offset = with_enc ? 1 : 0;
    const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : 0;
 
-   const AbstractQoreNode *p0 = get_param(params, offset);
-   int code = p0 ? p0->getAsInt() : 0;
+   int code = (int)HARD_QORE_INT(params, offset);
 
    HARD_QORE_PARAM(p1, const QoreStringNode, params, offset + 1);
    if (!ccs) ccs = p1->getEncoding();
@@ -2048,12 +2054,25 @@ static AbstractQoreNode *makeFormattedXMLRPCFaultResponseString(bool with_enc, c
    return str.release();
 }
 
-// makeFormattedXMLRPCFaultResponseString(param)
+//! Serializes the argument into an XML string in XML-RPC fault response format with whitespace formatting
+/** @param $code the fault code for the response; will be converted to an integer
+    @param $msg the fault message string; the encoding of this argument will define the output encoding of the fault string returned
+    @return a string in XML-RPC fault format in the same encoding as given by the $msg argument, with whitespace formatting
+    @see @ref XMLRPC
+*/
+//# string makeFormattedXMLRPCFaultResponseString(softint $code, string $msg) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCFaultResponseString(const QoreListNode *params, ExceptionSink *xsink) {
    return makeFormattedXMLRPCFaultResponseString(false, params, xsink);
 }
 
-// makeFormattedXMLRPCFaultResponseStringWithEncoding(param)
+//! Serializes the argument into an XML string in XML-RPC fault response format with whitespace formatting with an explicit output encoding
+/** @param $encoding a string giving the output encoding for the resulting XML string
+    @param $code the fault code for the response; will be converted to an integer
+    @param $msg the fault message string
+    @return a string in XML-RPC fault format in the encoding given by the first argument, with whitespace formatting
+    @see @ref XMLRPC
+*/
+//# string makeFormattedXMLRPCFaultResponseStringWithEncoding(string $encoding, softint $code, string $msg) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCFaultResponseStringWithEncoding(const QoreListNode *params, ExceptionSink *xsink) {
    return makeFormattedXMLRPCFaultResponseString(true, params, xsink);
 }
@@ -2090,17 +2109,37 @@ static AbstractQoreNode *makeXMLRPCResponseString(bool with_enc, const QoreListN
    return str.release();
 }
 
-// makeXMLRPCResponseString(params, ...)
+//! Serializes the arguments into an XML string formatted for an XML-RPC response without whitespace formatting
+/** Any top-level arguments to the function will be serialized as the top-level params of the response message
+    @return a string in XML-RPC response format; the encoding of the resulting string will always be the default encoding 
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+*/
+//# string makeXMLRPCResponseString(...) {}
 static AbstractQoreNode *f_makeXMLRPCResponseString(const QoreListNode *params, ExceptionSink *xsink) {
    return makeXMLRPCResponseString(false, params, xsink);
 }
 
-// makeXMLRPCResponseStringWithEncoding(params, ...)
+//! Serializes the arguments into an XML string formatted for an XML-RPC response without whitespace formatting and with an explicit output encoding
+/** @param $encoding a string giving the output encoding for the resulting XML string
+    Any top-level arguments after the first argument will be serialized as the top-level params of the response message
+    @return a string in XML-RPC response format; the encoding will be that given by the first argument
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+*/
+//# string makeXMLRPCResponseStringWithEncoding(string $encoding, ...) {}
 static AbstractQoreNode *f_makeXMLRPCResponseStringWithEncoding(const QoreListNode *params, ExceptionSink *xsink) {
    return makeXMLRPCResponseString(true, params, xsink);
 }
 
-// makeXMLRPCValueString(value, [encoding])
+//! Serializes the arguments into an XML string in XML-RPC value format without whitespace formatting and without an XML header
+/** @param $value the value to serialize to XML-RPC format
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+    @return if the $value argument is NOTHING, then NOTHING is returned, otherwise an XML string in XML-RPC value format without whitespace formatting and without an XML header is returned
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+ */
+//# *string makeXMLRPCValueString(any $value, *string $encoding) {}
 static AbstractQoreNode *f_makeXMLRPCValueString(const QoreListNode *params, ExceptionSink *xsink) {
    QORE_TRACE("f_makeXMLRPCValueString()");
 
@@ -2117,9 +2156,8 @@ static AbstractQoreNode *f_makeXMLRPCValueString(const QoreListNode *params, Exc
    return str;
 }
 
-// makeFormattedXMLRPCCallStringArgs(string (function name), params, ...)
 static AbstractQoreNode *makeFormattedXMLRPCCallStringArgs(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
-   QORE_TRACE("f_makeFormattedXMLRPCCallStringArgs()");
+   QORE_TRACE("makeFormattedXMLRPCCallStringArgs");
 
    int offset = with_enc ? 1 : 0;
    const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
@@ -2164,19 +2202,33 @@ static AbstractQoreNode *makeFormattedXMLRPCCallStringArgs(bool with_enc, const 
    return str.release();
 }
 
-// makeFormattedXMLRPCCallStringArgs(string (function name), params, ...)
+//! Serializes the argument into an XML string in XML-RPC call format with whitespace formatting
+/** @param $method the method name for the XML-RPC call
+    @param $args a single argument or a list of arguments to the call
+    @return an XML string in XML-RPC call format in the default encoding, with whitespace formatting
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+*/
+//# string makeFormattedXMLRPCCallStringArgs(string $method, any $args) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCCallStringArgs(const QoreListNode *params, ExceptionSink *xsink) {
    return makeFormattedXMLRPCCallStringArgs(false, params, xsink);
 }
 
-// makeFormattedXMLRPCCallStringArgs(string (function name), params, ...)
+//! Serializes the argument into an XML string in XML-RPC call format with whitespace formatting
+/** @param $encoding a string giving the output encoding for the resulting XML string
+    @param $method the method name for the XML-RPC call
+    @param $args a single argument or a list of arguments to the call
+    @return a string in XML-RPC call format in the encoding given by the first argument, with whitespace formatting
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+*/
+//# string makeFormattedXMLRPCCallStringArgsWithEncoding(string $encoding, string $method, any $args) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCCallStringArgsWithEncoding(const QoreListNode *params, ExceptionSink *xsink) {
    return makeFormattedXMLRPCCallStringArgs(true, params, xsink);
 }
 
-// makeFormattedXMLRPCCallString(string (function name), params, ...)
 static AbstractQoreNode *makeFormattedXMLRPCCallString(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
-   QORE_TRACE("f_makeFormattedXMLRPCCallString()");
+   QORE_TRACE("makeFormattedXMLRPCCallString");
 
    int offset = with_enc ? 1 : 0;
    const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
@@ -2207,19 +2259,34 @@ static AbstractQoreNode *makeFormattedXMLRPCCallString(bool with_enc, const Qore
    return str.release();
 }
 
-// makeFormattedXMLRPCCallString(string (function name), params, ...)
+//! Serializes the argument into an XML string in XML-RPC call format with whitespace formatting
+/** @param $method the method name for the XML-RPC call
+    Additional arguments are serialized according to the default XML-RPC serialization rules
+    @return an XML string in XML-RPC call format in the default encoding, with whitespace formatting
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+*/
+//# string makeFormattedXMLRPCCallString(string $method, ...) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCCallString(const QoreListNode *params, ExceptionSink *xsink) {
    return makeFormattedXMLRPCCallString(false, params, xsink);
 }
 
-// makeFormattedXMLRPCCallString(string (function name), params, ...)
+//! Serializes the argument into an XML string in XML-RPC call format with whitespace formatting with an explicit encoding
+/** @param $encoding a string giving the output encoding for the resulting XML string
+    @param $method the method name for the XML-RPC call
+    Additional arguments are serialized according to the default XML-RPC serialization rules
+    @return an XML string in XML-RPC call format in the encoding given by the first argument, with whitespace formatting
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+*/
+//# string makeFormattedXMLRPCCallStringWithEncoding(string $encoding, string $method, ...) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCCallStringWithEncoding(const QoreListNode *params, ExceptionSink *xsink) {
    return makeFormattedXMLRPCCallString(true, params, xsink);
 }
 
 // makeFormattedXMLRPCResponseString(params, ...)
 static AbstractQoreNode *makeFormattedXMLRPCResponseString(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
-   QORE_TRACE("f_makeFormattedXMLRPCResponseString()");
+   QORE_TRACE("makeFormattedXMLRPCResponseString");
 
    int offset = with_enc ? 1 : 0;
    const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
@@ -2249,17 +2316,37 @@ static AbstractQoreNode *makeFormattedXMLRPCResponseString(bool with_enc, const 
    return str.release();
 }
 
-// makeFormattedXMLRPCResponseString(params, ...)
+//! Serializes the arguments into an XML string formatted for an XML-RPC response with whitespace formatting
+/** Any top-level arguments to the function will be serialized as the top-level params of the response message
+    @return a string in XML-RPC response format with whitespace formatting; the encoding of the resulting string will always be the default encoding 
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+*/
+//# string makeFormattedXMLRPCResponseString(...) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCResponseString(const QoreListNode *params, ExceptionSink *xsink) {
    return makeFormattedXMLRPCResponseString(false, params, xsink);
 }
 
-// makeFormattedXMLRPCResponseStringWithEncoding(params, ...)
+//! Serializes the arguments into an XML string formatted for an XML-RPC response with whitespace formatting and with an explicit output encoding
+/** @param $encoding a string giving the output encoding for the resulting XML string
+    Any top-level arguments after the first argument will be serialized as the top-level params of the response message
+    @return a string in XML-RPC response format with whitespace formatting; the encoding will be that given by the first argument
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+*/
+//# string makeFormattedXMLRPCResponseStringWithEncoding(string $encoding, ...) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCResponseStringWithEncoding(const QoreListNode *params, ExceptionSink *xsink) {
    return makeFormattedXMLRPCResponseString(true, params, xsink);
 }
 
-// makeFormattedXMLRPCValueString(params, ...)
+//! Serializes the arguments into an XML string in XML-RPC value format with whitespace formatting but without an XML header
+/** @param $value the value to serialize to XML-RPC format
+    @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+    @return if the $value argument is NOTHING, then NOTHING is returned, otherwise an XML string in XML-RPC value format with whitespace formatting but without an XML header is returned
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @see @ref XMLRPC
+ */
+//# *string makeFormattedXMLRPCValueString(any $value, *string $encoding) {}
 static AbstractQoreNode *f_makeFormattedXMLRPCValueString(const QoreListNode *params, ExceptionSink *xsink) {
    QORE_TRACE("f_makeFormattedXMLRPCValueString()");
 
@@ -2277,6 +2364,16 @@ static AbstractQoreNode *f_makeFormattedXMLRPCValueString(const QoreListNode *pa
    return str.release();
 }
 
+//! Deserializies an XML-RPC value string and returns a Qore data structure representing the information
+/** @param $xml the XML string in XML-RPC value format to deserialize
+    @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have the default encoding
+    @return the Qore value corresponding to the XML-RPC value string
+    @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
+    @par Example:
+    @code my any $data = parseXMLRPCValue($xml); @endcode
+    @see @ref XMLRPC
+ */
+//# any parseXMLRPCValue(string $xml, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLRPCValue(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(p0, const QoreStringNode, params, 0);
 
@@ -2326,6 +2423,17 @@ static inline QoreHashNode *qore_xml_hash_exception(const char *ex, ExceptionSin
    return 0;
 }
 
+//! Deserializies an XML-RPC call string, returning a Qore data structure representing the call information
+/** @param $xml the XML string in XML-RPC call format to deserialize
+    @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have the default encoding
+    @return a hash representing the XML-RPC call with the following keys:
+    - \c methodName: the name of the method being called
+    - \c params: the arguments to the method
+    @throw PARSE-XMLRPC-CALL-ERROR missing 'methodCall' or 'methodName' element or other syntax error
+    @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
+    @see @ref XMLRPC
+ */
+//# hash parseXMLRPCCall(string $xml, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLRPCCall(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(p0, const QoreStringNode, params, 0);
 
@@ -2564,9 +2672,9 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
    }
 
    if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT)
-      return qore_xml_hash_exception("PARSE-XMLRPC-CALL-ERROR", "expecting 'methodResponse' end element", xsink, *str);
+      return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'methodResponse' end element", xsink, *str);
 
-   QoreHashNode *h = new QoreHashNode();
+   QoreHashNode *h = new QoreHashNode;
    if (fault)
       h->setKeyValue("fault", v.getValue(), 0);
    else
@@ -2574,6 +2682,19 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
    return h;
 }
 
+//! Deserializies an XML-RPC response string, returning a Qore data structure representing the response information
+/** @param $xml the XML string in XML-RPC call format to deserialize
+    @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have the default encoding
+    @return a hash with one of the following keys:
+    - \c fault: a hash describing a fault response
+    - \c params: a hash describing a normal, non-fault response
+    @throw PARSE-XMLRPC-RESPONSE-ERROR missing required element or other syntax error
+    @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
+    @par Example:
+    @code my hash $h = parseXMLRPCResponse($xml); @endcode
+    @see @ref XMLRPC
+ */
+//# hash parseXMLRPCResponse(string $xml, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLRPCResponse(const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_PARAM(p0, const QoreStringNode, params, 0);
 
@@ -2759,13 +2880,13 @@ void init_xml_functions() {
    builtinFunctions.add2("makeXMLRPCResponseString",                           f_makeXMLRPCResponseString, QC_USES_EXTRA_ARGS | QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringOrNothingTypeInfo);
    builtinFunctions.add2("makeXMLRPCResponseStringWithEncoding",               f_makeXMLRPCResponseStringWithEncoding, QC_USES_EXTRA_ARGS | QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringOrNothingTypeInfo, 1, stringTypeInfo, QORE_PARAM_NO_ARG);
 
-   builtinFunctions.add2("makeXMLRPCFaultResponseString",                      f_makeXMLRPCFaultResponseString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 2, QORE_PARAM_NO_ARG, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
-   builtinFunctions.add2("makeXMLRPCFaultResponseStringWithEncoding",          f_makeXMLRPCFaultResponseStringWithEncoding, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 3, stringTypeInfo, QORE_PARAM_NO_ARG, QORE_PARAM_NO_ARG, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
+   builtinFunctions.add2("makeXMLRPCFaultResponseString",                      f_makeXMLRPCFaultResponseString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 2, softBigIntTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
+   builtinFunctions.add2("makeXMLRPCFaultResponseStringWithEncoding",          f_makeXMLRPCFaultResponseStringWithEncoding, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 3, stringTypeInfo, QORE_PARAM_NO_ARG, softBigIntTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
 
-   // any makeXMLRPCValueString(any $any)  
-   builtinFunctions.add2("makeXMLRPCValueString",                              f_makeXMLRPCValueString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, 0, 1, anyTypeInfo, QORE_PARAM_NO_ARG);
-   // any makeXMLRPCValueString(any $any, string $encoding)  
-   builtinFunctions.add2("makeXMLRPCValueString",                              f_makeXMLRPCValueString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, 0, 2, anyTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
+   // *string makeXMLRPCValueString(any $any)  
+   builtinFunctions.add2("makeXMLRPCValueString",                              f_makeXMLRPCValueString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringOrNothingTypeInfo, 1, anyTypeInfo, QORE_PARAM_NO_ARG);
+   // *string makeXMLRPCValueString(any $any, string $encoding)  
+   builtinFunctions.add2("makeXMLRPCValueString",                              f_makeXMLRPCValueString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringOrNothingTypeInfo, 2, anyTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
 
    builtinFunctions.add2("makeFormattedXMLRPCCallString",                      f_makeFormattedXMLRPCCallString, QC_USES_EXTRA_ARGS | QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 1, stringTypeInfo, QORE_PARAM_NO_ARG);
    builtinFunctions.add2("makeFormattedXMLRPCCallStringWithEncoding",          f_makeFormattedXMLRPCCallStringWithEncoding, QC_USES_EXTRA_ARGS | QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 2, stringTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
@@ -2776,12 +2897,12 @@ void init_xml_functions() {
    builtinFunctions.add2("makeFormattedXMLRPCResponseString",                  f_makeFormattedXMLRPCResponseString, QC_USES_EXTRA_ARGS | QC_RET_VALUE_ONLY);
    builtinFunctions.add2("makeFormattedXMLRPCResponseStringWithEncoding",      f_makeFormattedXMLRPCResponseStringWithEncoding, QC_USES_EXTRA_ARGS | QC_RET_VALUE_ONLY, QDOM_DEFAULT, 0, 1, stringTypeInfo, QORE_PARAM_NO_ARG);
 
-   builtinFunctions.add2("makeFormattedXMLRPCFaultResponseString",             f_makeFormattedXMLRPCFaultResponseString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 2, QORE_PARAM_NO_ARG, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
-   builtinFunctions.add2("makeFormattedXMLRPCFaultResponseStringWithEncoding", f_makeFormattedXMLRPCFaultResponseStringWithEncoding, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 3, stringTypeInfo, QORE_PARAM_NO_ARG, QORE_PARAM_NO_ARG, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
+   builtinFunctions.add2("makeFormattedXMLRPCFaultResponseString",             f_makeFormattedXMLRPCFaultResponseString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 2, softBigIntTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
+   builtinFunctions.add2("makeFormattedXMLRPCFaultResponseStringWithEncoding", f_makeFormattedXMLRPCFaultResponseStringWithEncoding, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo, 3, stringTypeInfo, QORE_PARAM_NO_ARG, softBigIntTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
 
-   // any makeFormattedXMLRPCValueString(any $any)  
-   builtinFunctions.add2("makeFormattedXMLRPCValueString",                     f_makeFormattedXMLRPCValueString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, 0, 1, anyTypeInfo, QORE_PARAM_NO_ARG);
+   // *string makeFormattedXMLRPCValueString(any $any)  
+   builtinFunctions.add2("makeFormattedXMLRPCValueString",                     f_makeFormattedXMLRPCValueString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringOrNothingTypeInfo, 1, anyTypeInfo, QORE_PARAM_NO_ARG);
 
-   // any makeFormattedXMLRPCValueString(any $any, string $encoding)  
-   builtinFunctions.add2("makeFormattedXMLRPCValueString",                     f_makeFormattedXMLRPCValueString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, 0, 2, anyTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
+   // *string makeFormattedXMLRPCValueString(any $any, string $encoding)  
+   builtinFunctions.add2("makeFormattedXMLRPCValueString",                     f_makeFormattedXMLRPCValueString, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringOrNothingTypeInfo, 2, anyTypeInfo, QORE_PARAM_NO_ARG, stringTypeInfo, QORE_PARAM_NO_ARG);
 }

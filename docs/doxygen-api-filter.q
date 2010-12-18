@@ -233,6 +233,7 @@ class filter {
                     exit(1);
                 }
                 splice $sig, 0, 4;
+                $sig =~ s/\$/__6_/g;
                 $of.printf("%s%s\n", $comment, $sig);
 		continue;
 	    }
