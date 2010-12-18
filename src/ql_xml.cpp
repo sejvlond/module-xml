@@ -676,6 +676,8 @@ static AbstractQoreNode *makeXMLStringIntern(const QoreStringNode *pstr, const Q
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
     @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @par Example:
+    @code my string $xml = makeXMLString("key", $hash); @endcode
     @see @ref serialization
  */
 //# string makeXMLString(string $key, hash $h, *string $encoding) {}
@@ -693,6 +695,8 @@ static AbstractQoreNode *f_makeXMLString_str(const QoreListNode *params, Excepti
     @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
     @throw MAKE-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
     @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @par Example:
+    @code my string $xml = makeXMLString($hash); @endcode
     @see @ref serialization
  */
 //# string makeXMLString(hash $h, *string $encoding) {}
@@ -715,6 +719,8 @@ static AbstractQoreNode *f_makeXMLString(const QoreListNode *params, ExceptionSi
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, with whitespace formatting and with an XML header
     @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @par Example:
+    @code my string $xml = makeFormattedXMLString("key", $hash); @endcode
     @see @ref serialization
 */
 //# string makeFormattedXMLString(string $key, hash $h, *string $encoding) {}
@@ -732,6 +738,8 @@ static AbstractQoreNode *f_makeFormattedXMLString_str(const QoreListNode *params
     @return an XML string corresponding to the input data, with whitespace formatting and with an XML header
     @throw MAKE-FORMATTED-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
     @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @par Example:
+    @code my string $xml = makeFormattedXMLString($hash); @endcode
     @see @ref serialization
  */
 //# string makeFormattedXMLString(hash $h, *string $encoding) {}
@@ -753,6 +761,8 @@ static AbstractQoreNode *f_makeFormattedXMLString(const QoreListNode *params, Ex
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, without whitespace formatting and without an XML header
     @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @par Example:
+    @code my string $xml = makeXMLFragment($hash); @endcode
     @see @ref serialization
  */
 //# string makeXMLFragment(hash $h, *string $encoding) {}
@@ -774,6 +784,8 @@ static AbstractQoreNode *f_makeXMLFragment(const QoreListNode *params, Exception
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, with whitespace formatting but without an XML header
     @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @par Example:
+    @code my string $xml = makeFormattedXMLFragment($hash); @endcode
     @see @ref serialization
  */
 //# string makeFormattedXMLFragment(hash $h, *string $encoding) {}
@@ -998,6 +1010,8 @@ QoreStringNode *makeXMLRPCCallString(const QoreEncoding *ccs, int offset, const 
     Additional arguments are serialized according to the default XML-RPC serialization rules
     @return an XML string in XML-RPC call format in the default encoding, without whitespace formatting
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $xmlcall = makeXMLRPCCallString("omq.system.start-workflow", $hash); @endcode
     @see @ref XMLRPC
 */
 //# string makeXMLRPCCallString(string $method, ...) {}
@@ -1011,6 +1025,8 @@ static AbstractQoreNode *f_makeXMLRPCCallString(const QoreListNode *params, Exce
     Additional arguments are serialized according to the default XML-RPC serialization rules
     @return an XML string in XML-RPC call format in the encoding given by the first argument, without whitespace formatting
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $xmlcall = makeXMLRPCCallStringWithEncoding("utf8", "omq.system.start-workflow", $hash); @endcode
     @see @ref XMLRPC
 */
 //# string makeXMLRPCCallStringWithEncoding(string $encoding, string $method, ...) {}
@@ -1065,6 +1081,8 @@ QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, co
     @param $args a single argument or a list of arguments to the call
     @return an XML string in XML-RPC call format in the default encoding, without whitespace formatting
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $xmlcall = makeXMLRPCCallStringArgs("omq.system.start-workflow", $hash); @endcode
     @see @ref XMLRPC
 */
 //# string makeXMLRPCCallStringArgs(string $method, any $args) {}
@@ -1078,6 +1096,8 @@ static AbstractQoreNode *f_makeXMLRPCCallStringArgs(const QoreListNode *params, 
     @param $args a single argument or a list of arguments to the call
     @return a string in XML-RPC call format in the encoding given by the first argument, without whitespace formatting
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $xmlcall = makeXMLRPCCallStringArgsWithEncoding("utf8", "omq.system.start-workflow", $hash); @endcode
     @see @ref XMLRPC
 */
 //# string makeXMLRPCCallStringArgsWithEncoding(string $encoding, string $method, any $args) {}
@@ -1954,6 +1974,10 @@ static AbstractQoreNode *parseXMLIntern(bool as_data, const QoreListNode *params
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, all strings in the output hash will have the default encoding
     @return a Qore hash structure corresponding to the XML input string
     @throw PARSE-XML-EXCEPTION Error parsing the XML string
+    @par Example:
+    @code my hash $h = parseXML($xmlstr); @endcode
+    @see parseXMLAsData()
+    @see @ref serialization
 */
 //# hash parseXML(string $xml, *string $encoding) {}
 static AbstractQoreNode *f_parseXML(const QoreListNode *params, ExceptionSink *xsink) {
@@ -1970,6 +1994,10 @@ static AbstractQoreNode *f_parseXML(const QoreListNode *params, ExceptionSink *x
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, all strings in the output hash will have the default encoding
     @return a Qore hash structure corresponding to the XML input string
     @throw PARSE-XML-EXCEPTION Error parsing the XML string
+    @par Example:
+    @code my hash $h = parseXMLAsData($xmlstr); @endcode
+    @see parseXML()
+    @see @ref serialization
 */
 //# hash parseXMLAsData(string $xml, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLAsData(const QoreListNode *params, ExceptionSink *xsink) {
@@ -1980,6 +2008,8 @@ static AbstractQoreNode *f_parseXMLAsData(const QoreListNode *params, ExceptionS
 /** @param $code the fault code for the response; will be converted to an integer
     @param $msg the fault message string; the encoding of this argument will define the output encoding of the fault string returned
     @return a string in XML-RPC fault format in the same encoding as given by the $msg argument, without whitespace formatting
+    @par Example:
+    @code my string $response = makeXMLRPCFaultResponseString(500, $errmsg); @endcode
     @see @ref XMLRPC
 */
 //# string makeXMLRPCFaultResponseString(softint $code, string $msg) {}
@@ -2005,6 +2035,8 @@ static AbstractQoreNode *f_makeXMLRPCFaultResponseString(const QoreListNode *par
     @param $code the fault code for the response; will be converted to an integer
     @param $msg the fault message string
     @return a string in XML-RPC fault format in the encoding given by the first argument, without whitespace formatting
+    @par Example:
+    @code my string $response = makeXMLRPCFaultResponseStringWithEncoding("utf8", 500, $errmsg); @endcode
     @see @ref XMLRPC
 */
 //# string makeXMLRPCFaultResponseStringWithEncoding(string $encoding, softint $code, string $msg) {}
@@ -2058,6 +2090,8 @@ static AbstractQoreNode *makeFormattedXMLRPCFaultResponseString(bool with_enc, c
 /** @param $code the fault code for the response; will be converted to an integer
     @param $msg the fault message string; the encoding of this argument will define the output encoding of the fault string returned
     @return a string in XML-RPC fault format in the same encoding as given by the $msg argument, with whitespace formatting
+    @par Example:
+    @code my string $response = makeFormattedXMLRPCFaultResponseString(500, $errmsg); @endcode
     @see @ref XMLRPC
 */
 //# string makeFormattedXMLRPCFaultResponseString(softint $code, string $msg) {}
@@ -2070,6 +2104,8 @@ static AbstractQoreNode *f_makeFormattedXMLRPCFaultResponseString(const QoreList
     @param $code the fault code for the response; will be converted to an integer
     @param $msg the fault message string
     @return a string in XML-RPC fault format in the encoding given by the first argument, with whitespace formatting
+    @par Example:
+    @code my string $response = makeFormattedXMLRPCFaultResponseStringWithEncoding("utf8", 500, $errmsg); @endcode
     @see @ref XMLRPC
 */
 //# string makeFormattedXMLRPCFaultResponseStringWithEncoding(string $encoding, softint $code, string $msg) {}
@@ -2113,6 +2149,8 @@ static AbstractQoreNode *makeXMLRPCResponseString(bool with_enc, const QoreListN
 /** Any top-level arguments to the function will be serialized as the top-level params of the response message
     @return a string in XML-RPC response format; the encoding of the resulting string will always be the default encoding 
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $response = makeXMLRPCResponseString($answer); @endcode
     @see @ref XMLRPC
 */
 //# string makeXMLRPCResponseString(...) {}
@@ -2125,6 +2163,8 @@ static AbstractQoreNode *f_makeXMLRPCResponseString(const QoreListNode *params, 
     Any top-level arguments after the first argument will be serialized as the top-level params of the response message
     @return a string in XML-RPC response format; the encoding will be that given by the first argument
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $response = makeXMLRPCResponseStringWithEncoding("utf8", $answer); @endcode
     @see @ref XMLRPC
 */
 //# string makeXMLRPCResponseStringWithEncoding(string $encoding, ...) {}
@@ -2137,6 +2177,8 @@ static AbstractQoreNode *f_makeXMLRPCResponseStringWithEncoding(const QoreListNo
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return if the $value argument is NOTHING, then NOTHING is returned, otherwise an XML string in XML-RPC value format without whitespace formatting and without an XML header is returned
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my *string $val = makeXMLRPCValueString($v); @endcode
     @see @ref XMLRPC
  */
 //# *string makeXMLRPCValueString(any $value, *string $encoding) {}
@@ -2207,6 +2249,8 @@ static AbstractQoreNode *makeFormattedXMLRPCCallStringArgs(bool with_enc, const 
     @param $args a single argument or a list of arguments to the call
     @return an XML string in XML-RPC call format in the default encoding, with whitespace formatting
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $xmlcall = makeFormattedXMLRPCCallStringArgs("omq.system.start-workflow", $hash); @endcode
     @see @ref XMLRPC
 */
 //# string makeFormattedXMLRPCCallStringArgs(string $method, any $args) {}
@@ -2220,6 +2264,8 @@ static AbstractQoreNode *f_makeFormattedXMLRPCCallStringArgs(const QoreListNode 
     @param $args a single argument or a list of arguments to the call
     @return a string in XML-RPC call format in the encoding given by the first argument, with whitespace formatting
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $xmlcall = makeFormattedXMLRPCCallStringArgsWithEncoding("utf8", "omq.system.start-workflow", $hash); @endcode
     @see @ref XMLRPC
 */
 //# string makeFormattedXMLRPCCallStringArgsWithEncoding(string $encoding, string $method, any $args) {}
@@ -2264,6 +2310,8 @@ static AbstractQoreNode *makeFormattedXMLRPCCallString(bool with_enc, const Qore
     Additional arguments are serialized according to the default XML-RPC serialization rules
     @return an XML string in XML-RPC call format in the default encoding, with whitespace formatting
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $xmlcall = makeFormattedXMLRPCCallString("omq.system.start-workflow", $hash); @endcode
     @see @ref XMLRPC
 */
 //# string makeFormattedXMLRPCCallString(string $method, ...) {}
@@ -2277,6 +2325,8 @@ static AbstractQoreNode *f_makeFormattedXMLRPCCallString(const QoreListNode *par
     Additional arguments are serialized according to the default XML-RPC serialization rules
     @return an XML string in XML-RPC call format in the encoding given by the first argument, with whitespace formatting
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $xmlcall = makeFormattedXMLRPCCallStringWithEncoding("utf8", "omq.system.start-workflow", $hash); @endcode
     @see @ref XMLRPC
 */
 //# string makeFormattedXMLRPCCallStringWithEncoding(string $encoding, string $method, ...) {}
@@ -2320,6 +2370,8 @@ static AbstractQoreNode *makeFormattedXMLRPCResponseString(bool with_enc, const 
 /** Any top-level arguments to the function will be serialized as the top-level params of the response message
     @return a string in XML-RPC response format with whitespace formatting; the encoding of the resulting string will always be the default encoding 
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $response = makeFormattedXMLRPCResponseString($answer); @endcode
     @see @ref XMLRPC
 */
 //# string makeFormattedXMLRPCResponseString(...) {}
@@ -2332,6 +2384,8 @@ static AbstractQoreNode *f_makeFormattedXMLRPCResponseString(const QoreListNode 
     Any top-level arguments after the first argument will be serialized as the top-level params of the response message
     @return a string in XML-RPC response format with whitespace formatting; the encoding will be that given by the first argument
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my string $response = makeFormattedXMLRPCResponseStringWithEncoding("utf8", $answer); @endcode
     @see @ref XMLRPC
 */
 //# string makeFormattedXMLRPCResponseStringWithEncoding(string $encoding, ...) {}
@@ -2344,6 +2398,8 @@ static AbstractQoreNode *f_makeFormattedXMLRPCResponseStringWithEncoding(const Q
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return if the $value argument is NOTHING, then NOTHING is returned, otherwise an XML string in XML-RPC value format with whitespace formatting but without an XML header is returned
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
+    @par Example:
+    @code my *string $val = makeFormattedXMLRPCValueString($v); @endcode
     @see @ref XMLRPC
  */
 //# *string makeFormattedXMLRPCValueString(any $value, *string $encoding) {}
@@ -2431,7 +2487,9 @@ static inline QoreHashNode *qore_xml_hash_exception(const char *ex, ExceptionSin
     - \c params: the arguments to the method
     @throw PARSE-XMLRPC-CALL-ERROR missing 'methodCall' or 'methodName' element or other syntax error
     @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
-    @see @ref XMLRPC
+    @par Example:
+    @code my hash $h = parseXMLRPCCall($xml); @endcode
+    @see @ref XMLRPC    
  */
 //# hash parseXMLRPCCall(string $xml, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLRPCCall(const QoreListNode *params, ExceptionSink *xsink) {
@@ -2794,18 +2852,120 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
 #endif
 }
 
+//! Parses an XML string, validates the XML string against an XSD schema string, and returns a Qore hash structure
+/** If any errors occur parsing the XSD string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
+
+    If duplicate, out-of-order XML elements are found in the input string, they are deserialized to Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the Qore hash as in the input XML string.
+
+    This function should only be used when it is important to maintain the XML element order in the resulting Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.  Otherwise parseXMLAsDataWithSchema() should be used instead.
+
+    The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before running this function.
+
+    @param $xml the XML string to parse
+    @param $xsd the XSD schema string to use to validate the XML string
+    @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have UTF-8 encoding
+
+    @return a Qore hash structure corresponding to the input
+
+    @throw PARSE-XML-EXCEPTION error parsing the XML string
+    @throw PARSE-XML-WITH-SCHEMA-ERROR invalid arguments passed to the function
+    @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
+
+    @par Example:
+    @code my hash $h = parseXMLWithSchema($xml, $xsd); @endcode
+
+    @see parseXMLAsDataWithSchema(), parseXMLWithRelaxNG(), parseXMLAsDataWithRelaxNG()
+*/
+//# hash parseXMLWithSchema(string $xml, string $xsd, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLWithSchema(const QoreListNode *params, ExceptionSink *xsink) {
    return parseXMLWithSchemaIntern(false, params, xsink);
 }
 
+//! Parses an XML string as data (does not preserve hash order with out-of-order duplicate keys: collapses all to the same list), validates the XML string against an XSD schema string, and returns a Qore hash structure
+/** If any errors occur parsing the XSD string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
+
+    Please note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
+
+    For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXMLWithSchema().
+
+    If any errors occur parsing the XSD string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown.  If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
+
+    The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before running this function.
+
+    @param $xml the XML string to parse
+    @param $xsd the XSD schema string to use to validate the XML string
+    @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have UTF-8 encoding
+
+    @return a Qore hash structure corresponding to the input
+
+    @throw PARSE-XML-EXCEPTION error parsing the XML string
+    @throw PARSE-XML-WITH-SCHEMA-ERROR invalid arguments passed to the function
+    @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
+
+    @par Example:
+    @code my hash $h = parseXMLAsDataWithSchema($xml, $xsd); @endcode
+
+    @see parseXMLWithSchema(), parseXMLWithRelaxNG(), parseXMLAsDataWithRelaxNG()
+*/
+//# hash parseXMLAsDataWithSchema(string $xml, string $xsd, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLAsDataWithSchema(const QoreListNode *params, ExceptionSink *xsink) {
    return parseXMLWithSchemaIntern(true, params, xsink);
 }
 
+//! Parses an XML string, validates the XML string against a RelaxNG schema string, and returns a Qore hash structure
+/** If any errors occur parsing the RelaxNG string, parsing the XML string, or validating the XML against the RelaxNG schema, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
+
+    If duplicate, out-of-order XML elements are found in the input string, they are deserialized to Qore hash elements with the same name as the XML element but including a caret "^" and a numeric prefix to maintain the same key order in the Qore hash as in the input XML string.
+
+    This function should only be used when it is important to maintain the XML element order in the resulting Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.  Otherwise parseXMLAsDataWithRelaxNG() should be used instead.
+
+    The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
+
+    @param $xml the XML string to parse
+    @param $relaxng the RelaxNG schema string to use to validate the XML string
+    @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have UTF-8 encoding
+
+    @return a Qore hash structure corresponding to the input
+
+    @throw PARSE-XML-EXCEPTION error parsing the XML string
+    @throw PARSE-XML-WITH-RELAXNG-ERROR invalid arguments passed to the function
+    @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
+
+    @par Example:
+    @code my hash $h = parseXMLWithRelaxNG($xml, $relaxng); @endcode
+
+    @see parseXMLWithSchema(), parseXMLAsDataWithSchema(), parseXMLAsDataWithRelaxNG()
+*/
+//# hash parseXMLWithRelaxNG(string $xml, string $relaxng, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLWithRelaxNG(const QoreListNode *params, ExceptionSink *xsink) {
    return parseXMLWithRelaxNGIntern(false, params, xsink);
 }
 
+//! Parses an XML string as data (does not preserve hash order with out-of-order duplicate keys: collapses all to the same list), validates the XML string against a RelaxNG schema string, and returns a Qore hash structure
+/** If any errors occur parsing the RelaxNG schema string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
+
+Please note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
+
+For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXMLWithRelaxNG().
+
+    The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
+
+    @param $xml the XML string to parse
+    @param $relaxng the RelaxNG schema string to use to validate the XML string
+    @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have UTF-8 encoding
+
+    @return a Qore hash structure corresponding to the input
+
+    @throw PARSE-XML-EXCEPTION error parsing the XML string
+    @throw PARSE-XML-WITH-RELAXNG-ERROR invalid arguments passed to the function
+    @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
+
+    @par Example:
+    @code my hash $h = parseXMLAsDataWithRelaxNG($xml, $relaxng); @endcode
+
+    @see parseXMLWithSchema(), parseXMLAsDataWithSchema(), parseXMLWithRelaxNG()
+ */
+//# hash parseXMLAsDataWithRelaxNG(string $xml, string $relaxng, *string $encoding) {}
 static AbstractQoreNode *f_parseXMLAsDataWithRelaxNG(const QoreListNode *params, ExceptionSink *xsink) {
    return parseXMLWithRelaxNGIntern(true, params, xsink);
 }

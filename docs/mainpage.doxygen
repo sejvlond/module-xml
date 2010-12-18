@@ -6,7 +6,35 @@
 
     XML provides a way to describe hierarchical data, and thanks to  <a href="http://xmlsoft.org">libxml2</a>, Qore can allow for easy serialization and deserialization between XML strings and Qore data structures.
 
-    @section serialization Serialization and Deserialization
+    @section optionconstants
+    
+    The following constants give information about the availability of XML functionality (dependent on libxml2 features at compile time):
+
+    <b>XML Option Constants</b>
+    @htmlonly <style><!-- td.qore { background-color: #5b9409; color: white; } --></style> @endhtmlonly
+    <table>
+      <tr>
+        <td class="qore"><b>Name</b></td>
+        <td class="qore"><b>Type</b></td>
+        <td class="qore"><b>Description</b></td>
+      </tr>
+      <tr>
+        <td>\c HAVE_PARSEXMLWITHRELAXNG</td>
+        <td>\c bool</td>
+        <td>Indicates if parseXMLWithRelaxNG() and XmlReader::relaxNGValidate() are available</td>
+      </tr>
+      <tr>
+        <td>\c HAVE_PARSEXMLWITHSCHEMA</td>
+        <td>\c bool</td>
+        <td>Indicates if parseXMLWithSchema() and XmlReader::schemaValidate() are available</td>
+      </tr>
+    </table>
+
+    If either of the above constants are \c False, then calling any of the dependent functions or methods will result in a run-time exception.
+
+    @section serialization Automatic XML Serialization and Deserialization
+
+    This section describes automatic XML serialization and deserialization; for iterative or user-controlled XML parsing, see @ref xmlclasses "XML Classes".
 
     XML serialization (conversion from Qore data structures to XML strings) in Qore relies on the fact that Qore hashes retain insertion order, which means that conversion to and from Qore data structures and XML strings can be done without data loss and without reordering the XML elements. In general, XML serialization is relatively straighforward, but there are a few issues to be aware of, particularly regarding element attributes and lists. These issues are described in the following paragraphs.
 
@@ -100,7 +128,6 @@ printf("%s\n", makeFormattedXMLString(__6_h));@endcode
     Also note that \c CDATA text will be generated if a hash key starts with \c '^cdata'; such text will not be processed for escape code substitution. When deserializing XML strings to qore data structures, CDATA text will be placed unmodified under such a hash key as well.
 
     <b>Functions For XML Serialization and Deserialization</b>
-    @htmlonly <style><!-- td.qore { background-color: #5b9409; color: white; } --></style> @endhtmlonly
     <table>
       <tr>
         <td class="qore"><b>Function Name</b></td>
@@ -140,6 +167,7 @@ printf("%s\n", makeFormattedXMLString(__6_h));@endcode
       </tr>
     </table>
 
+    @anchor xmlclasses
     <b>Classes Providing XML Functionality</b>
     <table>
       <tr>
