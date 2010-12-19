@@ -2796,7 +2796,7 @@ static AbstractQoreNode *parseXMLWithSchemaIntern(bool as_data, const QoreListNo
    int rc = reader.setSchema(schema.getSchema());
    if (rc < 0) {
       if (!*xsink)
-	 xsink->raiseException("XML-SCHEMA-ERROR", "XML schema passed as second argument to parseXMLWithSchema() could not be validated");      
+	 xsink->raiseException("XSD-VALIDATION-ERROR", "XML schema passed as second argument to parseXMLWithSchema() could not be validated");      
       return 0;
    }
 
@@ -2841,7 +2841,7 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
    int rc = reader.setRelaxNG(schema.getSchema());
    if (rc < 0) {
       if (!*xsink)
-	 xsink->raiseException("XML-SCHEMA-ERROR", "RelaxNG schema passed as second argument to parseXMLWithRelaxNG() could not be validated");      
+	 xsink->raiseException("RELAXNG-VALIDATION-ERROR", "RelaxNG schema passed as second argument to parseXMLWithRelaxNG() could not be validated");      
       return 0;
    }
 
@@ -2868,7 +2868,8 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
     @return a Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
-    @throw PARSE-XML-WITH-SCHEMA-ERROR invalid arguments passed to the function
+    @throw XML-SCHEMA-ERROR invalid XSD string
+    @throw XSD-VALIDATION-ERROR the XML did not pass schema validation
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
 
     @par Example:
@@ -2899,7 +2900,8 @@ static AbstractQoreNode *f_parseXMLWithSchema(const QoreListNode *params, Except
     @return a Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
-    @throw PARSE-XML-WITH-SCHEMA-ERROR invalid arguments passed to the function
+    @throw XML-SCHEMA-ERROR invalid XSD string
+    @throw XSD-VALIDATION-ERROR the XML did not pass schema validation
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
 
     @par Example:
@@ -2928,7 +2930,8 @@ static AbstractQoreNode *f_parseXMLAsDataWithSchema(const QoreListNode *params, 
     @return a Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
-    @throw PARSE-XML-WITH-RELAXNG-ERROR invalid arguments passed to the function
+    @throw XML-RELAXNG-ERROR invalid RelaxNG string
+    @throw RELAXNG-VALIDATION-ERROR the XML did not pass RelaxNG schema validation
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
 
     @par Example:
@@ -2944,9 +2947,9 @@ static AbstractQoreNode *f_parseXMLWithRelaxNG(const QoreListNode *params, Excep
 //! Parses an XML string as data (does not preserve hash order with out-of-order duplicate keys: collapses all to the same list), validates the XML string against a RelaxNG schema string, and returns a Qore hash structure
 /** If any errors occur parsing the RelaxNG schema string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
 
-Please note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
+    Please note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
 
-For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXMLWithRelaxNG().
+    For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXMLWithRelaxNG().
 
     The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
 
@@ -2957,7 +2960,8 @@ For a similar function preserving the order of keys in the XML in the resulting 
     @return a Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
-    @throw PARSE-XML-WITH-RELAXNG-ERROR invalid arguments passed to the function
+    @throw XML-RELAXNG-ERROR invalid RelaxNG string
+    @throw RELAXNG-VALIDATION-ERROR the XML did not pass RelaxNG schema validation
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
 
     @par Example:
