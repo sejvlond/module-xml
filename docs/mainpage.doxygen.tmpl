@@ -1,12 +1,19 @@
 /** @mainpage Qore XML Module
 
+    Contents of this documentation:
+    - @ref intro
+    - @ref optionconstants
+    - @ref serialization
+    - @ref XMLRPC
+    - @ref codetags
+
     @section intro Introduction
 
     XML functionality in the Qore xml module is provided by the <a href="http://xmlsoft.org">libxml2 library</a>, which provides a powerful, stable, clean, and thread-safe basis for XML integration in Qore.
 
     XML provides a way to describe hierarchical data, and thanks to  <a href="http://xmlsoft.org">libxml2</a>, Qore can allow for easy serialization and deserialization between XML strings and Qore data structures.
 
-    @section optionconstants
+    @section optionconstants Module Option Constants
     
     The following constants give information about the availability of XML functionality (dependent on libxml2 features at compile time):
 
@@ -119,8 +126,10 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     |makeXMLFragment()|Serializes a hash into an XML string without an XML header or formatting.
     |makeXMLString()|Serializes a hash into a complete XML string with an XML header and without formatting.
     |parseXMLAsData()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and returns a Qore hash structure.
+    |parseXMLAsDataWithRelaxNG()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against a RelaxNG schema string and returns a Qore hash structure.
     |parseXMLAsDataWithSchema()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against an XSD schema string and returns a Qore hash structure.
     |parseXML()|parses an XML string (XML element order is preserved by appending numeric suffixes to Qore hash key names when necessary) and returns a Qore hash structure.
+    |parseXMLWithRelaxNG()|parses an XML string (XML element order is preserved by appending numeric suffixes to Qore hash key names when necessary) and validates against a RelaxNG schema string and returns a Qore hash structure.
     |parseXMLWithSchema()|parses an XML string (XML element order is preserved by appending numeric suffixes to Qore hash key names when necessary) and validates against an XSD schema string and returns a Qore hash structure.
 
     @anchor xmlclasses
@@ -168,4 +177,17 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     |parseXMLRPCResponse()|deserializies an XML-RPC response string, returning a Qore hash respresenting the response information.
     |parseXMLRPCValue()|deserializies an XML-RPC value tree, returning a Qore hash respresenting the information.
 
+    @section codetags Function and Method Tags
+
+    @subsection RUNTIME_NOOP
+
+    Code with this flag makes no calculations, but rather returns a constant value.  This flag is given to function and method variants that return a default value depending on the type of argument(s).  When variants with this flag are resolved at parse time, a \c "call-with-type-errors" warning is raised (assuming this warning is enabled), unless \c PO_REQUIRE_TYPES or \c PO_STRICT_ARGS is set.  If \c PO_REQUIRE_TYPES or \c PO_STRICT_ARGS is set, then these variants are inaccessible; resolving to a variant with this flag set at parse time or run time causes an exception to be thrown. These variants are included for backwards-compatibility with qore prior to version 0.8.0 for functions that would ignore type errors in arguments.
+
+    @subsection CONST
+	
+    This flag indicates that the function or method has no side effects and does not throw any exceptions.
+
+    @subsection DEPRECATED
+	
+    Code with this flag is deprecated and may be removed in a future version of Qore; if a variant with this flag is resolved at parse time, a deprecated warning is raised (assuming this warning is enabled).
 */

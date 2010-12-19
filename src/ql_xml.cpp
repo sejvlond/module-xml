@@ -1984,6 +1984,12 @@ static AbstractQoreNode *f_parseXML(const QoreListNode *params, ExceptionSink *x
    return parseXMLIntern(false, params, xsink);
 }
 
+//! This is a variant that is basically a noop, included for backwards-compatibility for functions that ignored type errors in the calling parameters
+/** @par Tags:
+    @ref RUNTIME_NOOP
+ */
+//# nothing parseXML() {}
+
 //! Parses an XML string as data (does not necessarily preserve key order) and returns a Qore hash structure
 /** This function does not preserve hash order with out-of-order duplicate keys; all duplicate keys are collapsed to the same list.
 
