@@ -27,7 +27,7 @@ EXTRA_DIST = COPYING ChangeLog AUTHORS README \
 ACLOCAL_AMFLAGS=-I m4
 
 if COND_DOXYGEN
-DX_CLEANFILES = docs/library
+DX_CLEANFILES = ${DOXYFILES}
 docs/xml/html/index.html: $(DOXYFILES)
 	cd docs; $(DOXYGEN_CMD) doxyfile;
 	$(DOXYGEN_QORE_API_FILTER) --post $(DOXYGEN_OUTPUT)/html/*html
@@ -39,6 +39,9 @@ else
 doxygen-doc:
 	echo no doxygen support
 endif
+
+mostlyclean-local:
+	rm -rf ${DOXYGEN_OUTPUT} ${DX_CLEANFILES}
 
 docs/mainpage.doxygen: docs/mainpage.doxygen.tmpl
 	$(DOXYGEN_QORE_API_FILTER) -l $<
