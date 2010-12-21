@@ -7,7 +7,11 @@ DOXYGEN_OUTPUT=docs/xml
 
 DOXYFILES = docs/doxyfile \
 	docs/mainpage.doxygen \
-	docs/xml.q
+	docs/xml.q \
+	docs/XmlRpcClient.qc \
+	docs/XmlDoc.qc \
+	docs/XmlNode.qc \
+	docs/XmlReader.qc
 
 noinst_HEADERS = src/QC_XmlDoc.h \
 	src/QC_XmlNode.h \
@@ -50,6 +54,18 @@ docs/doxyfile: docs/doxyfile.tmpl
 	sed s/__VERSION__/${VERSION}/ $< > $@
 
 docs/xml.q: src/ql_xml.cpp
+	$(DOXYGEN_QORE_API_FILTER) $< $@
+
+docs/XmlRpcClient.qc: src/QC_XmlRpcClient.cpp
+	$(DOXYGEN_QORE_API_FILTER) $< $@
+
+docs/XmlDoc.qc: src/QC_XmlDoc.cpp
+	$(DOXYGEN_QORE_API_FILTER) $< $@
+
+docs/XmlNode.qc: src/QC_XmlNode.cpp
+	$(DOXYGEN_QORE_API_FILTER) $< $@
+
+docs/XmlReader.qc: src/QC_XmlReader.cpp
 	$(DOXYGEN_QORE_API_FILTER) $< $@
 
 libtool: $(LIBTOOL_DEPS)

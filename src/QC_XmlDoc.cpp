@@ -20,6 +20,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+//! @file XmlDoc.qc defines the XmlDoc class
 
 #include "qore-xml-module.h"
 
@@ -36,7 +37,7 @@ int QoreXmlDoc::validateRelaxNG(const char *rng, int size, ExceptionSink *xsink)
    QoreXmlRelaxNGContext schema(rng, size, xsink);
    if (!schema) {
       if (!*xsink)
-	 xsink->raiseException("RELAXNG-ERROR", "RelaxNG schema passed as argument to XmlDoc::validateRelaxNG() could not be parsed");
+	 xsink->raiseException("RELAXNG-SYNTAX-ERROR", "RelaxNG schema passed as argument to XmlDoc::validateRelaxNG() could not be parsed");
       return -1;
    }
 
@@ -61,7 +62,7 @@ int QoreXmlDoc::validateSchema(const char *xsd, int size, ExceptionSink *xsink) 
    QoreXmlSchemaContext schema(xsd, size, xsink);
    if (!schema) {
       if (!*xsink)
-	 xsink->raiseException("XSD-ERROR", "XSD schema passed as argument to XmlDoc::validateSchema() could not be parsed");
+	 xsink->raiseException("XSD-SYNTAX-ERROR", "XSD schema passed as argument to XmlDoc::validateSchema() could not be parsed");
       return -1;
    }
 
@@ -101,6 +102,41 @@ QoreXmlNodeData *doNode(xmlNodePtr p, QoreXmlDocData *doc) {
    return new QoreXmlNodeData(p, doc);
 }
 
+//! main Qore Programming Language namespace
+/** main Qore Programming Language namespace
+ */
+/**# namespace Qore {
+//! namespace for XML parsing and utility classes
+namespace Xml {
+*/
+//! The XmlDoc class provides access to a parsed XML document by wrapping a \c C \c xmlDocPtr from <a href="http://xmlsoft.org">libxml2</a>
+/** Currently this class provides read-only access to XML documents; it is possible that this restriction will be removed in future versions of the xml module.
+ */
+/**# class XmlDoc {
+public:
+   constructor(hash $data);
+   constructor(string $xml);
+   XmlDoc copy();
+   string getVersion();
+   hash toQore();
+   hash toQoreData();
+   string toString();
+   list evalXPath(string $xpath);
+   *XmlNode getRootElement();
+   nothing validateRelaxNG(string $relaxng);
+   nothing validateSchema(string $xsd);
+};
+};
+};
+ */
+
+//! creates a new XmlDoc object from the hash value passed
+/** @param $data the must have only one top-level key, as the XML string that will be used for the XmlDoc object will be created directly from the hash
+
+    @par Example:
+    @code my XmlDoc $xd($hash); @endcode
+ */
+//# Qore::Xml::XmlDoc::constructor(hash $data) {}
 static void XMLDOC_constructor_hash(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreHashNode *h = HARD_QORE_HASH(params, 0);
    SimpleRefHolder<QoreStringNode> xml(makeXMLString(QCS_UTF8, *h, false, xsink));
@@ -115,6 +151,13 @@ static void XMLDOC_constructor_hash(QoreObject *self, const QoreListNode *params
    self->setPrivate(CID_XMLDOC, xd.release());   
 }
 
+//! a new XmlDoc object from the XML string passed
+/** @param $xml the XML string to use as a basis for the XmlDoc object 
+
+    @par Example:
+    @code my XmlDoc $xd($xml); @endcode
+ */
+//# Qore::Xml::XmlDoc::constructor(string $xml) {}
 static void XMLDOC_constructor_str(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *str = HARD_QORE_STRING(params, 0);
    SimpleRefHolder<QoreXmlDocData> xd(new QoreXmlDocData(str));
@@ -126,14 +169,43 @@ static void XMLDOC_constructor_str(QoreObject *self, const QoreListNode *params,
    self->setPrivate(CID_XMLDOC, xd.release());   
 }
 
+//! Returns a copy of the current object
+/** @return a copy of the current object
+
+    @par Example:
+    @code my XmlDoc $xdcopy = $xd.copy(); @endcode
+*/
+//# Qore::Xml::XmlDoc Qore::Xml::XmlDoc::copy() {}
 static void XMLDOC_copy(QoreObject *self, QoreObject *old, QoreXmlDocData *xd, ExceptionSink *xsink) {
    self->setPrivate(CID_XMLDOC, new QoreXmlDocData(*xd));
 }
 
+//! Returns the XML version of the contained XML document
+/** @return the XML version of the contained XML document (normally \c "1.0")
+    
+    @par Example:
+    @code my string $xmlver = $xd.getVersion(); @endcode
+ */
+//# string Qore::Xml::XmlDoc::getVersion() {}
 static AbstractQoreNode *XMLDOC_getVersion(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    return new QoreStringNode(xd->getVersion());
 }
 
+//! Returns a hash corresponding to the data contained in the XML document with out-of-order keys preserved by appending a suffix to hash keys
+/** Returns a hash structure correponding to the XML data contained by the XmlDoc object.  If duplicate, out-of-order XML elements are found in the input string, they are deserialized to hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the hash as in the input XML string.
+
+    For a similar method not preserving the order of keys in the XML in the resulting hash by collapsing all elements at the same level with the same name to the same list, see XmlDoc::toQoreData(). 
+
+    @return a hash corresponding to the data contained in the XML document with out-of-order keys preserved by appending a suffix to hash keys
+
+    @throw PARSE-XML-EXCEPTION error parsing XML string
+
+    @par Example:
+    @code my hash $h = $xd.toQore(); @endcode
+
+    @see parseXMLAsData() and parseXML()
+ */
+//# hash Qore::Xml::XmlDoc::toQore() {}
 static AbstractQoreNode *XMLDOC_toQore(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    QoreXmlReader reader(xd->getDocPtr(), xsink);
    if (*xsink)
@@ -141,6 +213,23 @@ static AbstractQoreNode *XMLDOC_toQore(QoreObject *self, QoreXmlDocData *xd, con
    return reader.parseXMLData(QCS_UTF8, false, xsink);
 }
 
+//! Returns a Qore hash corresponding to the data contained in the XML document; out-of-order keys are not preserved but are instead collapsed to the same Qore list
+/** Returns a Qore hash structure corresponding to the XML data contained by the XmlDoc object; does not preserve hash order with out-of-order duplicate keys: collapses all to the same list.
+
+    Note that data deserialized with this function may not be reserialized to the same input XML string due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
+
+    For a similar method preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see XmlDoc::toQore().
+
+    @return a Qore hash corresponding to the data contained in the XML document; out-of-order keys are not preserved but are instead collapsed to the same Qore list
+
+    @throw PARSE-XML-EXCEPTION error parsing XML string
+
+    @par Example:
+    @code my hash $h = $xd.toQoreData(); @endcode
+
+    @see parseXMLAsData() and parseXML()
+ */
+//# hash Qore::Xml::XmlDoc::toQoreData() {}
 static AbstractQoreNode *XMLDOC_toQoreData(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    QoreXmlReader reader(xd->getDocPtr(), xsink);
    if (*xsink)
@@ -148,10 +237,30 @@ static AbstractQoreNode *XMLDOC_toQoreData(QoreObject *self, QoreXmlDocData *xd,
    return reader.parseXMLData(QCS_UTF8, true, xsink);
 }
 
+//! Returns the XML string for the XmlDoc object
+/** @return the XML string for the XmlDoc object
+    @throw XML-DOC-TOSTRING-ERROR libxml2 reported an error while attempting to export the XmlDoc object's contents as an XML string
+
+    @par Example:
+    @code my string $xml = $xd.toString(); @endcode
+*/
+//# string Qore::Xml::XmlDoc::toString() {}
 static AbstractQoreNode *XMLDOC_toString(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    return xd->toString(xsink);
 }
 
+//! Evaluates an <a href="http://www.w3.org/TR/xpath">XPath</a> expression and returns a list of matching XmlNode objects.
+/** @param $xpath the <a href="http://www.w3.org/TR/xpath">XPath</a> expression to evaluate against the XmlDoc object
+
+    @return a list of XmlNode object matching the <a href="http://www.w3.org/TR/xpath">XPath</a> expression passed as an argument
+
+    @throw XPATH-CONSTRUCTOR-ERROR cannot create XPath context from the XmlDoc object (ex: syntax error in xpath string)
+    @throw XPATH-ERROR an error occured evaluating the XPath expression
+
+    @par Example:
+    @code my list $list = $xd.evalXPath("//list[2]"); @endcode
+ */
+//# list Qore::Xml::XmlDoc::evalXPath(string $xpath) {}
 static AbstractQoreNode *XMLDOC_evalXPath(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *expr = HARD_QORE_STRING(params, 0);
    QoreXPath xp(xd, xsink);
@@ -161,12 +270,32 @@ static AbstractQoreNode *XMLDOC_evalXPath(QoreObject *self, QoreXmlDocData *xd, 
    return xp.eval(expr->getBuffer(), xsink);
 }
 
+//! Returns an XmlNode object representing the root element of the document, if any exists, otherwise returns \c NOTHING
+/** @return an XmlNode object representing the root element of the document, if any exists, otherwise returns \c NOTHING
+    
+    @par Example:
+    @code my *XmlNode $xn = $xd.getRootElement(); @endcode
+ */
+//# *XmlNode Qore::Xml::XmlDoc::getRootElement() {}
 static AbstractQoreNode *XMLDOC_getRootElement(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    QoreXmlNodeData *n = xd->getRootElement();
    if (!n) return 0;
    return new QoreObject(QC_XMLNODE, getProgram(), n);
 }
 
+//! Validates the XML document against a RelaxNG schema; if any errors occur, exceptions are thrown
+/** The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when this module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this method.
+    @param $relaxng the RelaxNG schema to use to validate the XmlDoc object
+
+    @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
+    @throw RELAXNG-SYNTAX-ERROR invalid RelaxNG string
+    @throw RELAXNG-INTERNAL-ERROR libxml2 returned an internal error code while validating the document against the RelaxNG schema
+    @throw RELAXNG-ERROR The document failed RelaxNG validation
+
+    @par Example:
+    @code $xd.validateRelaxNG($relaxng); @endcode    
+ */
+//# nothing Qore::Xml::XmlDoc::validateRelaxNG(string $relaxng) {}
 static AbstractQoreNode *XMLDOC_validateRelaxNG(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
    const QoreStringNode *rng = HARD_QORE_STRING(params, 0);
@@ -177,11 +306,25 @@ static AbstractQoreNode *XMLDOC_validateRelaxNG(QoreObject *self, QoreXmlDocData
 
    xd->validateRelaxNG(nrng->getBuffer(), nrng->strlen(), xsink);
 #else
-   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the qore library did not support the xmlTextReaderRelaxNGValidate() function, therefore XmlDoc::validateRelaxNG() is not available in Qore; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHRELAXNG to check if this method is implemented before calling");
+   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the xml module did not support the xmlTextReaderRelaxNGValidate() function, therefore XmlDoc::validateRelaxNG() is not available; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHRELAXNG to check if this method is implemented before calling");
 #endif
    return 0;
 }
 
+//! Validates the XML document against an XSD schema; if any errors occur, exceptions are thrown
+/** The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when this module was compiled; for maximum portability check the constant @ref optionconstants HAVE_PARSEXMLWITHSCHEMA before running this function
+
+    @param $xsd the XSD schema to use to validate the XmlDoc object
+
+    @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
+    @throw XSD-SYNTAX-ERROR the RelaxNG schema string could not be parsed
+    @throw XSD-INTERNAL-ERROR libxml2 returned an internal error code while validating the document against the XSD schema
+    @throw XSD-ERROR The document failed XSD validation
+
+    @par Example:
+    @code $xd.validateSchema($xsd); @endcode    
+ */
+//# nothing Qore::Xml::XmlDoc::validateSchema(string $xsd) {}
 static AbstractQoreNode *XMLDOC_validateSchema(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
    const QoreStringNode *xsd = HARD_QORE_STRING(params, 0);
@@ -192,7 +335,7 @@ static AbstractQoreNode *XMLDOC_validateSchema(QoreObject *self, QoreXmlDocData 
 
    xd->validateSchema(nxsd->getBuffer(), nxsd->strlen(), xsink);
 #else
-   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the qore library did not support the xmlTextReaderSchemaValidate() function, therefore XmlDoc::validateSchema() is not available in Qore; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHSCHEMA to check if this method is implemented before calling");
+   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the xml module did not support the xmlTextReaderSchemaValidate() function, therefore XmlDoc::validateSchema() is not available; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHSCHEMA to check if this method is implemented before calling");
 #endif
    return 0;
 }

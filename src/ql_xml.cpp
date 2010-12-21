@@ -250,7 +250,7 @@ static void qore_xml_relaxng_error_func(ExceptionSink *xsink, const char *msg, .
    }
    desc->chomp();
 
-   xsink->raiseException("XML-RELAXNG-PARSE-ERROR", desc);
+   xsink->raiseException("RELAXNG-SYNTAX-ERROR", desc);
 }
 #endif
 
@@ -271,7 +271,7 @@ static void qore_xml_schema_error_func(ExceptionSink *xsink, const char *msg, ..
    }
    desc->chomp();
 
-   xsink->raiseException("XML-SCHEMA-PARSE-ERROR", desc);
+   xsink->raiseException("XSD-SYNTAX-ERROR", desc);
 }
 #endif
 
@@ -2053,8 +2053,8 @@ static AbstractQoreNode *f_parseXMLAsData(const QoreListNode *params, ExceptionS
 //# nothing parseXMLAsData() {}
 
 //! Serializes the argument into an XML string in XML-RPC fault response format without whitespace formatting
-/** @param $code the fault code for the response; will be converted to an integer
-    @param $msg the fault message string; the encoding of this argument will define the output encoding of the fault string returned
+/** @param $code the fault code for the response; will be converted to an integer (stored under key \c 'faultCode' as an int)
+    @param $msg the fault message string; the encoding of this argument will define the output encoding of the fault string returned (stored under key \c 'faultString' as a string)
     @return a string in XML-RPC fault format in the same encoding as given by the $msg argument, without whitespace formatting
     @par Tags:
     @ref CONSTANT
@@ -2082,8 +2082,8 @@ static AbstractQoreNode *f_makeXMLRPCFaultResponseString(const QoreListNode *par
 
 //! Serializes the argument into an XML string in XML-RPC fault response format without whitespace formatting with an explicit output encoding
 /** @param $encoding a string giving the output encoding for the resulting XML string
-    @param $code the fault code for the response; will be converted to an integer
-    @param $msg the fault message string
+    @param $code the fault code for the response; will be converted to an integer (stored under key \c 'faultCode' as an int)
+    @param $msg the fault message string (stored under key \c 'faultString' as a string)
     @return a string in XML-RPC fault format in the encoding given by the first argument, without whitespace formatting
     @throw ENCODING-CONVERSION-ERROR error converting message string to specified output encoding
     @par Tags:
@@ -2140,8 +2140,8 @@ static AbstractQoreNode *makeFormattedXMLRPCFaultResponseString(bool with_enc, c
 }
 
 //! Serializes the argument into an XML string in XML-RPC fault response format with whitespace formatting
-/** @param $code the fault code for the response; will be converted to an integer
-    @param $msg the fault message string; the encoding of this argument will define the output encoding of the fault string returned
+/** @param $code the fault code for the response; will be converted to an integer (stored under key \c 'faultCode' as an int)
+    @param $msg the fault message string; the encoding of this argument will define the output encoding of the fault string returned (stored under key \c 'faultString' as a string)
     @return a string in XML-RPC fault format in the same encoding as given by the $msg argument, with whitespace formatting
     @par Tags:
     @ref CONSTANT
@@ -2156,8 +2156,8 @@ static AbstractQoreNode *f_makeFormattedXMLRPCFaultResponseString(const QoreList
 
 //! Serializes the argument into an XML string in XML-RPC fault response format with whitespace formatting with an explicit output encoding
 /** @param $encoding a string giving the output encoding for the resulting XML string
-    @param $code the fault code for the response; will be converted to an integer
-    @param $msg the fault message string
+    @param $code the fault code for the response; will be converted to an integer (stored under key \c 'faultCode' as an int)
+    @param $msg the fault message string (stored under key \c 'faultString' as a string)
     @return a string in XML-RPC fault format in the encoding given by the first argument, with whitespace formatting
     @throw ENCODING-CONVERSION-ERROR error converting message string to specified output encoding
     @par Tags:
@@ -2887,7 +2887,7 @@ static AbstractQoreNode *parseXMLWithSchemaIntern(bool as_data, const QoreListNo
    QoreXmlSchemaContext schema(xsd->getBuffer(), xsd->strlen(), xsink);
    if (!schema) {
       if (!*xsink)
-	 xsink->raiseException("XML-SCHEMA-ERROR", "XML schema passed as second argument to parseXMLWithSchema() could not be parsed");
+	 xsink->raiseException("XSD-SYNTAX-ERROR", "XML schema passed as second argument to parseXMLWithSchema() could not be parsed");
       return 0;
    }
 
@@ -2904,7 +2904,7 @@ static AbstractQoreNode *parseXMLWithSchemaIntern(bool as_data, const QoreListNo
 
    return reader.parseXMLData(ccsid, as_data, xsink);
 #else
-   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the qore library did not support the xmlTextReaderSetSchema() function, therefore parseXMLWithSchema() and parseXMLAsDataWithSchema() are not available in Qore; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHSCHEMA to check if this function is implemented before calling");
+   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the xml module did not support the xmlTextReaderSetSchema() function, therefore parseXMLWithSchema() and parseXMLAsDataWithSchema() are not available; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHSCHEMA to check if this function is implemented before calling");
    return 0;
 #endif
 }
@@ -2932,7 +2932,7 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
    QoreXmlRelaxNGContext schema(rng->getBuffer(), rng->strlen(), xsink);
    if (!schema) {
       if (!*xsink)
-	 xsink->raiseException("XML-RELAXNG-ERROR", "RelaxNG schema passed as second argument to parseXMLWithRelaxNG() could not be parsed");
+	 xsink->raiseException("RELAXNG-SYNTAX-ERROR", "RelaxNG schema passed as second argument to parseXMLWithRelaxNG() could not be parsed");
       return 0;
    }
 
@@ -2949,7 +2949,7 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
 
    return reader.parseXMLData(ccsid, as_data, xsink);
 #else
-   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the qore library did not support the xmlTextReaderSetRelaxNG() function, therefore parseXMLWithRelaxNG() and parseXMLAsDataWithRelaxNG() are not available in Qore; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHRELAXNG to check if this function is implemented before calling");
+   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the xml module did not support the xmlTextReaderSetRelaxNG() function, therefore parseXMLWithRelaxNG() and parseXMLAsDataWithRelaxNG() are not available; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHRELAXNG to check if this function is implemented before calling");
    return 0;
 #endif
 }
@@ -2961,7 +2961,7 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
 
     This function should only be used when it is important to maintain the XML element order in the resulting Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.  Otherwise parseXMLAsDataWithSchema() should be used instead.
 
-    The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before running this function.
+    The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before running this function.
 
     @param $xml the XML string to parse
     @param $xsd the XSD schema string to use to validate the XML string
@@ -2970,7 +2970,7 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
     @return a Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
-    @throw XML-SCHEMA-ERROR invalid XSD string
+    @throw XSD-SYNTAX-ERROR invalid XSD string
     @throw XSD-VALIDATION-ERROR the XML did not pass schema validation
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
 
@@ -2996,7 +2996,7 @@ static AbstractQoreNode *f_parseXMLWithSchema(const QoreListNode *params, Except
 
     If any errors occur parsing the XSD string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown.  If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
 
-    The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before running this function.
+    The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before running this function.
 
     @param $xml the XML string to parse
     @param $xsd the XSD schema string to use to validate the XML string
@@ -3005,7 +3005,7 @@ static AbstractQoreNode *f_parseXMLWithSchema(const QoreListNode *params, Except
     @return a Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
-    @throw XML-SCHEMA-ERROR invalid XSD string
+    @throw XSD-SYNTAX-ERROR invalid XSD string
     @throw XSD-VALIDATION-ERROR the XML did not pass schema validation
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
 
@@ -3029,7 +3029,7 @@ static AbstractQoreNode *f_parseXMLAsDataWithSchema(const QoreListNode *params, 
 
     This function should only be used when it is important to maintain the XML element order in the resulting Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.  Otherwise parseXMLAsDataWithRelaxNG() should be used instead.
 
-    The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
+    The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
 
     @param $xml the XML string to parse
     @param $relaxng the RelaxNG schema string to use to validate the XML string
@@ -3038,7 +3038,7 @@ static AbstractQoreNode *f_parseXMLAsDataWithSchema(const QoreListNode *params, 
     @return a Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
-    @throw XML-RELAXNG-ERROR invalid RelaxNG string
+    @throw RELAXNG-SYNTAX-ERROR invalid RelaxNG string
     @throw RELAXNG-VALIDATION-ERROR the XML did not pass RelaxNG schema validation
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
 
@@ -3062,7 +3062,7 @@ static AbstractQoreNode *f_parseXMLWithRelaxNG(const QoreListNode *params, Excep
 
     For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXMLWithRelaxNG().
 
-    The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when Qore was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
+    The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
 
     @param $xml the XML string to parse
     @param $relaxng the RelaxNG schema string to use to validate the XML string
@@ -3071,7 +3071,7 @@ static AbstractQoreNode *f_parseXMLWithRelaxNG(const QoreListNode *params, Excep
     @return a Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
-    @throw XML-RELAXNG-ERROR invalid RelaxNG string
+    @throw RELAXNG-SYNTAX-ERROR invalid RelaxNG string
     @throw RELAXNG-VALIDATION-ERROR the XML did not pass RelaxNG schema validation
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
 

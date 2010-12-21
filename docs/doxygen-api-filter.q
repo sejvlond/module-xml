@@ -1,6 +1,7 @@
 #!/usr/bin/env qore
 # -*- mode: qore; indent-tabs-mode: nil -*-
 
+%requires qore >= 0.8.1
 
 %require-our
 %strict-args
@@ -9,7 +10,7 @@
 
 const opts =
     ( "post"    : "post,p",
-      "tex"     : "posttex,x",          # use TeX syntax for "post" processing
+      "tex"     : "posttex,x",          # use TeX syntax for post processing
       "links"   : "links,l",
       "qore"    : "qore,q",
       "help"    : "help,h"
@@ -211,7 +212,7 @@ class filter {
 	my File $if();
 	$if.open2($ifn);
 
-	my string $ofn = shift $ARGV; #basename($ifn);
+	my string $ofn = shift $ARGV;
 
 	printf("processing API file %s -> %s\n", $ifn, $ofn);
 
@@ -226,18 +227,46 @@ class filter {
 		    $of.print($line + "\n");
 		    continue;
 		}
-		$comment = $.getComment($line, $if, $of);
+		$comment = $.getComment($line, $if);
                 my *string $sig = $if.readLine();
-                if ($sig !~ /^\/\/#/) {
+                if ($sig =~ /\/\*\*#/) {
+                    $sig = $.getCodeComment($sig, $if);
+                }
+                else if ($sig !~ /^\/\/#/) {
                     printf("ERROR: signature line has wrong format: %n\n", $sig);
                     exit(1);
                 }
-                splice $sig, 0, 4;
-                $sig =~ s/\$/__6_/g;
+                else {
+                    splice $sig, 0, 4;
+                    $sig =~ s/\$/__6_/g;
+                }
                 $of.printf("%s%s\n", $comment, $sig);
 		continue;
 	    }
+            if ($line =~ /\/\*\*#/) {
+                $comment = $.getCodeComment($line, $if);
+                $of.printf("%s\n", $comment);
+                continue;
+            }
         }
+    }
+
+    string getCodeComment(string $comment, File $if) {
+	$comment =~ s/\/\*\*\#//g;
+
+	while (exists (my *string $line = $if.readLine())) {
+	    $line =~ s/^[ \t]+//g;
+	    $line =~ s/\$/__6_/g;
+
+	    if ($line =~ /\*\//) {
+                $line =~ s/\*\///;
+		$comment += $line;
+		break;
+	    }
+            $comment += $line;
+	}
+	#printf("comment: %s", $comment);
+	return $comment;        
     }
 
     static fixAPI(any $api) returns string {
@@ -272,10 +301,12 @@ class filter {
 	}
     }
 
-    getComment(string $comment, File $if, File $of, bool $fix_param = False) {
+    string getComment(string $comment, File $if, bool $fix_param = False) {
 	$comment =~ s/^[ \t]+//g;
 	if ($fix_param)
 	    $.fixParam(\$comment);
+
+	my DocumentTableHelper $dth();
 
 	while (exists (my *string $line = $if.readLine())) {
 	    $line =~ s/^[ \t]+//g;
@@ -285,6 +316,8 @@ class filter {
 		$.fixParam(\$line);
 
 	    filter::fixAPIRef(\$line);
+
+	    $line = $dth.process($line);
 
 	    if ($line =~ /\*\//) {
 		$comment += $line;
