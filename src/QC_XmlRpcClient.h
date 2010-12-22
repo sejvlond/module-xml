@@ -25,6 +25,6 @@
 #define _QORE_CLASS_XMLRPCCLIENT_H
 
 DLLEXPORT extern qore_classid_t CID_XMLRPCCLIENT;
-DLLLOCAL class QoreClass *initXmlRpcClientClass(class QoreClass *http_client);
+DLLLOCAL QoreClass *initXmlRpcClientClass(QoreClass *http_client);
 
 #endif

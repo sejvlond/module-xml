@@ -79,5 +79,5 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING README RELEASE-NOTES ChangeLog AUTHORS test/xml-test.q docs/xml-module-doc.html
 
 %changelog
-* Tue Fri 17 2010 David Nichols <david@qore.org>
+* Fri Dec 17 2010 David Nichols <david@qore.org>
 - initial spec file for xml module

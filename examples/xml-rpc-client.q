@@ -8,6 +8,8 @@
 # execute the application class
 %exec-class xml_rpc_client
 
+%requires xml
+
 # define command-line options for GetOpt class
 const xml_rpc_opts = 
     ( "url"  : "url,u=s",
@@ -17,12 +19,10 @@ const xml_rpc_opts =
       "help" : "help,h" );
 
 # define our application class
-class xml_rpc_client
-{
+class xml_rpc_client {
     private $.o;
 
-    constructor()
-    {
+    constructor() {
 	$.process_command_line();
 	if (!elements $ARGV)
 	    $.usage();
@@ -35,16 +35,14 @@ class xml_rpc_client
 	my $cmd = shift $ARGV;
 
 	my $rs;
-	try
-	{
+	try {
 	    my $xrc = new XmlRpcClient(( "url" : $.o.url ));
 	    my $args;
 	    foreach my $arg in ($ARGV)
 		# in case make_option() returns a list
 		$args[elements $args] = $.make_option($arg);
 	    
-	    if ($.o.verb)
-	    {
+	    if ($.o.verb) {
 		if ($.o.xml)
 		    printf("outgoing message:\n%s\n", makeFormattedXMLRPCCallStringArgs($cmd, $args));
 		else if ($.o.lxml)
@@ -55,31 +53,26 @@ class xml_rpc_client
 	    #printf("%s", dbg_node_info($args));
 	    $rs = $xrc.callArgs($cmd, $args);
 	}
-	catch ($ex)
-	{
+	catch ($ex) {
 	    printf("%s: %s\n", $ex.err, $ex.desc);
 	    exit(1);
 	}
-	if ($.o.lxml)
-	{
+	if ($.o.lxml) {
 	    printf("response:\n%s\n", exists $rs.fault ? makeXMLRPCFaultResponseString($rs.fault.faultCode, $rs.fault.faultString) : makeXMLRPCResponseString($rs.params));
 	    return;
 	}
-	if ($.o.xml)
-	{
+	if ($.o.xml) {
 	    printf("response:\n%s\n", exists $rs.fault ? makeFormattedXMLRPCFaultResponseString($rs.fault.faultCode, $rs.fault.faultString) : makeFormattedXMLRPCResponseString($rs.params));
 	    return;
 	}
     
-	if (exists $rs.fault)
-	{
+	if (exists $rs.fault) {
 	    printf("ERROR: %s\n", $rs.fault.faultString);
 	    exit(1);
 	}
 	my $info = $rs.params;
 	
-	if (exists $info)
-	{
+	if (exists $info) {
 	    if (type($info) == Type::String)
 		print($info);
 	    else
@@ -91,8 +84,7 @@ class xml_rpc_client
 	    print("OK\n");
     }
 
-    private usage()
-    {
+    private usage() {
 	printf(
 "usage: %s [options] <command> [parameters...]
   -u,--url=arg      sets XML-RPC command url (ex: xmlrpc://host:port)
@@ -104,12 +96,10 @@ class xml_rpc_client
 	exit(1);
     }
 
-    private process_command_line()
-    {
+    private process_command_line() {
 	my $g = new GetOpt(xml_rpc_opts);
 	$.o = $g.parse(\$ARGV);
-	if (exists $.o{"_ERRORS_"})
-	{
+	if (exists $.o{"_ERRORS_"}) {
 	    printf("%s\n", $.o{"_ERRORS_"}[0]);
 	    exit(1);
 	}
@@ -117,14 +107,12 @@ class xml_rpc_client
 	    $.usage();
     }
 
-    private make_option($arg)
-    {
+    private make_option($arg) {
 	if (!strlen($arg))
 	    return;
 
 	# see if it's an int
-	if (int($arg) == $arg)
-	{
+	if (int($arg) == $arg) {
 	    if (int($arg) >= 2147483648)
 		return $arg;
 	    return int($arg);
@@ -144,13 +132,11 @@ class xml_rpc_client
 	    return $rv;
 	}
 
-	catch ($ex)
-	{
+	catch ($ex) {
 	    #printf("exception %s\n", $ex.err);
 	    # must be a string
 	    # see if it's a string like "key=val"
-	    if ((my $i = index($arg, "=")) != -1)
-	    {
+	    if ((my $i = index($arg, "=")) != -1) {
 		my $h{substr($arg, 0, $i)} = substr($arg, $i + 1);
 		return $h;
 	    }

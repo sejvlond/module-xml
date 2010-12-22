@@ -1,14 +1,15 @@
 #!/usr/bin/env qore
 
-# this program implements an HTTP server with XML-RPC and JSON-RPC handlers
+# this program implements an HTTP server with an XML-RPC handler
 
 # require global variables to be declared with "our" before use
 %require-our
 %enable-all-warnings
 
-%include HTTPServer.qc
+%requires xml
+
+%include HttpServer.qc
 %include XmlRpcHandler.qc
-%include JsonRpcHandler.qc
 
 # default port for server
 const DefaultPort = 8081;
@@ -59,8 +60,7 @@ const ApiMethods =
 
 our ($o, $http_server);
 
-sub usage()
-{
+sub usage() {
     printf(
 "usage: %s [options]
   -p,--port=arg     sets HTTP server port ([interface:]port)
@@ -69,22 +69,19 @@ sub usage()
     exit(1);
 }
 
-sub log()
-{
-    my $str = sprintf("%s: ", format_date("YYYY-MM-DD HH:mm:SS", now()));
+sub log() {
+    my string $str = sprintf("%s: ", format_date("YYYY-MM-DD HH:mm:SS", now()));
     vprintf($str + shift $argv + "\n", $argv); 
 }
 
-sub process_command_line()
-{
-    my $opts = 
+sub process_command_line() {
+    my hash $opts = 
         ( "port" : "port,p=s",
           "help" : "help,h" );
 
-    my $g = new GetOpt($opts);
+    my GetOpt $g($opts);
     $o = $g.parse(\$ARGV);
-    if (exists $o{"_ERRORS_"})
-    {
+    if (exists $o{"_ERRORS_"}) {
         printf("%s\n", $o{"_ERRORS_"}[0]);
         exit(1);
     }
@@ -95,8 +92,7 @@ sub process_command_line()
 	$o.port = DefaultPort;
 }
 
-sub trim($str)
-{
+sub trim($str) {
     # remove beginning blanks
     $str =~ s/^ *//;
     # remove trailing blanks
@@ -105,16 +101,14 @@ sub trim($str)
     return $str;
 }
 
-sub inlist($val, $list)
-{
+sub inlist($val, $list) {
     foreach my $v in ($list)
         if ($val == $v)
             return True;
     return False;
 }
 
-sub arrayOfStructsTest($m)
-{
+sub arrayOfStructsTest($m) {
     #printf("arrayOfStructsTest() arg=%N\n", $a);
     my $c;
     foreach my $elem in ($argv)
@@ -123,8 +117,7 @@ sub arrayOfStructsTest($m)
     return $c;
 }
 
-sub countChar($char, $str)
-{
+sub countChar($char, $str) {
     my $c;
     for (my $i = 0; $i < strlen($str); $i++)
 	if (substr($str, $i, 1) == $char)
@@ -132,8 +125,7 @@ sub countChar($char, $str)
     return $c;
 }
 
-sub countTheEntities($m, $str)
-{
+sub countTheEntities($m, $str) {
     my $h.ctLeftAngleBrackets = countChar("<", $str);
     $h.ctRightAngleBrackets = countChar(">", $str);
     $h.ctAmpersands = countChar("&", $str);
@@ -142,65 +134,55 @@ sub countTheEntities($m, $str)
     return $h;
 }
 
-sub easyStructTest($m, $s)
-{
+sub easyStructTest($m, $s) {
     return $s.moe + $s.larry + $s.curly;
 }
 
-sub echoStructTest($m, $s)
-{
+sub echoStructTest($m, $s) {
     return $s;
 }
 
 # number, boolean, string, double, dateTime, base64
-sub manyTypesTest($m)
-{
+sub manyTypesTest($m) {
     return $argv;
 }
 
-sub moderateSizeArrayCheck($m)
-{
+sub moderateSizeArrayCheck($m) {
     #printf("moderateSizeArrayCheck() arg=%N\n", $a);
     return $argv[0] + $argv[(elements $argv) - 1];
 }
 
-sub nestedStructTest($m, $s)
-{
+sub nestedStructTest($m, $s) {
     return $s.2000."04"."01".moe + $s.2000."04"."01".larry + $s.2000."04"."01".curly;
 }
 
-sub simpleStructReturnTest($m, $n)
-{
+sub simpleStructReturnTest($m, $n) {
     return ( "times10" : $n * 10,
 	     "times100" : $n * 100,
 	     "times1000" : $n * 1000 );
 }
 
-sub shutdown()
-{
+sub shutdown() {
     background stop();
     return "OK";
 }
 
-sub stop()
-{
+sub stop() {
     delete $http_server;
 }
 
-sub main()
-{
+sub main() {
     process_command_line();
 
     # start HTTP server
-    $http_server = new HTTPServer("log", "log");
+    $http_server = new HttpServer("log", "log");
     $http_server.addListener($o.port);
 
     # add XML-RPC handler to HTTP server - will handle all requests with
     # URL RPC2* or content-type = "text/xml"
-    $http_server.setHandler("xmlrpc", "^RPC2", "text/xml", new XmlRpcHandler(ApiMethods));
-    $http_server.setHandler("jsonrpc", "^JSON", "application/json", new JsonRpcHandler(ApiMethods));
+    $http_server.setHandler("xmlrpc", "^RPC2", "text/xml", new XmlRpcHandler(new AbstractAuthenticator(), ApiMethods));
 
-    printf("HTTP Server listening on port '%s' for XML-RPC and JSON-RPC requests\n", $o.port);
+    printf("HTTP Server listening on port '%s' for XML-RPC requests\n", $o.port);
 }
 
 main();

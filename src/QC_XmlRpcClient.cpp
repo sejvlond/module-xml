@@ -96,7 +96,7 @@ static void set_xrc_defaults(QoreHTTPClient &client) {
     |!Header|!Default Value
     |\c Accept|\c text/xml
     |\c Content-Type|\c text/xml
-    |\c User-Agent|\c Qore XML-RPC Client v0.8.0
+    |\c User-Agent|\c Qore XML-RPC Client v1.0
     |\c Connection|\c Keep-Alive
 
     @note This class is not available with the PO_NO_NETWORK parse option.
@@ -265,7 +265,8 @@ static AbstractQoreNode *XRC_call(QoreObject *self, QoreHTTPClient *client, cons
 
 //! Calls a remote method using a single value after the method name for the method arguments and returns the response as qore data structure, accepts a reference to a hash as the first argument to give technical information about the call
 /** @param $info a reference to a hash that provides the following keys on output giving technical information about the HTTP call:
-    - \c request-uri the first line of the HTTP request
+    - \c request: the literal outgoing request body sent
+    - \c request-uri: the first line of the HTTP request
     - \c headers: a hash of HTTP headers in the outgoing request
     - \c response-uri: the first line of the HTTP response
     - \c response: the literal response body received from the server
@@ -313,7 +314,8 @@ static AbstractQoreNode *XRC_callArgsWithInfo(QoreObject *self, QoreHTTPClient *
 
 //! Calls a remote method taking all arguments after the method name for the method arguments and returns the response as qore data structure, accepts a reference to a hash as the first argument to give technical information about the call
 /**  @param $info a reference to a hash that provides the following keys on output giving technical information about the HTTP call:
-    - \c request-uri the first line of the HTTP request
+    - \c request: the literal outgoing request body sent
+    - \c request-uri: the first line of the HTTP request
     - \c headers: a hash of HTTP headers in the outgoing request
     - \c response-uri: the first line of the HTTP response
     - \c response: the literal response body received from the server

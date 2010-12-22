@@ -1,12 +1,15 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
-# XML-RPC handler class definition
-#
+#! @file XmlRpcHandler.qc XML-RPC handler class definition
+
 # Copyright (C) 2006 - 2010 David Nichols
 # to be registered as a handler to the Qore HTTP server
 
-namespace XmlRpcHandler {
-    const Version = "0.3.3";
+#! XML-RPC Handler implementation; to be registered as a request handler in the HttpServer class
+class XmlRpcHandler inherits public AbstractHttpRequestHandler {
+    #! version of the implementation
+    const Version = "0.3.4";
 
+    #! internal methods (for introspection)
     const InternalMethods = (("function" : "help",
 			      "help"     : "shows a list of XML-RPC methods registered with this handler",
 			      "text"     : "help",
@@ -17,17 +20,15 @@ namespace XmlRpcHandler {
 			      "text"     : "system.listMethods",
 			      "logopt"   : 2
 			       ));
-}
 
-class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
     private {
         list $.methods = ();
         hash $.mi = hash();
-        string $.force_gui_encoding;
         int $.loglevel;
     }
 
-    constructor(list $methods) {
+    #! creates the handler with the given method list
+    constructor(AbstractAuthenticator $auth, list $methods) : AbstractHttpRequestHandler($auth) {
 	# add internal methods
 	foreach my hash $im in (XmlRpcHandler::InternalMethods)
 	    $.addMethodInternal($im + ( "internal" : True ));
@@ -45,6 +46,7 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
 	}
     }
 
+    #! adds a method to the handler dynamically
     addMethod(string $name, any $func, string $text, string $help, int $logopt, any $cmark) {
 	if (!exists $func)
 	    throw "XML-RPC-SERVER-ADD-METHOD-PARAMETER-ERROR", "expecting function name and text name as hash key in argument";
@@ -55,12 +57,6 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
 			      "help"     : $help,
 			      "logopt"   : $logopt,
 			      "cmark"    : $cmark ));
-    }
-
-    # hack to allow encodings for the Qorus GUI to be forced
-    # as a workaround until the GUI's encoding support can be fixed
-    forceGuiEncoding(string $enc) {
-	$.force_gui_encoding = $enc;
     }
 
     private addMethodInternal(hash $h) {
@@ -74,7 +70,7 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
 	$.methods[$i] = $h;
     }
 
-    private help() returns hash {
+    private hash help() {
 	my hash $h;
 	foreach my hash $m in ($.methods) {
 	    $h.($m.text).description = $m.help;
@@ -84,7 +80,7 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
 	return $h;
     }
 
-    private listMethods() returns list {
+    private list listMethods() {
 	my list $l;
 	foreach my hash $m in ($.methods)
 	    $l += $m.text;
@@ -101,7 +97,7 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
 	call_function_args($context.logfunc, $msg);
     }
 
-    private callMethod(hash $context, any $params) returns hash {
+    private hash callMethod(hash $context, any $params) {
 	my string $method = $context.method;
 	# find method function
 	my hash $found;
@@ -119,10 +115,10 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
         $context.cmark = $found.cmark;
         $context.function = $found.function;
 
-        if (($found.logopt & LP_LEVELMASK) <= $.loglevel && exists $context.logfunc) {
+        if (($found.logopt & HttpServer::LP_LEVELMASK) <= $.loglevel && exists $context.logfunc) {
             my string $msg = $method;
             # add arguments to log message
-            if ($found.logopt & LP_LOGPARAMS) {
+            if ($found.logopt & HttpServer::LP_LOGPARAMS) {
                 $msg += sprintf("(");
                 my int $i = 0;
                 foreach my any $arg in ($params) {
@@ -167,17 +163,13 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
 
 	my hash $h;
 
-        # HACK: if request comes from the GUI and the "force-gui-encoding" option is set, then use it
-        if ($context.gui && exists $.force_gui_encoding)
-            $h.body = makeXMLRPCResponseStringWithEncoding($.force_gui_encoding, $rv);
-        else
-            $h.body = makeXMLRPCResponseString($rv);
+        $h.body = makeXMLRPCResponseString($rv);
 
         return $h;
     }
 
-    # method called by HTTPServer
-    handleRequest(hash $context, hash $hdr, any $body, reference $close) returns hash {
+    #! method called by HttpServer to handle an XML-RPC request
+    hash handleRequest(hash $context, hash $hdr, *data $body, reference $close) {
 	#printf("xmlrpc handler context=%n hdr=%n body=%n\n", $context, $hdr, $body);
 
 	my hash $xmlrpc;
@@ -206,7 +198,6 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
 		$xmlrpc = parseXMLRPCCall($body);
 	    }
 	    catch (hash $ex) {
-		$.log($context, "%s: %s", $ex.err, $ex.desc);
 		$.log($context, "error parsing XML-RPC string: %s", $body);
 		return ( "code"   : 200,
 			 "errlog" : sprintf("%s: %s", $ex.err, $ex.desc),
@@ -215,15 +206,14 @@ class XmlRpcHandler::XmlRpcHandler inherits public HTTPRequestHandler {
 	    }
 	}
 	try {
-	    #printf("msg=%s\nxmlrpc=%N\n", $body, $xmlrpc);fflush();
 	    $context.method = $xmlrpc.methodName;
-	    return ( "code" : 200, "hdr" : ( "Content-Type" : "text/xml" ) ) + $.callMethod($context, $xmlrpc.params);
+	    my any $rh = $.callMethod($context, $xmlrpc.params);
+	    #printf("method=%s args=%n\nans=%N\n", $xmlrpc.methodName, $xmlrpc.params, $rh);flush();
+	    return ( "code" : 200, "hdr" : ( "Content-Type" : "text/xml" ) ) + $rh;
 	}
 	catch (hash $ex) {
-            $.log($context, "%s: %s", $ex.err, $ex.desc);
-	    #log(LL_CRITICAL, "context=%N\nxmlrpc=%N\n", $context, $xmlrpc);
-	    #log(LL_CRITICAL, getExceptionString($ex));
-	    my string $str = sprintf("%s: %s", $ex.err, $ex.desc);
+            my string $str = sprintf("%s: %s", $ex.err, $ex.desc);
+
 	    return ( "code"   : 200,
 		     "errlog" : $str,
 		     "hdr"    : ( "Content-Type" : "text/xml" ),
