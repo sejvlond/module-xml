@@ -675,7 +675,7 @@ static AbstractQoreNode *makeXMLStringIntern(const QoreStringNode *pstr, const Q
     @param $h the rest of the data to serialize under the top-level key
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
     @par Tags:
     @ref RET_VALUE_ONLY
     @par Example:
@@ -696,7 +696,7 @@ static AbstractQoreNode *f_makeXMLString_str(const QoreListNode *params, Excepti
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
     @throw MAKE-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
     @par Tags:
     @ref RET_VALUE_ONLY
     @par Example:
@@ -722,7 +722,7 @@ static AbstractQoreNode *f_makeXMLString(const QoreListNode *params, ExceptionSi
     @param $h the rest of the data to serialize under the top-level key
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, with whitespace formatting and with an XML header
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
     @par Tags:
     @ref RET_VALUE_ONLY
     @par Example:
@@ -743,7 +743,7 @@ static AbstractQoreNode *f_makeFormattedXMLString_str(const QoreListNode *params
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, with whitespace formatting and with an XML header
     @throw MAKE-FORMATTED-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
     @par Tags:
     @ref RET_VALUE_ONLY
     @par Example:
@@ -768,7 +768,7 @@ static AbstractQoreNode *f_makeFormattedXMLString(const QoreListNode *params, Ex
 /** @param $h a hash of data to serialize: the hash can have any number of keys
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, without whitespace formatting and without an XML header
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
     @par Tags:
     @ref RET_VALUE_ONLY
     @par Example:
@@ -799,7 +799,7 @@ static AbstractQoreNode *f_makeXMLFragment(const QoreListNode *params, Exception
 /** @param $h a hash of data to serialize: the hash can have any number of keys
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
     @return an XML string corresponding to the input data, with whitespace formatting but without an XML header
-    @throw MAKE-XML-ERROR An error occurred serializing the Qore data to an XML string
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
     @par Tags:
     @ref RET_VALUE_ONLY
     @par Example:
@@ -1998,13 +1998,13 @@ static AbstractQoreNode *parseXMLIntern(bool as_data, const QoreListNode *params
    return reader.parseXMLData(ccsid, as_data, xsink);
 }
 
-//! Parses an XML string and returns a Qore hash structure
-/** If duplicate, out-of-order XML elements are found in the input string, they are deserialized to Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the Qore hash as in the input XML string.
+//! Parses an XML string and returns a %Qore hash structure
+/** If duplicate, out-of-order XML elements are found in the input string, they are deserialized to %Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the %Qore hash as in the input XML string.
     
-    This function should only be used when it is important to maintain the XML element order in the resulting Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.   In all other cases, parseXMLAsData() should be used instead.
+    This function should only be used when it is important to maintain the XML element order in the resulting %Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.   In all other cases, parseXMLAsData() should be used instead.
     @param $xml the XML string to parse
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, all strings in the output hash will have the default encoding
-    @return a Qore hash structure corresponding to the XML input string
+    @return a %Qore hash structure corresponding to the XML input string
     @throw PARSE-XML-EXCEPTION Error parsing the XML string
     @par Tags:
     @ref RET_VALUE_ONLY
@@ -2024,15 +2024,15 @@ static AbstractQoreNode *f_parseXML(const QoreListNode *params, ExceptionSink *x
  */
 //# nothing parseXML() {}
 
-//! Parses an XML string as data (does not necessarily preserve key order) and returns a Qore hash structure
+//! Parses an XML string as data (does not necessarily preserve key order) and returns a %Qore hash structure
 /** This function does not preserve hash order with out-of-order duplicate keys; all duplicate keys are collapsed to the same list.
 
-    Note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
+    Note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting %Qore hash, thereby losing the order in the original XML string.
 
-    For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXML().
+    For a similar function preserving the order of keys in the XML in the resulting %Qore hash by generating %Qore hash element names with numeric suffixes, see parseXML().
     @param $xml the XML string to parse
     @param $encoding an optional string giving the encoding for the output XML string; if this parameter is missing, all strings in the output hash will have the default encoding
-    @return a Qore hash structure corresponding to the XML input string
+    @return a %Qore hash structure corresponding to the XML input string
     @throw PARSE-XML-EXCEPTION Error parsing the XML string
     @par Tags:
     @ref RET_VALUE_ONLY
@@ -2498,10 +2498,10 @@ static AbstractQoreNode *f_makeFormattedXMLRPCValueString(const QoreListNode *pa
    return str.release();
 }
 
-//! Deserializies an XML-RPC value string and returns a Qore data structure representing the information
+//! Deserializies an XML-RPC value string and returns a %Qore data structure representing the information
 /** @param $xml the XML string in XML-RPC value format to deserialize
     @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have the default encoding
-    @return the Qore value corresponding to the XML-RPC value string
+    @return the %Qore value corresponding to the XML-RPC value string
     @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
     @par Tags:
     @ref RET_VALUE_ONLY
@@ -2565,7 +2565,7 @@ static inline QoreHashNode *qore_xml_hash_exception(const char *ex, ExceptionSin
    return 0;
 }
 
-//! Deserializies an XML-RPC call string, returning a Qore data structure representing the call information
+//! Deserializies an XML-RPC call string, returning a %Qore data structure representing the call information
 /** @param $xml the XML string in XML-RPC call format to deserialize
     @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have the default encoding
     @return a hash representing the XML-RPC call with the following keys:
@@ -2834,7 +2834,7 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
    return h;
 }
 
-//! Deserializies an XML-RPC response string, returning a Qore data structure representing the response information
+//! Deserializies an XML-RPC response string, returning a %Qore data structure representing the response information
 /** @param $xml the XML string in XML-RPC call format to deserialize
     @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have the default encoding
     @return a hash with one of the following keys:
@@ -2954,12 +2954,12 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
 #endif
 }
 
-//! Parses an XML string, validates the XML string against an XSD schema string, and returns a Qore hash structure
+//! Parses an XML string, validates the XML string against an XSD schema string, and returns a %Qore hash structure
 /** If any errors occur parsing the XSD string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
 
-    If duplicate, out-of-order XML elements are found in the input string, they are deserialized to Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the Qore hash as in the input XML string.
+    If duplicate, out-of-order XML elements are found in the input string, they are deserialized to %Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the %Qore hash as in the input XML string.
 
-    This function should only be used when it is important to maintain the XML element order in the resulting Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.  Otherwise parseXMLAsDataWithSchema() should be used instead.
+    This function should only be used when it is important to maintain the XML element order in the resulting %Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.  Otherwise parseXMLAsDataWithSchema() should be used instead.
 
     The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before running this function.
 
@@ -2967,7 +2967,7 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
     @param $xsd the XSD schema string to use to validate the XML string
     @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have UTF-8 encoding
 
-    @return a Qore hash structure corresponding to the input
+    @return a %Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
     @throw XSD-SYNTAX-ERROR invalid XSD string
@@ -2987,12 +2987,12 @@ static AbstractQoreNode *f_parseXMLWithSchema(const QoreListNode *params, Except
    return parseXMLWithSchemaIntern(false, params, xsink);
 }
 
-//! Parses an XML string as data (does not preserve hash order with out-of-order duplicate keys: collapses all to the same list), validates the XML string against an XSD schema string, and returns a Qore hash structure
+//! Parses an XML string as data (does not preserve hash order with out-of-order duplicate keys: collapses all to the same list), validates the XML string against an XSD schema string, and returns a %Qore hash structure
 /** If any errors occur parsing the XSD string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
 
-    Please note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
+    Please note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting %Qore hash, thereby losing the order in the original XML string.
 
-    For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXMLWithSchema().
+    For a similar function preserving the order of keys in the XML in the resulting %Qore hash by generating %Qore hash element names with numeric suffixes, see parseXMLWithSchema().
 
     If any errors occur parsing the XSD string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown.  If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
 
@@ -3002,7 +3002,7 @@ static AbstractQoreNode *f_parseXMLWithSchema(const QoreListNode *params, Except
     @param $xsd the XSD schema string to use to validate the XML string
     @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have UTF-8 encoding
 
-    @return a Qore hash structure corresponding to the input
+    @return a %Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
     @throw XSD-SYNTAX-ERROR invalid XSD string
@@ -3022,12 +3022,12 @@ static AbstractQoreNode *f_parseXMLAsDataWithSchema(const QoreListNode *params, 
    return parseXMLWithSchemaIntern(true, params, xsink);
 }
 
-//! Parses an XML string, validates the XML string against a RelaxNG schema string, and returns a Qore hash structure
+//! Parses an XML string, validates the XML string against a RelaxNG schema string, and returns a %Qore hash structure
 /** If any errors occur parsing the RelaxNG string, parsing the XML string, or validating the XML against the RelaxNG schema, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
 
-    If duplicate, out-of-order XML elements are found in the input string, they are deserialized to Qore hash elements with the same name as the XML element but including a caret "^" and a numeric prefix to maintain the same key order in the Qore hash as in the input XML string.
+    If duplicate, out-of-order XML elements are found in the input string, they are deserialized to %Qore hash elements with the same name as the XML element but including a caret "^" and a numeric prefix to maintain the same key order in the %Qore hash as in the input XML string.
 
-    This function should only be used when it is important to maintain the XML element order in the resulting Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.  Otherwise parseXMLAsDataWithRelaxNG() should be used instead.
+    This function should only be used when it is important to maintain the XML element order in the resulting %Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.  Otherwise parseXMLAsDataWithRelaxNG() should be used instead.
 
     The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
 
@@ -3035,7 +3035,7 @@ static AbstractQoreNode *f_parseXMLAsDataWithSchema(const QoreListNode *params, 
     @param $relaxng the RelaxNG schema string to use to validate the XML string
     @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have UTF-8 encoding
 
-    @return a Qore hash structure corresponding to the input
+    @return a %Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
     @throw RELAXNG-SYNTAX-ERROR invalid RelaxNG string
@@ -3055,12 +3055,12 @@ static AbstractQoreNode *f_parseXMLWithRelaxNG(const QoreListNode *params, Excep
    return parseXMLWithRelaxNGIntern(false, params, xsink);
 }
 
-//! Parses an XML string as data (does not preserve hash order with out-of-order duplicate keys: collapses all to the same list), validates the XML string against a RelaxNG schema string, and returns a Qore hash structure
+//! Parses an XML string as data (does not preserve hash order with out-of-order duplicate keys: collapses all to the same list), validates the XML string against a RelaxNG schema string, and returns a %Qore hash structure
 /** If any errors occur parsing the RelaxNG schema string, parsing the XML string, or validating the XML against the XSD, exceptions are thrown. If no encoding string argument is passed, then all strings in the resulting hash will be in UTF-8 encoding regardless of the input encoding of the XML string.
 
-    Please note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting Qore hash, thereby losing the order in the original XML string.
+    Please note that data deserialized with this function may not be reserialized to an identical XML string to the input due to the fact that duplicate, out-of-order XML elements are collapsed into lists in the resulting %Qore hash, thereby losing the order in the original XML string.
 
-    For a similar function preserving the order of keys in the XML in the resulting Qore hash by generating Qore hash element names with numeric suffixes, see parseXMLWithRelaxNG().
+    For a similar function preserving the order of keys in the XML in the resulting %Qore hash by generating %Qore hash element names with numeric suffixes, see parseXMLWithRelaxNG().
 
     The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this function.
 
@@ -3068,7 +3068,7 @@ static AbstractQoreNode *f_parseXMLWithRelaxNG(const QoreListNode *params, Excep
     @param $relaxng the RelaxNG schema string to use to validate the XML string
     @param $encoding an optional string giving the string encoding of any strings output; if this parameter is missing, the any strings output in the output hash will have UTF-8 encoding
 
-    @return a Qore hash structure corresponding to the input
+    @return a %Qore hash structure corresponding to the input
 
     @throw PARSE-XML-EXCEPTION error parsing the XML string
     @throw RELAXNG-SYNTAX-ERROR invalid RelaxNG string
