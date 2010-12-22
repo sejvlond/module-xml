@@ -32,12 +32,14 @@ ACLOCAL_AMFLAGS=-I m4
 
 if COND_DOXYGEN
 DX_CLEANFILES = ${DOXYFILES}
-docs/xml/html/index.html: $(DOXYFILES)
+docs/xml/html: $(DOXYFILES)
 	cd docs; $(DOXYGEN_CMD) doxyfile;
 	$(DOXYGEN_QORE_API_FILTER) --post $(DOXYGEN_OUTPUT)/html/*html
 	$(DOXYGEN_QORE_API_FILTER) --post $(DOXYGEN_OUTPUT)/html/search/*html
 
-doxygen-doc: docs/xml/html/index.html
+doxygen-doc: docs/xml/html
+
+EXTRA_DIST += docs/xml/html
 
 else
 doxygen-doc:
