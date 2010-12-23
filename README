@@ -10,7 +10,8 @@ see docs for more information
 
 BUILDING
 --------
-Requires qore 0.8.1+ and libxml2 2.6.0+ (http://www.xmlsoft.org) to build and run
+Requires qore 0.8.1+, libxml2 2.6.0+ (http://www.xmlsoft.org), and openssl
+headers and libraries to build and run
 
 to configure the build, execute
    	configure --disable-debug
@@ -21,7 +22,11 @@ if the qore library cannot be found, then you can use:
 if libxml2 cannot be found, then you can use:
    	configure --disable-debug --with-libxml2-dir=<dir>
 
-The qore binary also needs to be in the path so configure can determine the module directory
+if openssl cannot be found, then you can use:
+	configure --disable-debug --with-openssl-dir=<dir>
+
+The qore binary also needs to be in the path so configure can determine the
+module directory
 
 Then execute
 

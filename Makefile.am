@@ -26,7 +26,14 @@ noinst_HEADERS = src/QC_XmlDoc.h \
 EXTRA_DIST = COPYING ChangeLog AUTHORS README \
 	RELEASE-NOTES \
 	test/xml-test.q \
-	examples \
+	examples/HttpServer.qc \
+	examples/SoapClient.qc \
+	examples/WSDL.qc \
+	examples/XmlRpcHandler.qc \
+	examples/MultiPartMessage.qc \
+	examples/SoapHandler.qc \
+	examples/xml-rpc-client.q \
+	examples/XmlRpcServerValidation.q \
 	qore-xml-module.spec
 
 ACLOCAL_AMFLAGS=-I m4
