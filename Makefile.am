@@ -26,6 +26,7 @@ noinst_HEADERS = src/QC_XmlDoc.h \
 EXTRA_DIST = COPYING ChangeLog AUTHORS README \
 	RELEASE-NOTES \
 	test/xml-test.q \
+	examples \
 	qore-xml-module.spec
 
 ACLOCAL_AMFLAGS=-I m4

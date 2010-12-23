@@ -76,7 +76,21 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{module_dir}
-%doc COPYING README RELEASE-NOTES ChangeLog AUTHORS test/xml-test.q docs/xml-module-doc.html
+%doc COPYING README RELEASE-NOTES ChangeLog AUTHORS
+
+%package doc
+Summary: XML module for Qore
+Group: Development/Languages
+
+%description doc
+XML module for the Qore Programming Language.
+
+This RPM provides API documentation, test and example programs
+
+
+%files doc
+%defattr(-,root,root,-)
+%doc docs/xml/html examples/ test/ 
 
 %changelog
 * Fri Dec 17 2010 David Nichols <david@qore.org>
