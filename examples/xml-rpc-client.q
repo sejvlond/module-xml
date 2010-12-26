@@ -8,6 +8,9 @@
 # execute the application class
 %exec-class xml_rpc_client
 
+# require qore >= 0.8.1 for type support
+%requires qore >= 0.8.1
+
 %requires xml
 
 # define command-line options for GetOpt class
@@ -32,13 +35,13 @@ class xml_rpc_client {
     
 	#printf("sending command to \"%s\"\n", $s);
 
-	my $cmd = shift $ARGV;
+	my *string $cmd = shift $ARGV;
 
-	my $rs;
+	my hash $rs;
 	try {
-	    my $xrc = new XmlRpcClient(( "url" : $.o.url ));
-	    my $args;
-	    foreach my $arg in ($ARGV)
+	    my XmlRpcClient $xrc(( "url" : $.o.url ));
+	    my list $args;
+	    foreach my string $arg in ($ARGV)
 		# in case make_option() returns a list
 		$args[elements $args] = $.make_option($arg);
 	    
@@ -70,7 +73,7 @@ class xml_rpc_client {
 	    printf("ERROR: %s\n", $rs.fault.faultString);
 	    exit(1);
 	}
-	my $info = $rs.params;
+	my any $info = $rs.params;
 	
 	if (exists $info) {
 	    if (type($info) == Type::String)
@@ -97,7 +100,7 @@ class xml_rpc_client {
     }
 
     private process_command_line() {
-	my $g = new GetOpt(xml_rpc_opts);
+	my GetOpt $g(xml_rpc_opts);
 	$.o = $g.parse(\$ARGV);
 	if (exists $.o{"_ERRORS_"}) {
 	    printf("%s\n", $.o{"_ERRORS_"}[0]);
@@ -119,12 +122,12 @@ class xml_rpc_client {
 	}
 	
 	# see if it's an object or list
-	my $str  = sprintf("sub get() { return %s; }", $arg);
+	my string $str  = sprintf("sub get() { return %s; }", $arg);
 	#printf("%s\n", $str);
-	my $prog = new Program();
+	my Program $prog();
 	try {
 	    $prog.parse($str, "main");
-	    my $rv = $prog.callFunction("get");
+	    my any $rv = $prog.callFunction("get");
 	    #printf("no exception, rv=%s (%n)\nstr=%s\n", $rv, $rv, $str);
 	    # if it's a float, then return a string to preseve formatting
 	    if (type($rv) == Type::Float || !exists $rv)
@@ -136,8 +139,8 @@ class xml_rpc_client {
 	    #printf("exception %s\n", $ex.err);
 	    # must be a string
 	    # see if it's a string like "key=val"
-	    if ((my $i = index($arg, "=")) != -1) {
-		my $h{substr($arg, 0, $i)} = substr($arg, $i + 1);
+	    if ((my int $i = index($arg, "=")) != -1) {
+		my hash $h{substr($arg, 0, $i)} = substr($arg, $i + 1);
 		return $h;
 	    }
 	    return $arg;

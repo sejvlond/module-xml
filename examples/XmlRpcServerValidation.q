@@ -6,6 +6,10 @@
 %require-our
 %enable-all-warnings
 
+# require qore >= 0.8.1 for type support
+%requires qore >= 0.8.1
+
+# require xml support
 %requires xml
 
 %include HttpServer.qc
@@ -58,7 +62,7 @@ const ApiMethods =
        "logopt"   : 0 )
  );
 
-our ($o, $http_server);
+our (hash $o, HttpServer $http_server);
 
 sub usage() {
     printf(
@@ -90,22 +94,6 @@ sub process_command_line() {
 
     if (!exists $o.port)
 	$o.port = DefaultPort;
-}
-
-sub trim($str) {
-    # remove beginning blanks
-    $str =~ s/^ *//;
-    # remove trailing blanks
-    $str =~ s/ *$//;
-        
-    return $str;
-}
-
-sub inlist($val, $list) {
-    foreach my $v in ($list)
-        if ($val == $v)
-            return True;
-    return False;
 }
 
 sub arrayOfStructsTest($m) {
