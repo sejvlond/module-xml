@@ -30,9 +30,7 @@
 
 qore_classid_t CID_XMLREADER;
 
-//! main Qore Programming Language namespace
-/** main Qore Programming Language namespace
- */
+//! main %Qore Programming Language namespace
 /**# namespace Qore {
 //! namespace for XML parsing and utility classes
 namespace Xml {
@@ -42,52 +40,7 @@ namespace Xml {
  */
 /**# class XmlReader {
 public:
-   constructor(XmlDoc $doc);
-   constructor(string $xml);
-   XmlReader copy();
-   bool read();
-   bool readSkipWhitespace();
-   int nodeType();
-   *string nodeTypeName();
-   int depth();
-   *string name();
-   *string value();
-   bool hasAttributes();
-   bool hasValue();
-   bool isDefault();
-   bool isEmptyElement();
-   bool isNamespaceDecl();
-   bool isValid();
-   any toQore();
-   any toQoreData();
-   int attributeCount();
-   *string baseUri();
-   *string encoding();
-   *string localName();
-   *string namespaceUri();
-   *string prefix();
-   *string xmlLang();
-   *string xmlVersion();
-   *string getAttribute(string $attr);
-   *string getAttributeNs(string $attr, string $ns);
-   *string getAttributeOffset(softint $offset = 0);
-   *string lookupNamespace();
-   *string lookupNamespace(string $ns);
-   bool moveToAttribute(string $attr);
-   bool moveToAttributeOffset(softint $offset);
-   bool moveToAttributeNs(string $attr, string $ns);
-   bool moveToElement();
-   bool moveToFirstAttribute();
-   bool moveToNextAttribute();
-   bool next();
-   *string getInnerXml();
-   *string getOuterXml();
-   nothing relaxNGValidate(string $relaxng);
-   nothing schemaValidate(string $xsd);
-};
-};
-};
- */
+*/
 
 //! cannot be called manually; throws an exception
 /** @throw XML-READER-ERROR libxml2 returned an error code when creating the XML reader object
@@ -95,7 +48,7 @@ public:
     @par Example:
     @code my XmlReader $xr($xmldoc); @endcode
 */
-//# Qore::Xml::XmlReader::constructor(XmlDoc $doc) {}
+//# constructor(XmlDoc $doc) {}
 static void XMLREADER_constructor_xmldoc(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_OBJ_DATA(doc, QoreXmlDocData, params, 0, CID_XMLDOC, "XmlReader::constructor()", "XmlDoc", xsink);
    if (*xsink)
@@ -116,7 +69,7 @@ static void XMLREADER_constructor_xmldoc(QoreObject *self, const QoreListNode *p
     @par Example:
     @code my XmlReader $xr($xmlstr); @endcode
 */
-//# Qore::Xml::XmlReader::constructor(string $xml) {}
+//# constructor(string $xml) {}
 static void XMLREADER_constructor_str(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *p0 = HARD_QORE_STRING(params, 0);
 
@@ -141,7 +94,7 @@ static void XMLREADER_constructor_str(QoreObject *self, const QoreListNode *para
     @par Example:
     @code my XmlReader $xrcopy = $xr.copy(); @endcode
 */
-//# Qore::Xml::XmlReader Qore::Xml::XmlReader::copy() {}
+//# Qore::Xml::XmlReader copy() {}
 static void XMLREADER_copy(QoreObject *self, QoreObject *old, QoreXmlReaderData *xr, ExceptionSink *xsink) {
    ReferenceHolder<QoreXmlReaderData> doc(xr->copy(xsink), xsink);
    if (!*xsink)
@@ -161,7 +114,7 @@ static void XMLREADER_copy(QoreObject *self, QoreObject *old, QoreXmlReaderData 
 
     @see XmlReader::readSkipWhitespace()
 */
-//# bool Qore::Xml::XmlReader::read() {}
+//# bool read() {}
 static AbstractQoreNode *XMLREADER_read(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    int rc = xr->read(xsink);
    return rc == -1 ? 0 : get_bool_node(rc);
@@ -180,7 +133,7 @@ static AbstractQoreNode *XMLREADER_read(QoreObject *self, QoreXmlReaderData *xr,
 
     @see XmlReader::read()
 */
-//# bool Qore::Xml::XmlReader::readSkipWhitespace() {}
+//# bool readSkipWhitespace() {}
 static AbstractQoreNode *XMLREADER_readSkipWhitespace(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    int rc = xr->readSkipWhitespace(xsink);
    return rc == -1 ? 0 : get_bool_node(rc);
@@ -195,7 +148,7 @@ static AbstractQoreNode *XMLREADER_readSkipWhitespace(QoreObject *self, QoreXmlR
     @see @ref NodeTypeMap
     @see XmlReader::nodeTypeName()
 */
-//# int Qore::Xml::XmlReader::nodeType() {}
+//# int nodeType() {}
 static AbstractQoreNode *XMLREADER_nodeType(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return new QoreBigIntNode(xr->nodeType());
 }
@@ -208,7 +161,7 @@ static AbstractQoreNode *XMLREADER_nodeType(QoreObject *self, QoreXmlReaderData 
 
     @see XmlReader::nodeType()
 */
-//# *string Qore::Xml::XmlReader::nodeTypeName() {}
+//# *string nodeTypeName() {}
 static AbstractQoreNode *XMLREADER_nodeTypeName(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = get_xml_node_type_name(xr->nodeType());
    return n ? new QoreStringNode(n) : 0;
@@ -220,7 +173,7 @@ static AbstractQoreNode *XMLREADER_nodeTypeName(QoreObject *self, QoreXmlReaderD
     @par Example:
     @code my int $depth = $xr.depth(); @endcode
 */
-//# int Qore::Xml::XmlReader::depth() {}
+//# int depth() {}
 static AbstractQoreNode *XMLREADER_depth(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return new QoreBigIntNode(xr->depth());
 }
@@ -233,7 +186,7 @@ static AbstractQoreNode *XMLREADER_depth(QoreObject *self, QoreXmlReaderData *xr
 
     @see XmlReader::localName()
 */
-//# *string Qore::Xml::XmlReader::name() {}
+//# *string name() {}
 static AbstractQoreNode *XMLREADER_name(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->constName();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -245,7 +198,7 @@ static AbstractQoreNode *XMLREADER_name(QoreObject *self, QoreXmlReaderData *xr,
     @par Example:
     @code my *string $val = $xr.value(); @endcode
  */
-//# *string Qore::Xml::XmlReader::value() {}
+//# *string value() {}
 static AbstractQoreNode *XMLREADER_value(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->constValue();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -257,7 +210,7 @@ static AbstractQoreNode *XMLREADER_value(QoreObject *self, QoreXmlReaderData *xr
     @par Example:
     @code my bool $b = $xr.hasAttributes(); @endcode
  */
-//# bool Qore::Xml::XmlReader::hasAttributes() {}
+//# bool hasAttributes() {}
 static AbstractQoreNode *XMLREADER_hasAttributes(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return get_bool_node(xr->hasAttributes());
 }
@@ -268,7 +221,7 @@ static AbstractQoreNode *XMLREADER_hasAttributes(QoreObject *self, QoreXmlReader
     @par Example:
     @code my bool $b = $xr.hasValue(); @endcode
  */
-//# bool Qore::Xml::XmlReader::hasValue() {}
+//# bool hasValue() {}
 static AbstractQoreNode *XMLREADER_hasValue(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return get_bool_node(xr->hasValue());
 }
@@ -279,7 +232,7 @@ static AbstractQoreNode *XMLREADER_hasValue(QoreObject *self, QoreXmlReaderData 
     @par Example:
     @code my bool $b = $xr.isDefault(); @endcode
  */
-//# bool Qore::Xml::XmlReader::isDefault() {}
+//# bool isDefault() {}
 static AbstractQoreNode *XMLREADER_isDefault(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return get_bool_node(xr->isDefault());
 }
@@ -290,7 +243,7 @@ static AbstractQoreNode *XMLREADER_isDefault(QoreObject *self, QoreXmlReaderData
     @par Example:
     @code my bool $b = $xr.isEmptyElement(); @endcode
  */
-//# bool Qore::Xml::XmlReader::isEmptyElement() {}
+//# bool isEmptyElement() {}
 static AbstractQoreNode *XMLREADER_isEmptyElement(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return get_bool_node(xr->isEmptyElement());
 }
@@ -301,7 +254,7 @@ static AbstractQoreNode *XMLREADER_isEmptyElement(QoreObject *self, QoreXmlReade
     @par Example:
     @code my bool $b = $xr.isNamespaceDecl(); @endcode
  */
-//# bool Qore::Xml::XmlReader::isNamespaceDecl() {}
+//# bool isNamespaceDecl() {}
 static AbstractQoreNode *XMLREADER_isNamespaceDecl(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return get_bool_node(xr->isNamespaceDecl());
 }
@@ -312,7 +265,7 @@ static AbstractQoreNode *XMLREADER_isNamespaceDecl(QoreObject *self, QoreXmlRead
     @par Example:
     @code my bool $b = $xr.isValid(); @endcode
  */
-//# bool Qore::Xml::XmlReader::isValid() {}
+//# bool isValid() {}
 static AbstractQoreNode *XMLREADER_isValid(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return get_bool_node(xr->isValid());
 }
@@ -329,7 +282,7 @@ static AbstractQoreNode *XMLREADER_isValid(QoreObject *self, QoreXmlReaderData *
 
     @see XmlReader::toQoreData()
  */
-//# any Qore::Xml::XmlReader::toQore() {}
+//# any toQore() {}
 static AbstractQoreNode *XMLREADER_toQore(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return xr->parseXMLData(QCS_UTF8, false, xsink);
 }
@@ -346,7 +299,7 @@ static AbstractQoreNode *XMLREADER_toQore(QoreObject *self, QoreXmlReaderData *x
 
     @see XmlReader::toQore()
  */
-//# any Qore::Xml::XmlReader::toQoreData() {}
+//# any toQoreData() {}
 static AbstractQoreNode *XMLREADER_toQoreData(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return xr->parseXMLData(QCS_UTF8, true, xsink);
 }
@@ -357,7 +310,7 @@ static AbstractQoreNode *XMLREADER_toQoreData(QoreObject *self, QoreXmlReaderDat
     @par Example:
     @code my int $n = $xr.attributeCount(); @endcode
  */
-//# int Qore::Xml::XmlReader::attributeCount() {}
+//# int attributeCount() {}
 static AbstractQoreNode *XMLREADER_attributeCount(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return new QoreBigIntNode(xr->attributeCount());
 }
@@ -368,7 +321,7 @@ static AbstractQoreNode *XMLREADER_attributeCount(QoreObject *self, QoreXmlReade
     @par Example:
     @code my *string $value = $xmlreader.baseUri(); @endcode
  */
-//# *string Qore::Xml::XmlReader::baseUri() {}
+//# *string baseUri() {}
 static AbstractQoreNode *XMLREADER_baseUri(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->baseUri();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -380,7 +333,7 @@ static AbstractQoreNode *XMLREADER_baseUri(QoreObject *self, QoreXmlReaderData *
     @par Example:
     @code my *string $value = $xmlreader.encoding(); @endcode
  */
-//# *string Qore::Xml::XmlReader::encoding() {}
+//# *string encoding() {}
 static AbstractQoreNode *XMLREADER_encoding(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->encoding();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -392,7 +345,7 @@ static AbstractQoreNode *XMLREADER_encoding(QoreObject *self, QoreXmlReaderData 
     @par Example:
     @code my *string $value = $xmlreader.localName(); @endcode
  */
-//# *string Qore::Xml::XmlReader::localName() {}
+//# *string localName() {}
 static AbstractQoreNode *XMLREADER_localName(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->localName();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -404,7 +357,7 @@ static AbstractQoreNode *XMLREADER_localName(QoreObject *self, QoreXmlReaderData
     @par Example:
     @code my *string $value = $xmlreader.namespaceUri(); @endcode
  */
-//# *string Qore::Xml::XmlReader::namespaceUri() {}
+//# *string namespaceUri() {}
 static AbstractQoreNode *XMLREADER_namespaceUri(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->namespaceUri();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -416,7 +369,7 @@ static AbstractQoreNode *XMLREADER_namespaceUri(QoreObject *self, QoreXmlReaderD
     @par Example:
     @code my *string $value = $xmlreader.prefix(); @endcode
  */
-//# *string Qore::Xml::XmlReader::prefix() {}
+//# *string prefix() {}
 static AbstractQoreNode *XMLREADER_prefix(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->prefix();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -428,7 +381,7 @@ static AbstractQoreNode *XMLREADER_prefix(QoreObject *self, QoreXmlReaderData *x
     @par Example:
     @code my *string $value = $xmlreader.xmlLang(); @endcode
  */
-//# *string Qore::Xml::XmlReader::xmlLang() {}
+//# *string xmlLang() {}
 static AbstractQoreNode *XMLREADER_xmlLang(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->xmlLang();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -440,7 +393,7 @@ static AbstractQoreNode *XMLREADER_xmlLang(QoreObject *self, QoreXmlReaderData *
     @par Example:
     @code my *string $value = $xmlreader.xmlVersion(); @endcode
  */
-//# *string Qore::Xml::XmlReader::xmlVersion() {}
+//# *string xmlVersion() {}
 static AbstractQoreNode *XMLREADER_xmlVersion(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const char *n = xr->xmlVersion();
    return n ? new QoreStringNode(n, QCS_UTF8) : 0;
@@ -456,7 +409,7 @@ static AbstractQoreNode *XMLREADER_xmlVersion(QoreObject *self, QoreXmlReaderDat
 
     @see XmlReader::getAttributeNs()
  */
-//# *string Qore::Xml::XmlReader::getAttribute(string $attr) {}
+//# *string getAttribute(string $attr) {}
 static AbstractQoreNode *XMLREADER_getAttribute(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *attr = HARD_QORE_STRING(params, 0);
    return xr->getAttribute(attr->getBuffer());
@@ -472,7 +425,7 @@ static AbstractQoreNode *XMLREADER_getAttribute(QoreObject *self, QoreXmlReaderD
 
     @see XmlReader::getAttribute()
  */
-//# *string Qore::Xml::XmlReader::getAttributeOffset(softint $offset = 0) {}
+//# *string getAttributeOffset(softint $offset = 0) {}
 static AbstractQoreNode *XMLREADER_getAttributeOffset(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return xr->getAttributeOffset((int)HARD_QORE_INT(params, 0));
 }
@@ -488,7 +441,7 @@ static AbstractQoreNode *XMLREADER_getAttributeOffset(QoreObject *self, QoreXmlR
 
     @see XmlReader::getAttribute()
  */
-//# *string Qore::Xml::XmlReader::getAttributeNs(string $attr, string $ns) {}
+//# *string getAttributeNs(string $attr, string $ns) {}
 static AbstractQoreNode *XMLREADER_getAttributeNs(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *lname = HARD_QORE_STRING(params, 0);
    const QoreStringNode *ns = HARD_QORE_STRING(params, 1);
@@ -501,7 +454,7 @@ static AbstractQoreNode *XMLREADER_getAttributeNs(QoreObject *self, QoreXmlReade
     @par Example:
     @code my *string $ns = $xr.lookupNamespace(); @endcode
  */
-//# *string Qore::Xml::XmlReader::lookupNamespace() {}
+//# *string lookupNamespace() {}
 static AbstractQoreNode *XMLREADER_lookupNamespace(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return xr->lookupNamespace(0);
 }
@@ -514,7 +467,7 @@ static AbstractQoreNode *XMLREADER_lookupNamespace(QoreObject *self, QoreXmlRead
     @par Example:
     @code my *string $value = $xmlreader.lookupNamespace($prefix); @endcode
  */
-//# *string Qore::Xml::XmlReader::lookupNamespace(string $prefix) {}
+//# *string lookupNamespace(string $prefix) {}
 static AbstractQoreNode *XMLREADER_lookupNamespace_str(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *prefix = HARD_QORE_STRING(params, 0);
    return xr->lookupNamespace(prefix->getBuffer());
@@ -534,7 +487,7 @@ static AbstractQoreNode *XMLREADER_lookupNamespace_str(QoreObject *self, QoreXml
 
     @see XmlReader::moveToAttributeNs()
  */
-//# bool Qore::Xml::XmlReader::moveToAttribute(string $attr) {}
+//# bool moveToAttribute(string $attr) {}
 static AbstractQoreNode *XMLREADER_moveToAttribute(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *attr = HARD_QORE_STRING(params, 0);
    int rc = xr->moveToAttribute(attr->getBuffer(), xsink);
@@ -555,7 +508,7 @@ static AbstractQoreNode *XMLREADER_moveToAttribute(QoreObject *self, QoreXmlRead
 
     @see XmlReader::moveToAttribute()
  */
-//# bool Qore::Xml::XmlReader::moveToAttributeOffset(softint $offset) {}
+//# bool moveToAttributeOffset(softint $offset) {}
 static AbstractQoreNode *XMLREADER_moveToAttributeOffset(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    int rc = xr->moveToAttributeOffset((int)HARD_QORE_INT(params, 0), xsink);
    return rc == -1 ? 0 : get_bool_node(rc);
@@ -576,7 +529,7 @@ static AbstractQoreNode *XMLREADER_moveToAttributeOffset(QoreObject *self, QoreX
 
     @see XmlReader::moveToAttribute()
  */
-//# bool Qore::Xml::XmlReader::moveToAttributeNs(string $attr, string $ns) {}
+//# bool moveToAttributeNs(string $attr, string $ns) {}
 static AbstractQoreNode *XMLREADER_moveToAttributeNs(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *lname = HARD_QORE_STRING(params, 0);
    const QoreStringNode *ns = HARD_QORE_STRING(params, 1);
@@ -595,7 +548,7 @@ static AbstractQoreNode *XMLREADER_moveToAttributeNs(QoreObject *self, QoreXmlRe
     @par Example:
     @code my bool $b = $xmlreader.moveToElement(); @endcode
  */
-//# bool Qore::Xml::XmlReader::moveToElement() {}
+//# bool moveToElement() {}
 static AbstractQoreNode *XMLREADER_moveToElement(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    int rc = xr->moveToElement(xsink);
    return rc == -1 ? 0 : get_bool_node(rc);
@@ -611,7 +564,7 @@ static AbstractQoreNode *XMLREADER_moveToElement(QoreObject *self, QoreXmlReader
     @par Example:
     @code my bool $b = $xmlreader.moveToFirstAttribute(); @endcode
  */
-//# bool Qore::Xml::XmlReader::moveToFirstAttribute() {}
+//# bool moveToFirstAttribute() {}
 static AbstractQoreNode *XMLREADER_moveToFirstAttribute(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    int rc = xr->moveToFirstAttribute(xsink);
    return rc == -1 ? 0 : get_bool_node(rc);
@@ -627,7 +580,7 @@ static AbstractQoreNode *XMLREADER_moveToFirstAttribute(QoreObject *self, QoreXm
     @par Example:
     @code my bool $b = $xmlreader.moveToNextAttribute(); @endcode
  */
-//# bool Qore::Xml::XmlReader::moveToNextAttribute() {}
+//# bool moveToNextAttribute() {}
 static AbstractQoreNode *XMLREADER_moveToNextAttribute(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    int rc = xr->moveToNextAttribute(xsink);
    return rc == -1 ? 0 : get_bool_node(rc);
@@ -643,7 +596,7 @@ static AbstractQoreNode *XMLREADER_moveToNextAttribute(QoreObject *self, QoreXml
     @par Example:
     @code my bool $b = $xmlreader.next(); @endcode
  */
-//# bool Qore::Xml::XmlReader::next() {}
+//# bool next() {}
 static AbstractQoreNode *XMLREADER_next(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    int rc = xr->next(xsink);
    return rc == -1 ? 0 : get_bool_node(rc);
@@ -657,7 +610,7 @@ static AbstractQoreNode *XMLREADER_next(QoreObject *self, QoreXmlReaderData *xr,
 
     @see XmlReader::getOuterXml()
  */
-//# *string Qore::Xml::XmlReader::getInnerXml() {}
+//# *string getInnerXml() {}
 static AbstractQoreNode *XMLREADER_getInnerXml(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return xr->getInnerXml();
 }
@@ -670,7 +623,7 @@ static AbstractQoreNode *XMLREADER_getInnerXml(QoreObject *self, QoreXmlReaderDa
 
     @see XmlReader::getInnerXml()
  */
-//# *string Qore::Xml::XmlReader::getOuterXml() {}
+//# *string getOuterXml() {}
 static AbstractQoreNode *XMLREADER_getOuterXml(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
    return xr->getOuterXml();
 }
@@ -688,7 +641,7 @@ static AbstractQoreNode *XMLREADER_getOuterXml(QoreObject *self, QoreXmlReaderDa
     @par Example:
     @code $xr.relaxNGValidate($relaxng); @endcode
  */
-//# nothing Qore::Xml::XmlReader::relaxNGValidate(string $relaxng) {}
+//# nothing relaxNGValidate(string $relaxng) {}
 static AbstractQoreNode *XMLREADER_relaxNGValidate(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
    const QoreStringNode *rng = HARD_QORE_STRING(params, 0);
@@ -712,7 +665,7 @@ static AbstractQoreNode *XMLREADER_relaxNGValidate(QoreObject *self, QoreXmlRead
     @par Example:
     @code $xr.schemaValidate($xsd); @endcode
  */
-//# nothing Qore::Xml::XmlReader::schemaValidate(string $xsd) {}
+//# nothing schemaValidate(string $xsd) {}
 static AbstractQoreNode *XMLREADER_schemaValidate(QoreObject *self, QoreXmlReaderData *xr, const QoreListNode *params, ExceptionSink *xsink) {
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
    const QoreStringNode *xsd = HARD_QORE_STRING(params, 0);
@@ -722,6 +675,12 @@ static AbstractQoreNode *XMLREADER_schemaValidate(QoreObject *self, QoreXmlReade
 #endif
    return 0;
 }
+
+/**#
+};
+};
+};
+ */
 
 QoreClass *initXmlReaderClass(QoreClass *XmlDoc) {
    QORE_TRACE("initXmlReaderClass()");

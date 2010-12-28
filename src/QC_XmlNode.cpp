@@ -27,9 +27,7 @@
 qore_classid_t CID_XMLNODE;
 QoreClass *QC_XMLNODE;
 
-//! main Qore Programming Language namespace
-/** main Qore Programming Language namespace
- */
+//! main %Qore Programming Language namespace
 /**# namespace Qore {
 //! namespace for XML parsing and utility classes
 namespace Xml {
@@ -39,35 +37,12 @@ namespace Xml {
  */
 /**# class XmlNode {
 public:
-   constructor();
-   XmlNode copy();
-   int childElementCount();
-   int getSpacePreserve();
-   int getElementType();
-   *string getElementTypeName();
-   *XmlNode firstElementChild();
-   *XmlNode getLastChild();
-   *XmlNode lastElementChild();
-   *XmlNode nextElementSibling();
-   *XmlNode previousElementSibling();
-   string getPath();
-   *string getNsProp(string $prop, string $ns);
-   *string getProp(string $prop);
-   *string getContent();
-   *string getName();
-   *string getLang();
-   bool isText();
-   bool isBlank();
-   *string getXML();
-};
-};
-};
- */
+*/
 
 //! cannot be called manually; throws an exception
 /** @throw XMLNODE-CONSTRUCTOR-ERROR this class cannot be constructed directly
  */
-//# Qore::Xml::XmlNode::constructor() {}
+//# constructor() {}
 static void XMLNODE_constructor(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    xsink->raiseException("XMLNODE-CONSTRUCTOR-ERROR", "this class cannot be constructed directly");
 }
@@ -78,7 +53,7 @@ static void XMLNODE_constructor(QoreObject *self, const QoreListNode *params, Ex
     @par Example:
     @code my XmlNode $xncopy = $xn.copy(); @endcode
 */
-//# Qore::Xml::XmlNode Qore::Xml::XmlNode::copy() {}
+//# Qore::Xml::XmlNode copy() {}
 static void XMLNODE_copy(QoreObject *self, QoreObject *old, QoreXmlNodeData *xn, ExceptionSink *xsink) {
    self->setPrivate(CID_XMLNODE, new QoreXmlNodeData(*xn));
 }
@@ -89,7 +64,7 @@ static void XMLNODE_copy(QoreObject *self, QoreObject *old, QoreXmlNodeData *xn,
     @par Example:
     @code my int $val = $n.childElementCount(); @endcode
 */
-//# int Qore::Xml::XmlNode::childElementCount() {}
+//# int childElementCount() {}
 static AbstractQoreNode *XMLNODE_childElementCount(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return new QoreBigIntNode(xn->childElementCount());
 }
@@ -100,7 +75,7 @@ static AbstractQoreNode *XMLNODE_childElementCount(QoreObject *self, QoreXmlNode
     @par Example:
     @code my int $val = $n.getSpacePreserve(); @endcode
 */
-//# int Qore::Xml::XmlNode::getSpacePreserve() {}
+//# int getSpacePreserve() {}
 static AbstractQoreNode *XMLNODE_getSpacePreserve(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return new QoreBigIntNode(xn->getSpacePreserve());
 }
@@ -117,7 +92,7 @@ static AbstractQoreNode *XMLNODE_getLineNumber(QoreObject *self, QoreXmlNodeData
     @par Example:
     @code my int $val = $n.getElementType(); @endcode
 */
-//# int Qore::Xml::XmlNode::getElementType() {}
+//# int getElementType() {}
 static AbstractQoreNode *XMLNODE_getElementType(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return new QoreBigIntNode(xn->getElementType());
 }
@@ -128,7 +103,7 @@ static AbstractQoreNode *XMLNODE_getElementType(QoreObject *self, QoreXmlNodeDat
     @par Example:
     @code my *string $name = $n.getElementTypeName(); @endcode
 */
-//# *string Qore::Xml::XmlNode::getElementTypeName() {}
+//# *string getElementTypeName() {}
 static AbstractQoreNode *XMLNODE_getElementTypeName(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    const char *nt = get_xml_element_type_name((int)xn->getElementType());
    return nt ? new QoreStringNode(nt) : 0;
@@ -144,7 +119,7 @@ static QoreObject *doObject(QoreXmlNodeData *data) {
     @par Example:
     @code my *XmlNode $xn = $node.firstElementChild(); @endcode
 */
-//# *XmlNode Qore::Xml::XmlNode::firstElementChild() {}
+//# *XmlNode firstElementChild() {}
 static AbstractQoreNode *XMLNODE_firstElementChild(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return doObject(xn->firstElementChild());
 }
@@ -155,7 +130,7 @@ static AbstractQoreNode *XMLNODE_firstElementChild(QoreObject *self, QoreXmlNode
     @par Example:
     @code my *XmlNode $xn = $node.getLastChild(); @endcode
 */
-//# *XmlNode Qore::Xml::XmlNode::getLastChild();
+//# *XmlNode getLastChild();
 static AbstractQoreNode *XMLNODE_getLastChild(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return doObject(xn->getLastChild());
 }
@@ -166,7 +141,7 @@ static AbstractQoreNode *XMLNODE_getLastChild(QoreObject *self, QoreXmlNodeData 
     @par Example:
     @code my *XmlNode $xn = $node.lastElementChild(); @endcode
 */
-//# *XmlNode Qore::Xml::XmlNode::lastElementChild();
+//# *XmlNode lastElementChild();
 static AbstractQoreNode *XMLNODE_lastElementChild(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return doObject(xn->lastElementChild());
 }
@@ -177,7 +152,7 @@ static AbstractQoreNode *XMLNODE_lastElementChild(QoreObject *self, QoreXmlNodeD
     @par Example:
     @code my *XmlNode $xn = $node.nextElementSibling(); @endcode
 */
-//# *XmlNode Qore::Xml::XmlNode::nextElementSibling();
+//# *XmlNode nextElementSibling();
 static AbstractQoreNode *XMLNODE_nextElementSibling(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return doObject(xn->nextElementSibling());
 }
@@ -188,7 +163,7 @@ static AbstractQoreNode *XMLNODE_nextElementSibling(QoreObject *self, QoreXmlNod
     @par Example:
     @code my *XmlNode $xn = $node.previousElementSibling(); @endcode
 */
-//# *XmlNode Qore::Xml::XmlNode::previousElementSibling();
+//# *XmlNode previousElementSibling();
 static AbstractQoreNode *XMLNODE_previousElementSibling(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return doObject(xn->previousElementSibling());
 }
@@ -199,7 +174,7 @@ static AbstractQoreNode *XMLNODE_previousElementSibling(QoreObject *self, QoreXm
     @par Example:
     @code my string $path = $node.getPath(); @endcode
 */
-//# string Qore::Xml::XmlNode::getPath() {}
+//# string getPath() {}
 static AbstractQoreNode *XMLNODE_getPath(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return xn->getPath(xsink);
 }
@@ -213,7 +188,7 @@ static AbstractQoreNode *XMLNODE_getPath(QoreObject *self, QoreXmlNodeData *xn, 
     @par Example:
     @code my *string $val = $node.getNsProp($prop, $ns); @endcode
 */
-//# *string Qore::Xml::XmlNode::getNsProp(string $prop, string $ns) {}
+//# *string getNsProp(string $prop, string $ns) {}
 static AbstractQoreNode *XMLNODE_getNsProp(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *prop = HARD_QORE_STRING(params, 0);
    const QoreStringNode *ns = HARD_QORE_STRING(params, 1);
@@ -228,7 +203,7 @@ static AbstractQoreNode *XMLNODE_getNsProp(QoreObject *self, QoreXmlNodeData *xn
     @par Example:
     @code my *string $val = $node.getProp($prop); @endcode
 */
-//# *string Qore::Xml::XmlNode::getProp(string $prop) {}
+//# *string getProp(string $prop) {}
 static AbstractQoreNode *XMLNODE_getProp(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *prop = HARD_QORE_STRING(params, 0);
    return xn->getProp(prop->getBuffer());
@@ -246,7 +221,7 @@ static AbstractQoreNode *XMLNODE_getBase(QoreObject *self, QoreXmlNodeData *xn, 
     @par Example:
     @code my *string $value = $xmlnode.getContent(); @endcode
  */
-//# *string Qore::Xml::XmlNode::getContent() {}
+//# *string getContent() {}
 static AbstractQoreNode *XMLNODE_getContent(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return xn->getContent();
 }
@@ -257,7 +232,7 @@ static AbstractQoreNode *XMLNODE_getContent(QoreObject *self, QoreXmlNodeData *x
     @par Example:
     @code my *string $name = $xmlnode.getName(); @endcode
 */
-//# *string Qore::Xml::XmlNode::getName() {}
+//# *string getName() {}
 static AbstractQoreNode *XMLNODE_getName(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return xn->getName();
 }
@@ -268,7 +243,7 @@ static AbstractQoreNode *XMLNODE_getName(QoreObject *self, QoreXmlNodeData *xn, 
     @par Example:
     @code my *string $lang = $xmlnode.getLang(); @endcode
  */
-//# *string Qore::Xml::XmlNode::getLang() {}
+//# *string getLang() {}
 static AbstractQoreNode *XMLNODE_getLang(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return xn->getLang();
 }
@@ -279,7 +254,7 @@ static AbstractQoreNode *XMLNODE_getLang(QoreObject *self, QoreXmlNodeData *xn, 
     @par Example:
     @code my bool $b = $xmlnode.isText(); @endcode
 */
-//# bool Qore::Xml::XmlNode::isText() {}
+//# bool isText() {}
 static AbstractQoreNode *XMLNODE_isText(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return get_bool_node(xn->isText());
 }
@@ -290,7 +265,7 @@ static AbstractQoreNode *XMLNODE_isText(QoreObject *self, QoreXmlNodeData *xn, c
     @par Example:
     @code my bool $b = $xmlnode.isBlank(); @endcode
 */
-//# bool Qore::Xml::XmlNode::isBlank() {}
+//# bool isBlank() {}
 static AbstractQoreNode *XMLNODE_isBlank(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return get_bool_node(xn->isBlank());
 }
@@ -301,10 +276,16 @@ static AbstractQoreNode *XMLNODE_isBlank(QoreObject *self, QoreXmlNodeData *xn, 
     @par Example:
     @code my *string $value = $xmlnode.getXML(); @endcode
  */
-//# *string Qore::Xml::XmlNode::getXML() {}
+//# *string getXML() {}
 static AbstractQoreNode *XMLNODE_getXML(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
    return xn->getXML();
 }
+
+/**#
+};
+};
+};
+ */
 
 QoreClass *initXmlNodeClass() {
    QORE_TRACE("initXmlNodeClass()");

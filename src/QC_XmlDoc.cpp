@@ -102,9 +102,7 @@ QoreXmlNodeData *doNode(xmlNodePtr p, QoreXmlDocData *doc) {
    return new QoreXmlNodeData(p, doc);
 }
 
-//! main Qore Programming Language namespace
-/** main Qore Programming Language namespace
- */
+//! main %Qore Programming Language namespace
 /**# namespace Qore {
 //! namespace for XML parsing and utility classes
 namespace Xml {
@@ -114,21 +112,7 @@ namespace Xml {
  */
 /**# class XmlDoc {
 public:
-   constructor(hash $data);
-   constructor(string $xml);
-   XmlDoc copy();
-   string getVersion();
-   hash toQore();
-   hash toQoreData();
-   string toString();
-   list evalXPath(string $xpath);
-   *XmlNode getRootElement();
-   nothing validateRelaxNG(string $relaxng);
-   nothing validateSchema(string $xsd);
-};
-};
-};
- */
+*/
 
 //! creates a new XmlDoc object from the hash value passed
 /** @param $data the must have only one top-level key, as the XML string that will be used for the XmlDoc object will be created directly from the hash
@@ -136,7 +120,7 @@ public:
     @par Example:
     @code my XmlDoc $xd($hash); @endcode
  */
-//# Qore::Xml::XmlDoc::constructor(hash $data) {}
+//# constructor(hash $data) {}
 static void XMLDOC_constructor_hash(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreHashNode *h = HARD_QORE_HASH(params, 0);
    SimpleRefHolder<QoreStringNode> xml(makeXMLString(QCS_UTF8, *h, false, xsink));
@@ -157,7 +141,7 @@ static void XMLDOC_constructor_hash(QoreObject *self, const QoreListNode *params
     @par Example:
     @code my XmlDoc $xd($xml); @endcode
  */
-//# Qore::Xml::XmlDoc::constructor(string $xml) {}
+//# constructor(string $xml) {}
 static void XMLDOC_constructor_str(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *str = HARD_QORE_STRING(params, 0);
    SimpleRefHolder<QoreXmlDocData> xd(new QoreXmlDocData(str));
@@ -175,7 +159,7 @@ static void XMLDOC_constructor_str(QoreObject *self, const QoreListNode *params,
     @par Example:
     @code my XmlDoc $xdcopy = $xd.copy(); @endcode
 */
-//# Qore::Xml::XmlDoc Qore::Xml::XmlDoc::copy() {}
+//# Qore::Xml::XmlDoc copy() {}
 static void XMLDOC_copy(QoreObject *self, QoreObject *old, QoreXmlDocData *xd, ExceptionSink *xsink) {
    self->setPrivate(CID_XMLDOC, new QoreXmlDocData(*xd));
 }
@@ -186,7 +170,7 @@ static void XMLDOC_copy(QoreObject *self, QoreObject *old, QoreXmlDocData *xd, E
     @par Example:
     @code my string $xmlver = $xd.getVersion(); @endcode
  */
-//# string Qore::Xml::XmlDoc::getVersion() {}
+//# string getVersion() {}
 static AbstractQoreNode *XMLDOC_getVersion(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    return new QoreStringNode(xd->getVersion());
 }
@@ -205,7 +189,7 @@ static AbstractQoreNode *XMLDOC_getVersion(QoreObject *self, QoreXmlDocData *xd,
 
     @see parseXMLAsData() and parseXML()
  */
-//# hash Qore::Xml::XmlDoc::toQore() {}
+//# hash toQore() {}
 static AbstractQoreNode *XMLDOC_toQore(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    QoreXmlReader reader(xd->getDocPtr(), xsink);
    if (*xsink)
@@ -229,7 +213,7 @@ static AbstractQoreNode *XMLDOC_toQore(QoreObject *self, QoreXmlDocData *xd, con
 
     @see parseXMLAsData() and parseXML()
  */
-//# hash Qore::Xml::XmlDoc::toQoreData() {}
+//# hash toQoreData() {}
 static AbstractQoreNode *XMLDOC_toQoreData(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    QoreXmlReader reader(xd->getDocPtr(), xsink);
    if (*xsink)
@@ -244,7 +228,7 @@ static AbstractQoreNode *XMLDOC_toQoreData(QoreObject *self, QoreXmlDocData *xd,
     @par Example:
     @code my string $xml = $xd.toString(); @endcode
 */
-//# string Qore::Xml::XmlDoc::toString() {}
+//# string toString() {}
 static AbstractQoreNode *XMLDOC_toString(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    return xd->toString(xsink);
 }
@@ -260,7 +244,7 @@ static AbstractQoreNode *XMLDOC_toString(QoreObject *self, QoreXmlDocData *xd, c
     @par Example:
     @code my list $list = $xd.evalXPath("//list[2]"); @endcode
  */
-//# list Qore::Xml::XmlDoc::evalXPath(string $xpath) {}
+//# list evalXPath(string $xpath) {}
 static AbstractQoreNode *XMLDOC_evalXPath(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    const QoreStringNode *expr = HARD_QORE_STRING(params, 0);
    QoreXPath xp(xd, xsink);
@@ -276,7 +260,7 @@ static AbstractQoreNode *XMLDOC_evalXPath(QoreObject *self, QoreXmlDocData *xd, 
     @par Example:
     @code my *XmlNode $xn = $xd.getRootElement(); @endcode
  */
-//# *XmlNode Qore::Xml::XmlDoc::getRootElement() {}
+//# *XmlNode getRootElement() {}
 static AbstractQoreNode *XMLDOC_getRootElement(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
    QoreXmlNodeData *n = xd->getRootElement();
    if (!n) return 0;
@@ -295,7 +279,7 @@ static AbstractQoreNode *XMLDOC_getRootElement(QoreObject *self, QoreXmlDocData 
     @par Example:
     @code $xd.validateRelaxNG($relaxng); @endcode    
  */
-//# nothing Qore::Xml::XmlDoc::validateRelaxNG(string $relaxng) {}
+//# nothing validateRelaxNG(string $relaxng) {}
 static AbstractQoreNode *XMLDOC_validateRelaxNG(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
    const QoreStringNode *rng = HARD_QORE_STRING(params, 0);
@@ -324,7 +308,7 @@ static AbstractQoreNode *XMLDOC_validateRelaxNG(QoreObject *self, QoreXmlDocData
     @par Example:
     @code $xd.validateSchema($xsd); @endcode    
  */
-//# nothing Qore::Xml::XmlDoc::validateSchema(string $xsd) {}
+//# nothing validateSchema(string $xsd) {}
 static AbstractQoreNode *XMLDOC_validateSchema(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
    const QoreStringNode *xsd = HARD_QORE_STRING(params, 0);
@@ -339,6 +323,12 @@ static AbstractQoreNode *XMLDOC_validateSchema(QoreObject *self, QoreXmlDocData 
 #endif
    return 0;
 }
+
+/**#
+};
+};
+};
+ */
 
 QoreClass *initXmlDocClass(const QoreClass *QC_XmlNode) {
    QORE_TRACE("initXmlDocClass()");

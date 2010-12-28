@@ -76,10 +76,9 @@ static void set_xrc_defaults(QoreHTTPClient &client) {
    client.addProtocol("xmlrpcs", 443, true);
 }
 
-//! main Qore Programming Language namespace
-/** main Qore Programming Language namespace
- */
-//# namespace Qore {
+//! main %Qore Programming Language namespace
+/**# namespace Qore {
+*/
 //! The XmlRpcClient class provides easy access to XML-RPC web services
 /** This class inherits all public methods of the HTTPClient class. The inherited HTTPClient methods are not listed in this section, see the section on the HTTPClient class for more information on methods provided by the parent class. For a list of low-level XML-RPC functions, see @ref XMLRPC.
 
@@ -103,17 +102,6 @@ static void set_xrc_defaults(QoreHTTPClient &client) {
 */
 /**# class XmlRpcClient : Qore::HTTPClient {
 public:
-   constructor();
-   constructor(hash $opts, softbool $no_connect = False);
-   XmlRpcClient copy();
-   hash callArgs(string $method, any $args);
-   hash call(string $method, ...);
-   hash callArgsWithInfo(reference $info, string $method, any $args);
-   hash callWithInfo(reference $info, string $method, ...);
-   nothing setEventQueue();
-   nothing setEventQueue(Queue $queue);
-};
-};
 */
 
 //! Creates the XmlRpcClient object based on the parameters passed
@@ -123,7 +111,7 @@ public:
 my XmlRpcClient $xrc();
 $xrc.setURL("http://localhost:8080");@endcode
 */
-//# Qore::XmlRpcClient::constructor() {}
+//# constructor() {}
 static void XRC_constructor(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    // get HTTPClient object
    safe_httpclient_t client((QoreHTTPClient *)self->getReferencedPrivateData(CID_HTTPCLIENT, xsink), xsink);
@@ -150,7 +138,7 @@ static void XRC_constructor(QoreObject *self, const QoreListNode *params, Except
     @par Example:
     @code my XmlRpcClient $xrc(("url": "http://authuser:authpass@otherhost:8080/XMLRPC"));@endcode
 */
-//# Qore::XmlRpcClient::constructor(hash $opts, softbool $no_connect = False) {}
+//# constructor(hash $opts, softbool $no_connect = False) {}
 static void XRC_constructor_hash_bool(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
    // get HTTPClient object
    safe_httpclient_t client((QoreHTTPClient *)self->getReferencedPrivateData(CID_HTTPCLIENT, xsink), xsink);
@@ -171,7 +159,7 @@ static void XRC_constructor_hash_bool(QoreObject *self, const QoreListNode *para
 //! Throws an exception; copying XmlRpcClient objects is currently not supported
 /** @throw XMLRPCCLIENT-COPY-ERROR copying XmlRpcClient objects is currently not supported
 */
-//# Qore::XmlRpcClient Qore::XmlRpcClient::copy() {}
+//# Qore::XmlRpcClient copy() {}
 static void XRC_copy(QoreObject *self, QoreObject *old, QoreHTTPClient* client, ExceptionSink *xsink) {
    xsink->raiseException("XMLRPCCLIENT-COPY-ERROR", "copying XmlRpcClient objects is not yet supported.");
 }
@@ -221,7 +209,7 @@ static QoreHashNode *make_xmlrpc_call(QoreHTTPClient *client, QoreStringNode *ms
     @par Example:
     @code my hash $result = $xrc.callArgs("method.name", $arg_list); @endcode
 */
-//# hash Qore::XmlRpcClient::callArgs(string $method, any $args) {}
+//# hash callArgs(string $method, any $args) {}
 static AbstractQoreNode *XRC_callArgs(QoreObject *self, QoreHTTPClient *client, const QoreListNode *params, ExceptionSink *xsink) {
    // create the outgoing message in XML-RPC call format
    QoreStringNodeHolder msg(makeXMLRPCCallStringArgs(client->getEncoding(), 0, params, xsink));
@@ -252,7 +240,7 @@ static AbstractQoreNode *XRC_callArgs(QoreObject *self, QoreHTTPClient *client, 
     @par Example:
     @code my hash $result = $xrc.call("method.name", $arg1, $arg2); @endcode
 */
-//# hash Qore::XmlRpcClient::call(string $method, ...) {}
+//# hash call(string $method, ...) {}
 static AbstractQoreNode *XRC_call(QoreObject *self, QoreHTTPClient *client, const QoreListNode *params, ExceptionSink *xsink) {
    // create the outgoing message in XML-RPC call format
    QoreStringNodeHolder msg(makeXMLRPCCallString(client->getEncoding(), 0, params, xsink));
@@ -293,7 +281,7 @@ static AbstractQoreNode *XRC_call(QoreObject *self, QoreHTTPClient *client, cons
 my hash $info;
 my hash $result = $xrc.callArgsWithInfo(\$info, "method.name", $arg_list);@endcode
 */
-//# hash Qore::XmlRpcClient::callArgsWithInfo(reference $info, string $method, any $args) {}
+//# hash callArgsWithInfo(reference $info, string $method, any $args) {}
 static AbstractQoreNode *XRC_callArgsWithInfo(QoreObject *self, QoreHTTPClient *client, const QoreListNode *params, ExceptionSink *xsink) {
    // get info reference
    const ReferenceNode *ref = HARD_QORE_REF(params, 0);
@@ -341,7 +329,7 @@ static AbstractQoreNode *XRC_callArgsWithInfo(QoreObject *self, QoreHTTPClient *
 my hash $info;
 my hash $result = $xrc.callWithInfo(\$info, "method.name", $arg1, $arg2);@endcode
 */
-//# hash Qore::XmlRpcClient::callWithInfo(reference $info, string $method, ...) {}
+//# hash callWithInfo(reference $info, string $method, ...) {}
 static AbstractQoreNode *XRC_callWithInfo(QoreObject *self, QoreHTTPClient *client, const QoreListNode *params, ExceptionSink *xsink) {
    // get info reference
    const ReferenceNode *ref = HARD_QORE_REF(params, 0);
@@ -364,7 +352,7 @@ static AbstractQoreNode *XRC_callWithInfo(QoreObject *self, QoreHTTPClient *clie
 /** @par Example:
     @code $xrc.setEventQueue(); @endcode
  */
-//# nothing Qore::XmlRpcClient::setEventQueue() {}
+//# nothing setEventQueue() {}
 static AbstractQoreNode *XRC_setEventQueue_nothing(QoreObject *self, QoreHTTPClient *client, const QoreListNode *params, ExceptionSink *xsink) {
    client->setEventQueue(0, xsink);
    return 0;
@@ -375,9 +363,9 @@ static AbstractQoreNode *XRC_setEventQueue_nothing(QoreObject *self, QoreHTTPCli
     @par Example:
     @code
 my Queue $queue();
-$xrc.setEventQueue($queue);@endcode
+$xrc.setEventQueue($queue); @endcode
  */
-//# nothing Qore::XmlRpcClient::setEventQueue(Queue $queue) {}
+//# nothing setEventQueue(Queue $queue) {}
 static AbstractQoreNode *XRC_setEventQueue_queue(QoreObject *self, QoreHTTPClient *client, const QoreListNode *params, ExceptionSink *xsink) {
    HARD_QORE_OBJ_DATA(q, Queue, params, 0, CID_QUEUE, "Queue", "XmlRpcClient::setEventQueue", xsink);
    if (*xsink)
@@ -386,6 +374,11 @@ static AbstractQoreNode *XRC_setEventQueue_queue(QoreObject *self, QoreHTTPClien
    client->setEventQueue(q, xsink);
    return 0;
 }
+
+/**#
+};
+};
+*/
 
 QoreClass *initXmlRpcClientClass(QoreClass *http_client) {
    assert(QC_QUEUE);
