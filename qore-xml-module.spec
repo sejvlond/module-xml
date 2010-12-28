@@ -34,7 +34,7 @@
 
 Summary: XML module for Qore
 Name: qore-xml-module
-Version: 1.0
+Version: 1.1
 Release: 1%{dist}
 License: LGPL
 Group: Development/Languages
@@ -94,5 +94,8 @@ This RPM provides API documentation, test and example programs
 %doc docs/xml/html examples/ test/ 
 
 %changelog
+* Tue Dec 28 2010 David Nichols <david@qore.org>
+- updated to version 1.1
+
 * Fri Dec 17 2010 David Nichols <david@qore.org>
 - initial spec file for xml module
