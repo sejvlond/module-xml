@@ -660,10 +660,10 @@ static AbstractQoreNode *makeXMLStringIntern(const QoreStringNode *pstr, const Q
       TempEncodingHelper key(pstr, QCS_UTF8, xsink);
       if (!key)
 	 return 0;
-      addXMLElement(key->getBuffer(), *(*str), pobj, 0, 0, xsink);
+      addXMLElement(key->getBuffer(), *(*str), pobj, 0, format, xsink);
    }
    else
-      makeXMLString(*(*str), *pobj, 0, 0, xsink);
+      makeXMLString(*(*str), *pobj, 0, format, xsink);
 
    //printd(5, "f_makeXMLString() returning %s\n", str->getBuffer());
 
