@@ -828,16 +828,18 @@ static AbstractQoreNode *f_makeFormattedXMLFragment(const QoreListNode *params, 
 
 static void addXMLRPCValue(QoreString *str, const AbstractQoreNode *n, int indent, const QoreEncoding *ccs, int format, ExceptionSink *xsink);
 
+#define EMPTY_KEY_STRING "!!empty-hash-key!!"
+
 static inline void addXMLRPCValueInternHash(QoreString *str, const QoreHashNode *h, int indent, const QoreEncoding *ccs, int format, ExceptionSink *xsink) {
    str->concat("<struct>");
    if (format) str->concat('\n');
    ConstHashIterator hi(h);
    while (hi.next()) {
       std::auto_ptr<QoreString> member(hi.getKeyString());
-      if (!member->strlen()) {
-	 xsink->raiseException("XMLRPC-SERIALIZATION-ERROR", "empty member name in hash");
-	 return;
-      }
+      // here we allow hashes with empty key names to be serialized
+      if (!member->strlen())
+	 member.reset(new QoreString(EMPTY_KEY_STRING, ccs));
+
       // convert string if needed
       if (member->getEncoding() != ccs) {
 	 QoreString *ns = member->convertEncoding(ccs, xsink);
