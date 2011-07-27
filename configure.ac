@@ -105,6 +105,8 @@ case "${host_os}" in
 		#LDFLAGS="$LDFLAGS -lwsock32 -lws2_32 -lgdi32 -liconv"
 		make_dll=yes
 		CPPFLAGS="$CPPFLAGS -DBUILDING_DLL=1"
+		MODULE_LDFLAGS="-no-undefined"
+		AC_SUBST(MODULE_LDFLAGS)
 		OS=Windows
 		# set LIB_PREFIX if not already set
 		if test -z "$LIB_PREFIX"; then
@@ -123,7 +125,6 @@ case "${host_os}" in
      *)         AC_WARN(Unknown platform ${host_os})
                 ;;
 esac
-AC_SUBST(SHLIB_SUFFIX)
 if test -z "$MODULE_SUFFIX" ; then
    MODULE_SUFFIX=$SHLIB_SUFFIX
 fi

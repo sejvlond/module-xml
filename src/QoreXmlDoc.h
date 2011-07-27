@@ -25,6 +25,10 @@
 
 #define _QORE_QOREXMLDOC_H
 
+#if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
+#define LIBXML_STATIC 1
+#endif
+
 #include <libxml/parser.h>
 
 #define XML_PARSE_NOBLANKS 0
@@ -42,7 +46,6 @@
 #else
 #define QORE_XML_PARSER_OPTIONS XML_PARSE_NOERROR | XML_PARSE_NOWARNING | XML_PARSE_NOBLANKS QORE_XML_PARSER_OPTIONS_ADDONS
 #endif
-
 
 DLLLOCAL QoreStringNode *doString(xmlChar *str);
 class QoreXmlNodeData;

@@ -13,7 +13,7 @@ endif
 
 lib_LTLIBRARIES = xml.la
 xml_la_SOURCES = $(XML_SOURCES)
-xml_la_LDFLAGS = -module -avoid-version ${LIBXML2_LDFLAGS}
+xml_la_LDFLAGS = -module -avoid-version ${LIBXML2_LDFLAGS} ${MODULE_LDFLAGS}
 
 INCLUDES = -I$(top_srcdir)/include
 
