@@ -103,10 +103,9 @@ case "${host_os}" in
 		mingw=yes
 		#CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
 		#LDFLAGS="$LDFLAGS -lwsock32 -lws2_32 -lgdi32 -liconv"
-		make_dll=yes
+		#make_dll=yes
 		CPPFLAGS="$CPPFLAGS -DBUILDING_DLL=1"
 		MODULE_LDFLAGS="-no-undefined"
-		AC_SUBST(MODULE_LDFLAGS)
 		OS=Windows
 		# set LIB_PREFIX if not already set
 		if test -z "$LIB_PREFIX"; then
@@ -866,6 +865,12 @@ fi
 
 AC_SUBST(OTHER_LIBS)
 
+# if compiling for mingw32, we have to add qore ldflags to the module's ldflags
+if test "$mingw" = yes; then
+    MODULE_LDFLAGS="$MODULE_LDFLAGS $QORE_LDFLAGS"
+    AC_SUBST(MODULE_LDFLAGS)
+fi
+
 # save more version information in config.h
 MODULE_VERSION_MAJOR=`echo $PACKAGE_VERSION | cut -f3 -d\  | sed s/\"//g | cut -f1 -d.`
 MODULE_VERSION_MINOR=`echo $PACKAGE_VERSION | cut -f3 -d\  | sed s/\"//g | cut -f2 -d.`
@@ -913,3 +918,21 @@ show_library_feature()
 show_library_feature optimizations $enable_optimization
 show_library_feature debug $enable_debug
 show_library_feature profiling $enable_profile
+
+
+# hack to use our libtool if on HP-UX and mingw to enable static libs to be linked in to modules
+# on HP-UX, also to allow 64-bit libraries to be linked to modules
+if test "$OS" = "HP-UX" -o "$mingw" = yes; then
+   # backup generated libtool
+   if test ! -e libtool.orig ; then
+      cp libtool libtool.orig
+   fi
+   # remove references to -ldl in libtool
+   sed "s/-ldl//g" libtool > libtool.tmp
+   # ensure static libs can be linked to modules
+   sed "s/valid_a_lib=no/valid_a_lib=yes/g" libtool.tmp > libtool.tmp.1
+   # ensure static libs can be linked to modules and ensure that valid 64-bit libraries are not recognized as invalid
+   sed "s/deplibs_check_method=.*/deplibs_check_method=pass_all/g" libtool.tmp.1 > libtool
+   # delete temporary files
+   rm -f libtool.tmp libtool.tmp.1
+fi
