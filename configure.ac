@@ -96,7 +96,6 @@ case "${host_os}" in
      *cygwin*)  SHLIB_SUFFIX=dll
      		CPPFLAGS=-mwin32
 		windows=yes
-		no_sig_handling=yes
      		;;
      *mingw32*) SHLIB_SUFFIX=dll
      		windows=yes
@@ -258,6 +257,13 @@ fi
 CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
 #LDFLAGS="$LDFLAGS $PTHREAD_LIBS"
 
+# allow the user to set a generic search prefix for libraries, includes, etc
+AC_ARG_WITH([lib-prefix],
+  [AS_HELP_STRING([--with-lib-prefix@<:@=DIR@:>@],
+                  [generic search prefix for libraries, includes, etc])],
+  [if test ! -d "${with_lib_prefix}"; then AC_MSG_ERROR([bad value ${with_lib_prefix} for --with-lib-prefix]); unset with_lib_prefix; fi],
+  [with_lib_prefix="$LIB_PREFIX"])
+
 AC_ARG_ENABLE([static-libxml2],
      [AS_HELP_STRING([--enable-static-libxml2],
 		     [force static linkage of libxml2 libraries (default=auto)])],
@@ -266,7 +272,6 @@ AC_ARG_ENABLE([static-libxml2],
        *)      AC_MSG_ERROR(bad value ${enable_static_libxml2} for --enable-static-libxml2) ;;
       esac],
      [enable_static_libxml2=no])
-
 
 AC_ARG_ENABLE([single-compilation-unit],
   [AS_HELP_STRING([--enable-single-compilation-unit],
@@ -353,13 +358,6 @@ find_libxml2() {
     AC_SUBST([LIBXML2_LDFLAGS])
     AC_SUBST([LIBXML2_CPPFLAGS])
 }
-
-# allow the user to set a generic search prefix for libraries, includes, etc
-AC_ARG_WITH([lib-prefix],
-  [AS_HELP_STRING([--with-lib-prefix@<:@=DIR@:>@],
-                  [generic search prefix for libraries, includes, etc])],
-  [if test ! -d "${with_lib_prefix}"; then AC_MSG_ERROR([bad value ${with_lib_prefix} for --with-lib-prefix]); unset with_lib_prefix; fi],
-  [with_lib_prefix="$LIB_PREFIX"])
 
 # see if we can figure out where the libxml2 library is
 AC_ARG_WITH([libxml2-dir],
@@ -918,7 +916,6 @@ show_library_feature()
 show_library_feature optimizations $enable_optimization
 show_library_feature debug $enable_debug
 show_library_feature profiling $enable_profile
-
 
 # hack to use our libtool if on HP-UX and mingw to enable static libs to be linked in to modules
 # on HP-UX, also to allow 64-bit libraries to be linked to modules
