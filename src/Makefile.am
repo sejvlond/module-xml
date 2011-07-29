@@ -1,4 +1,6 @@
 
+MNAME=xml
+
 if COND_SINGLE_COMPILATION_UNIT
 XML_SOURCES = single-compilation-unit.cpp
 else
@@ -27,6 +29,10 @@ AM_CXXFLAGS=-g
 endif
 endif
 
+if COND_MINGW
+RM_OTHER=$(DESTDIR)$(libdir)/$(MNAME).dll.a
+endif
+
 install-exec-hook:
-	mv $(DESTDIR)$(libdir)/xml.$(MODULE_SUFFIX) $(DESTDIR)$(libdir)/xml-api-$(MODULE_API).qmod
-	rm -f $(DESTDIR)$(libdir)/xml.la
+	mv $(DESTDIR)$(libdir)/$(MNAME).$(MODULE_SUFFIX) $(DESTDIR)$(libdir)/$(MNAME)-api-$(MODULE_API).qmod
+	$(RM) $(DESTDIR)$(libdir)/$(MNAME).la $(RM_OTHER)
