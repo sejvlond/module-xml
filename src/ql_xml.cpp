@@ -5,7 +5,7 @@
 
   Qore Programming Language
 
-  Copyright 2003 - 2010 David Nichols
+  Copyright 2003 - 2011 David Nichols
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -1399,7 +1399,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
       }
       
       QoreString member(member_name);
-      //printd(5, "DEBUG: got member name '%s'\n", member_name);
+      //printd(5, "QoreXmlRpcReader::getStruct() DEBUG: got member name '%s'\n", member_name);
       
       if (readXmlRpc(xsink))
 	 return -1;
@@ -1459,6 +1459,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
       if (nt != XML_READER_TYPE_END_ELEMENT) {
+	 //printd(5, "QoreXmlRpcReader::getStruct() error nt=%d\n", nt);
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting member close element");
 	 return -1;
       }
@@ -1530,6 +1531,7 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 		  if (getValueData(v, data_ccsid, true, xsink))
 		     return -1;
 		  
+		  // position on </value> close tag
 		  if ((nt = readXmlRpcNode(xsink)) == -1)
 		     return -1;
 		  
@@ -1903,6 +1905,8 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
       return -1;
    }
 
+   //printd(5, "QoreXmlRpcReader::getValueData() DEBUG nt=%d\n", nt);
+
    if (nt == XML_READER_TYPE_ELEMENT) {
       int depth = QoreXmlReader::depth();
       
@@ -1913,7 +1917,7 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
 	 return -1;
       }
 
-      //printd(5, "DEBUG: getValueData() parsing type '%s'\n", name);
+      //printd(5, "QoreXmlRpcReader::getValueData() DEBUG parsing type '%s'\n", name);
 
       int rc = read();
       if (rc != 1) {
@@ -1924,9 +1928,12 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
 	 return -1;
       }
 
+      //printd(5, "QoreXmlRpcReader::getValueData() old depth: %d new depth: %d type='%s'\n", depth, QoreXmlReader::depth(), name);
+
       // if this was an empty element, assign an empty value
-      if (depth > QoreXmlReader::depth())
+      if (depth == QoreXmlReader::depth()) {
 	 return doEmptyValue(v, name, depth, xsink);
+      }
 
       if (!strcmp(name, "string")) {
 	 if (getString(v, data_ccsid, xsink))
