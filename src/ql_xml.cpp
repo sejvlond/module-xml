@@ -314,15 +314,15 @@ public:
       return nt;
    }
 
-   DLLLOCAL int checkXmlRpcMemberName(const char *member, ExceptionSink *xsink) {
+   DLLLOCAL int checkXmlRpcMemberName(const char *member, ExceptionSink *xsink, bool close = false) {
       const char *name = (const char *)xmlTextReaderConstName(reader);
       if (!name) {
-	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting element '%s', got NOTHING", member);
+	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting %selement '%s', got NOTHING", close ? "closing " : "", member);
 	 return -1;
       }
 	 
       if (strcmp(name, member)) {
-	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting element '%s', got '%s'", member, name);
+	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting %selement '%s', got '%s'", close ? "closing " : "", member, name);
 	 return -1;
       }
       return 0;
@@ -1436,21 +1436,19 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	 if ((nt = readXmlRpcNode(xsink)) == -1)
 	    return -1;
 	 if (nt != XML_READER_TYPE_END_ELEMENT) {
-	    //printd(5, "struct member='%s', parsing value node\n", member.getBuffer());
+	    //printd(5, "QoreXmlRpcReader::getStruct() struct member='%s', parsing value node\n", member.getBuffer());
 	   
 	    if (getValueData(v, data_ccsid, true, xsink))
 	       return -1;
 
-	    //printd(5, "struct member='%s', finished parsing value node\n", member.getBuffer());
-	    	    
-	    if ((nt = readXmlRpcNode(xsink)) == -1)
-	       return -1;
-	    if (nt != XML_READER_TYPE_END_ELEMENT) {
+	    //printd(5, "QoreXmlRpcReader::getStruct() struct member='%s', finished parsing value node\n", member.getBuffer());
+	    
+	    if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
 	       //printd(5, "EXCEPTION close /value: %d: %s\n", nt, (char *)constName());
 	       xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting value close element");
 	       return -1;
 	    }
-	    //printd(5, "close /value: %s\n", (char *)constName());
+	    //printd(5, "QoreXmlRpcReader::getStruct() close /value: %s\n", (char *)constName());
 	 }
 	 if (readXmlRpc(xsink))
 	    return -1;
@@ -1463,7 +1461,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting member close element");
 	 return -1;
       }
-      //printd(5, "close /member: %s\n", (char *)constName());
+      //printd(5, "QoreXmlRpcReader::getStruct() close /member: %s\n", (char *)constName());
 
       if (readXmlRpc(xsink))
 	 return -1;
@@ -1532,10 +1530,7 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 		     return -1;
 		  
 		  // position on </value> close tag
-		  if ((nt = readXmlRpcNode(xsink)) == -1)
-		     return -1;
-		  
-		  if (nt != XML_READER_TYPE_END_ELEMENT) {
+		  if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
 		     xsink->raiseException("PARSE-XMLRPC-ERROR", "extra data in params, expecting value close tag");
 		     return -1;
 		  }
@@ -1865,10 +1860,7 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
 		  return -1;
 
 	       // check for </value> close tag
-	       if ((nt = readXmlRpcNode(xsink)) == -1)
-		  return -1;
-
-	       if (nt != XML_READER_TYPE_END_ELEMENT) {
+	       if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
 		  xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", new QoreStringNode(*xml), "extra data in array, expecting value close tag");
 		  return -1;
 	       }
@@ -1931,9 +1923,8 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
       //printd(5, "QoreXmlRpcReader::getValueData() old depth: %d new depth: %d type='%s'\n", depth, QoreXmlReader::depth(), name);
 
       // if this was an empty element, assign an empty value
-      if (depth == QoreXmlReader::depth()) {
+      if (depth >= QoreXmlReader::depth())
 	 return doEmptyValue(v, name, depth, xsink);
-      }
 
       if (!strcmp(name, "string")) {
 	 if (getString(v, data_ccsid, xsink))
@@ -2687,6 +2678,9 @@ static AbstractQoreNode *f_parseXMLRPCCall(const QoreListNode *params, Exception
 	 return qore_xml_exception("PARSE-XMLRPC-CALL-ERROR", "expecting 'methodCall' close element", xsink);
       }
 
+      if (reader.checkXmlRpcMemberName("methodCall", xsink, true))
+	 return 0;
+
       h->setKeyValue("params", v.getValue(), xsink);
    }
 
@@ -2782,9 +2776,28 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
 		  if (depth < reader.depth()) {
 		     if (reader.getValueData(&v, ccsid, true, xsink))
 			return 0;
+
+		     //printd(5, "parseXMLRPCResponse() name=%s reader.nodeType=%d\n", reader.constName(), reader.nodeType());
+
+		     if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
+			//printd(5, "nt=%d name=%s\n", nt, reader.constName());
+			return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "2: expecting 'value' end element", xsink, *str);
+		     }
+
+		     if (reader.checkXmlRpcMemberName("value", xsink))
+			return 0;
+
+		     if (reader.readSkipWhitespace("expecting 'param' end element", xsink) == -1)
+			return 0;
 		  }
-		  if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT)
+
+		  //printd(5, "parseXMLRPCResponse() (expecing param) name=%s reader.nodeType=%d (nt=%d)\n", reader.constName(), reader.nodeType(), nt);
+
+		  if ((nt = reader.nodeType()) != XML_READER_TYPE_END_ELEMENT)
 		     return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'param' end element", xsink, *str);
+
+		  if (reader.checkXmlRpcMemberName("param", xsink))
+		     return 0;
 	       }
 
 	       // get "params" end element
@@ -2821,6 +2834,12 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
 	 return 0;
 
       if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT)
+	 return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'value' end element", xsink, *str);
+      
+      if (reader.readSkipWhitespace("expecting 'fault' end element", xsink) == -1)
+	 return 0;
+      
+      if ((nt = reader.nodeType()) != XML_READER_TYPE_END_ELEMENT)
 	 return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'fault' end element", xsink, *str);
 
       // get "methodResponse" end element
