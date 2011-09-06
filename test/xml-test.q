@@ -92,14 +92,16 @@ sub xml_tests() {
 		   "bool" : True,
 		   "time" : now(),
 		   "bool^1" : False,
+                   #"emptyhash": hash(),
+                   #"emptylist": list(),
 		   "key"  : "this & that" );
     my hash $mo = ( "o" : $o );
     my string $str = makeXMLString("o", $o);
     test_value($mo == parseXML($str), True, "first parseXML()");
     $str = makeFormattedXMLString("o", $o);
     test_value($mo == parseXML($str), True, "second parseXML()");
-    my list $params = (1, True, "string", NOTHING, $o);
-    $str = makeXMLRPCCallStringArgs("test.method", $params);
+    my list $params = (1, True, "string", NOTHING, $o + ("emptylist": (), "emptyhash": hash()));
+    $str = makeFormattedXMLRPCCallStringArgs("test.method", $params);
     my hash $result = ( "methodName" : "test.method", "params" : $params );    
     test_value(parseXMLRPCCall($str), $result, "makeXMLRPCCallStringArgs() and parseXMLRPCCall()");
     $str = makeFormattedXMLRPCCallStringArgs("test.method", $params);

@@ -137,6 +137,19 @@ public:
       return xmlTextReaderRead(reader);
    }
  
+   DLLLOCAL int readSkipWhitespace() {
+      int rc;
+      while (true) {
+	 rc = read();
+	 if (rc != 1)
+	    break;
+ 	 int nt = xmlTextReaderNodeType(reader);
+	 if (nt != XML_READER_TYPE_SIGNIFICANT_WHITESPACE)
+	    break;
+      }
+      return rc;
+   }
+
    DLLLOCAL int readSkipWhitespace(ExceptionSink *xsink) {
       int rc;
       while (true) {
