@@ -304,6 +304,7 @@ find_libxml2() {
         lib="$dir/lib${LIBSUFFIX}"
         inc="$dir/include"
     fi
+
     # if we only want the static libxml2 libraries
     if test -n "$libxml2_static"; then
     	if test -f "$lib/libxml2.a"; then
@@ -332,6 +333,7 @@ find_libxml2() {
     	fi
     fi
     if test -z "$LIBXML2_LDFLAGS"; then
+        #echo DBG $a - failed
         return
     fi
     AC_MSG_CHECKING([for libxml2 include files])
