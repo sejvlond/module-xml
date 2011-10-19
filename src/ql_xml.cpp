@@ -1197,11 +1197,14 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 	    else {
 	       // see if key already exists
 	       AbstractQoreNode *v;
-	       if (!(v = h->getKeyValue(name)))
+	       bool exists;
+	       v = h->getKeyValueExistence(name, exists);
+
+	       if (!exists)
 		  xstack.push(h->getKeyValuePtr(name), depth);
 	       else {
 		  if (as_data) {
-		     QoreListNode *vl = v->getType() == NT_LIST ? reinterpret_cast<QoreListNode *>(v) : 0;
+		     QoreListNode *vl = get_node_type(v) == NT_LIST ? reinterpret_cast<QoreListNode *>(v) : 0;
 		     // if it's not a list, then make into a list with current value as first entry
 		     if (!vl) {
 			AbstractQoreNode **vp = h->getKeyValuePtr(name);
@@ -1220,7 +1223,7 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 			if (get_value)
 			   v = h->getKeyValue(lk);
 			
-			QoreListNode *vl = v->getType() == NT_LIST ? reinterpret_cast<QoreListNode *>(v) : 0;
+			QoreListNode *vl = get_node_type(v) == NT_LIST ? reinterpret_cast<QoreListNode *>(v) : 0;
 			// if it's not a list, then make into a list with current value as first entry
 			if (!vl) {
 			   AbstractQoreNode **vp = h->getKeyValuePtr(lk);
@@ -1235,8 +1238,7 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 			int c = 1;
 			while (true) {
 			   ns.sprintf("%s^%d", name, c);
-			   AbstractQoreNode *et = h->getKeyValue(ns.getBuffer());
-			   if (!et)
+			   if (!h->existsKey(ns.getBuffer()))
 			      break;
 			   c++;
 			   ns.clear();
