@@ -37,7 +37,7 @@ Name: qore-xml-module
 Version: 1.1
 Release: 1%{dist}
 License: LGPL
-Group: Development/Languages
+Group: Development/Languages/Other
 URL: http://qore.org
 Source: http://prdownloads.sourceforge.net/qore/%{name}-%{version}.tar.bz2
 #Source0: %{name}-%{version}.tar.bz2
@@ -45,7 +45,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 Requires: /usr/bin/env
 Requires: qore-module-api-%{module_api}
 BuildRequires: gcc-c++
-BuildRequires: qore-devel >= 0.8.1
+BuildRequires: qore-devel >= 0.8.3
 BuildRequires: libxml2-devel
 BuildRequires: openssl-devel
 BuildRequires: qore
@@ -64,6 +64,8 @@ XML module for the Qore Programming Language.
 
 %build
 %{__make}
+find test -type f|xargs chmod 644
+find docs -type f|xargs chmod 644
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -81,7 +83,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %package doc
 Summary: XML module for Qore
-Group: Development/Languages
+Group: Development/Languages/Other
 
 %description doc
 XML module for the Qore Programming Language.
@@ -94,6 +96,9 @@ This RPM provides API documentation, test and example programs
 %doc docs/xml/html examples/ test/ 
 
 %changelog
+* Thu Oct 20 2011 Petr Vanek <petr.vanek@qoretechnologies.com> - 1.1
+- 1.1 release
+
 * Tue Dec 28 2010 David Nichols <david@qore.org>
 - updated to version 1.1
 

@@ -10,7 +10,7 @@ see docs for more information
 
 BUILDING
 --------
-Requires qore 0.8.1+, libxml2 2.6.0+ (http://www.xmlsoft.org), and openssl
+Requires qore 0.8.3+, libxml2 2.6.0+ (http://www.xmlsoft.org), and openssl
 headers and libraries to build and run
 
 to configure the build, execute
