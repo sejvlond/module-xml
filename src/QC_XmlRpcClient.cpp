@@ -171,7 +171,6 @@ static QoreHashNode *make_xmlrpc_call(QoreHTTPClient *client, QoreStringNode *ms
       QoreString str(client->getEncoding()->getCode());
       str.tolwr();
       hdr = new QoreHashNode;
-      hdr->setKeyValue("Accept-Charset", new QoreStringNode(str.getBuffer()), xsink);
       str.prepend("text/xml;charset=");
       hdr->setKeyValue("Content-Type", new QoreStringNode(str.getBuffer()), xsink);
    }
@@ -184,7 +183,7 @@ static QoreHashNode *make_xmlrpc_call(QoreHTTPClient *client, QoreStringNode *ms
    if (!ans)
       return 0;
 
-   AbstractQoreNode *ah = *ans;
+   const AbstractQoreNode *ah = *ans;
    if (info) {
       info->setKeyValue("response", ans.release(), xsink);
       info->setKeyValue("response_headers", response.release(), xsink);
@@ -194,9 +193,10 @@ static QoreHashNode *make_xmlrpc_call(QoreHTTPClient *client, QoreStringNode *ms
       xsink->raiseException("XMLRPCCLIENT-RESPONSE-ERROR", "undecoded binary response received from remote server");
       return 0;
    }
+   //printd(5, "make_xmlrpc_call() ah=%s\n", reinterpret_cast<const QoreStringNode *>(ah)->getBuffer());
 
    // parse XML-RPC response   
-   return parseXMLRPCResponse(reinterpret_cast<QoreStringNode *>(ah), QCS_DEFAULT, xsink);
+   return parseXMLRPCResponse(reinterpret_cast<const QoreStringNode *>(ah), QCS_DEFAULT, xsink);
 }
 
 //! Calls a remote method using a single value after the method name for the method arguments and returns the response as qore data structure

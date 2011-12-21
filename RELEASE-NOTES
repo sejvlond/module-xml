@@ -2,10 +2,12 @@
 version 1.1
 ***********
 
-fixed internal XMl to Qore processing for extreme cases
-fixed makeFormattedXMLString() to really format the output
-fixed XML-RPC parsing with empty elements in structures
-added additional validation to XML-RPC parsing (checking close elements)
+* fixed internal XMl to Qore processing for extreme cases
+* fixed makeFormattedXMLString() to really format the output
+* fixed XML-RPC parsing with empty elements in structures
+* added additional validation to XML-RPC parsing (checking close elements)
+* set the character encoding correctly in the outgoing Content-Type request
+  header
 
 
 ***********

@@ -99,30 +99,30 @@ class XmlRpcValue {
       AbstractQoreNode **vp;
 
    public:
-      DLLLOCAL inline XmlRpcValue() : val(0), vp(0) {
+      DLLLOCAL XmlRpcValue() : val(0), vp(0) {
       }
 
-      DLLLOCAL inline ~XmlRpcValue() {
+      DLLLOCAL ~XmlRpcValue() {
 	 if (val) {
 	    val->deref(0);
 	    val = 0;
 	 }
       }
 
-      DLLLOCAL inline AbstractQoreNode *getValue() {
+      DLLLOCAL AbstractQoreNode *getValue() {
 	 AbstractQoreNode *rv = val;
 	 val = 0;
 	 return rv;
       }
 
-      DLLLOCAL inline void set(AbstractQoreNode *v) {
+      DLLLOCAL void set(AbstractQoreNode *v) {
 	 if (vp)
 	    *vp = v;
 	 else
 	    val = v;
       }
 
-      DLLLOCAL inline void setPtr(AbstractQoreNode **v) {
+      DLLLOCAL void setPtr(AbstractQoreNode **v) {
 	 vp = v;
       }
 };
@@ -1702,6 +1702,7 @@ int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink *xsink) {
 
    if (nt == XML_READER_TYPE_TEXT) {
       const char *str = constValue();
+      //printd(5, "QoreXmlRpcReader::getDate() str=%p (%s)\n", str, str ? str : "(null)");
       if (str)
 	 v->set(new DateTimeNode(str));
 
@@ -1716,7 +1717,7 @@ int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink *xsink) {
       v->set(zero_date());
    
    if (nt != XML_READER_TYPE_END_ELEMENT) {
-      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in float (%d)", nt);
+      xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in date (%d)", nt);
       return -1;
    }
    return 0;
