@@ -3,7 +3,7 @@
 
   Qore Programming Language
 
-  Copyright (C) 2006 - 2010 Qore Technologies
+  Copyright (C) 2006 - 2011 Qore Technologies
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -68,7 +68,7 @@ public:
 static void set_xrc_defaults(QoreHTTPClient &client) {
    // set options for XML-RPC communication
    client.setDefaultPath("RPC2");
-   client.setDefaultHeaderValue("Content-Type", "text/xml");
+   client.setDefaultHeaderValue("Content-Type", "text/xml;charset=utf-8");
    client.setDefaultHeaderValue("Accept", "text/xml");
    client.setDefaultHeaderValue("User-Agent", "Qore XML-RPC Client v" PACKAGE_VERSION);
 
@@ -165,7 +165,18 @@ static void XRC_copy(QoreObject *self, QoreObject *old, QoreHTTPClient* client, 
 }
 
 static QoreHashNode *make_xmlrpc_call(QoreHTTPClient *client, QoreStringNode *msg, QoreHashNode *info, ExceptionSink *xsink) {
-   ReferenceHolder<QoreHashNode> response(client->send("POST", 0, 0, msg->getBuffer(), msg->strlen(), true, info, xsink), xsink);
+   ReferenceHolder<QoreHashNode> hdr(xsink);
+
+   if (client->getEncoding() != QCS_UTF8) {
+      QoreString str(client->getEncoding()->getCode());
+      str.tolwr();
+      hdr = new QoreHashNode;
+      hdr->setKeyValue("Accept-Charset", new QoreStringNode(str.getBuffer()), xsink);
+      str.prepend("text/xml;charset=");
+      hdr->setKeyValue("Content-Type", new QoreStringNode(str.getBuffer()), xsink);
+   }
+
+   ReferenceHolder<QoreHashNode> response(client->send("POST", 0, *hdr, msg->getBuffer(), msg->strlen(), true, info, xsink), xsink);
    if (!response)
       return 0;
 
