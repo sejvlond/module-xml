@@ -105,12 +105,12 @@ public namespace SoapHandler {
         /** @param ws the WebService object for the method
             @param op the WSOperation object for the web service operation the method corresponds to
             @param func a call reference, or a closure to call with the deserialized arguments to the method; the return value will be serialized to SOAP according to the WSDL and sent back to the caller
-            @param help help text for the method
+            @param help optional help text for the method
             @param logopt log options which can be used by a custom logger (see the getLogMessage parameter in the constructor)
             @param cmark an optional "context marker" for the method
             @param path an optional path for the method
          */
-        addMethod(WebService $ws, WSOperation $op, any $func, string $help, *int $logopt, any $cmark, *string $path) {
+        addMethod(WebService $ws, WSOperation $op, any $func, *string $help, *int $logopt, any $cmark, *string $path) {
             if (!exists $func)
                 throw "SOAP-SERVER-ADDMETHOD-PARAMETER-ERROR", "second argument is not a function name";
 
