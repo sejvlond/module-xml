@@ -6,6 +6,7 @@
     - @ref serialization
     - @ref XMLRPC
     - @ref codetags
+    - <a href="../../XmlRpcHandler/html/index.html">XmlRpcHandler user module</a>
 
     @section intro Introduction
 
@@ -18,14 +19,17 @@
 
     @note XML functionality was included in the main %Qore shared library until version 0.8.1, at which time the code was removed to make this module.
 
+    Also included with the binary xml module:
+    - <a href="../../XmlRpcHandler/html/index.html">XmlRpcHandler user module</a>
+
     @section optionconstants Module Option Constants
     
     The following constants give information about the availability of XML functionality (dependent on libxml2 features at compile time):
 
     <b>XML Option Constants</b>
     |!Name|!Type|!Description
-    |\c HAVE_PARSEXMLWITHRELAXNG|\c bool|Indicates if parseXMLWithRelaxNG() and Qore::Xml::XmlReader::relaxNGValidate() are available
-    |\c HAVE_PARSEXMLWITHSCHEMA|\c bool|Indicates if parseXMLWithSchema() and Qore::Xml::XmlReader::schemaValidate() are available
+    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHRELAXNG "HAVE_PARSEXMLWITHRELAXNG"|\c bool|Indicates if parseXMLWithRelaxNG() and Qore::Xml::XmlReader::relaxNGValidate() are available
+    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHSCHEMA "HAVE_PARSEXMLWITHSCHEMA"|\c bool|Indicates if parseXMLWithSchema() and Qore::Xml::XmlReader::schemaValidate() are available
 
     If either of the above constants are \c False, then calling any of the dependent functions or methods will result in a run-time exception.
 
@@ -164,7 +168,7 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
 	 
     <b>Classes Providing XML-RPC Functionality</b>
     |!Class|!Description
-    |Qore::XmlRpcClient|For communicating with XML-RPC servers
+    |Qore::Xml::XmlRpcClient|For communicating with XML-RPC servers
 
     <b>Functions Providing XML-RPC Functionality</b>
     |!Function Name|!Description
@@ -193,103 +197,6 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     @section constants XML Constants
 
     All constants (and classes and namespaces) provided by this module are created under the Qore namespace (the main namespace for the %Qore Programming Language).
-
-    @subsection XMLElementTypes XML Element Type Constants
-
-    |!Constant|!Value|!Description
-    |\c XML_ELEMENT_NODE|\c 1|Indicates an element
-    |\c XML_ATTRIBUTE_NODE|\c 2|Indicates an attribute
-    |\c XML_TEXT_NODE|\c 3|Indicates text
-    |\c XML_CDATA_SECTION_NODE|\c 4|Indicates CDATA: unparsed character data
-    |\c XML_ENTITY_REF_NODE|\c 5|Indicates an entity reference
-    |\c XML_ENTITY_NODE|\c 6|Indicates an entity
-    |\c XML_PI_NODE|\c 7|Indicates a processing instruction
-    |\c XML_COMMENT_NODE|\c 8|Indicates a comment
-    |\c XML_DOCUMENT_NODE|\c 9|Indicates a document
-    |\c XML_DOCUMENT_TYPE_NODE|\c 10|Indicates a document type
-    |\c XML_DOCUMENT_FRAG_NODE|\c 11|Indicates a document fragment
-    |\c XML_NOTATION_NODE|\c 12|Indicates a DTD notation
-    |\c XML_HTML_DOCUMENT_NODE|\c 13|Indicates an HTML document
-    |\c XML_DTD_NODE|\c 14|Indicates a DTD
-    |\c XML_ELEMENT_DECL|\c 15|Indicates an element declaration
-    |\c XML_ATTRIBUTE_DECL|\c 16|Indicates an attribute declaration
-    |\c XML_ENTITY_DECL|\c 17|Indicates an entity declaration
-    |\c XML_NAMESPACE_DECL|\c 18|Indicates a namespace declaration
-    |\c XML_XINCLUDE_START|\c 19|Indicates an XML xinclude start element
-    |\c XML_XINCLUDE_END|\c 20|Indicates an XML xinclude end element
-    |\c XML_DOCB_DOCUMENT_NODE|\c 21|Indicates a docbook document element
-
-    @subsection ElementTypeMap ElementTypeMap Constant Hash
-
-    |!Key|!Value
-    |\c "1"|\c "XML_ELEMENT_NODE"
-    |\c "2"|\c "XML_ATTRIBUTE_NODE"
-    |\c "3"|\c "XML_TEXT_NODE"
-    |\c "4"|\c "XML_CDATA_SECTION_NODE"
-    |\c "5"|\c "XML_ENTITY_REF_NODE"
-    |\c "6"|\c "XML_ENTITY_NODE"
-    |\c "7"|\c "XML_PI_NODE"
-    |\c "8"|\c "XML_COMMENT_NODE"
-    |\c "9"|\c "XML_DOCUMENT_NODE"
-    |\c "10"|\c "XML_DOCUMENT_TYPE_NODE"
-    |\c "11"|\c "XML_DOCUMENT_FRAG_NODE"
-    |\c "12"|\c "XML_NOTATION_NODE"
-    |\c "13"|\c "XML_HTML_DOCUMENT_NODE"
-    |\c "14"|\c "XML_DTD_NODE"
-    |\c "15"|\c "XML_ELEMENT_DECL"
-    |\c "16"|\c "XML_ATTRIBUTE_DECL"
-    |\c "17"|\c "XML_ENTITY_DECL"
-    |\c "18"|\c "XML_NAMESPACE_DECL"
-    |\c "19"|\c "XML_XINCLUDE_START"
-    |\c "20"|\c "XML_XINCLUDE_END"
-    |\c "21"|\c "XML_DOCB_DOCUMENT_NODE"
-
-    @subsection XmlNodeTypes XML Node Type Constants
-
-    |!Constant|!Value|!Description
-    |\c XML_NODE_TYPE_NONE|\c 0|Indicates no node is available
-    |\c XML_NODE_TYPE_ELEMENT|\c 1|Indicates an XML element
-    |\c XML_NODE_TYPE_ATTRIBUTE|\c 2|Indicates an attribute node
-    |\c XML_NODE_TYPE_TEXT|\c 3|Indicates a text node
-    |\c XML_NODE_TYPE_CDATA|\c 4|Indicates a CDATA node: unparsed character data
-    |\c XML_NODE_TYPE_ENTITY_REFERENCE|\c 5|Indicates an entity reference node
-    |\c XML_NODE_TYPE_ENTITY|\c 6|Indicates an entity node
-    |\c XML_NODE_TYPE_PROCESSING_INSTRUCTION|\c 7|Indicates an XML processing instruction
-    |\c XML_NODE_TYPE_COMMENT|\c 8|Indicates an XML comment
-    |\c XML_NODE_TYPE_DOCUMENT|\c 9|Indicates a document node
-    |\c XML_NODE_TYPE_DOCUMENT_TYPE|\c 10|Indicates a document type node
-    |\c XML_NODE_TYPE_DOCUMENT_FRAGMENT|\c 11|Indicates a document fragment node
-    |\c XML_NODE_TYPE_NOTATION|\c 12|Indicates a notation node
-    |\c XML_NODE_TYPE_WHITESPACE|\c 13|Indicates a whitespace node
-    |\c XML_NODE_TYPE_SIGNIFICANT_WHITESPACE|\c 14|Indicates a significant whitespace node
-    |\c XML_NODE_TYPE_END_ELEMENT|\c 15|Indicates an end element node
-    |\c XML_NODE_TYPE_END_ENTITY|\c 16|Indicates an end entity node
-    |\c XML_NODE_TYPE_XML_DECLARATION|\c 17|Indicates an XML declaration node
-
-    @subsection NodeTypeMap NodeTypeMap Constant
-
-    The NodeTypeMap constant in the Xml namespace provides a mapping between node type codes and the corresponding string code as defined in the following table
-
-    <b>NodeTypeMap Constant Hash</b>
-    |!Key|!Value
-    |\c "0"|\c "XML_NODE_TYPE_NONE"
-    |\c "1"|\c "XML_NODE_TYPE_ELEMENT"
-    |\c "2"|\c "XML_NODE_TYPE_ATTRIBUTE"
-    |\c "3"|\c "XML_NODE_TYPE_TEXT"
-    |\c "4"|\c "XML_NODE_TYPE_CDATA"
-    |\c "5"|\c "XML_NODE_TYPE_ENTITY_REFERENCE"
-    |\c "6"|\c "XML_NODE_TYPE_ENTITY"
-    |\c "7"|\c "XML_NODE_TYPE_PROCESSING_INSTRUCTION"
-    |\c "8"|\c "XML_NODE_TYPE_COMMENT"
-    |\c "9"|\c "XML_NODE_TYPE_DOCUMENT"
-    |\c "10"|\c "XML_NODE_TYPE_DOCUMENT_TYPE"
-    |\c "11"|\c "XML_NODE_TYPE_DOCUMENT_FRAGMENT"
-    |\c "12"|\c "XML_NODE_TYPE_NOTATION"
-    |\c "13"|\c "XML_NODE_TYPE_WHITESPACE"
-    |\c "14"|\c "XML_NODE_TYPE_SIGNIFICANT_WHITESPACE"
-    |\c "15"|\c "XML_NODE_TYPE_END_ELEMENT"
-    |\c "16"|\c "XML_NODE_TYPE_END_ENTITY"
-    |\c "17"|\c "XML_NODE_TYPE_XML_DECLARATION"
 
     @section codetags Function and Method Tags
 

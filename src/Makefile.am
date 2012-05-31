@@ -1,16 +1,16 @@
-
 MNAME=xml
+
+.qpp.cpp:
+	qpp $<
+
+GENERATED_SOURCES = QC_XmlDoc.cpp QC_XmlNode.cpp QC_XmlReader.cpp QC_XmlRpcClient.cpp ql_xml.cpp
+CLEANFILES = $(GENERATED_SOURCES)
 
 if COND_SINGLE_COMPILATION_UNIT
 XML_SOURCES = single-compilation-unit.cpp
 else
-XML_SOURCES = xml-module.cpp \
-	QC_XmlDoc.cpp \
-	QC_XmlNode.cpp \
-	QC_XmlReader.cpp \
-	QC_XmlRpcClient.cpp \
-	ql_xml.cpp
-
+XML_SOURCES = xml-module.cpp
+nodist_xml_la_SOURCES = $(GENERATED_SOURCES)
 endif
 
 lib_LTLIBRARIES = xml.la

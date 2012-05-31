@@ -1,9 +1,11 @@
+/* -*- mode: c++; indent-tabs-mode: nil -*- */
+/** @file XmlDoc.qpp defines the XmlDoc class */
 /*
-  QC_XmlDoc.cpp
+  QC_XmlDoc.qpp
 
   Qore Programming Language
   
-  Copyright 2003 - 2010 David Nichols
+  Copyright 2003 - 2012 David Nichols
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -20,8 +22,6 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-//! @file XmlDoc.qc defines the XmlDoc class
-
 #include "qore-xml-module.h"
 
 #include "QC_XmlDoc.h"
@@ -29,8 +29,6 @@
 #include "QoreXmlReader.h"
 #include "QC_XmlNode.h"
 #include "ql_xml.h"
-
-qore_classid_t CID_XMLDOC;
 
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
 int QoreXmlDoc::validateRelaxNG(const char *rng, int size, ExceptionSink *xsink) {
@@ -102,28 +100,21 @@ QoreXmlNodeData *doNode(xmlNodePtr p, QoreXmlDocData *doc) {
    return new QoreXmlNodeData(p, doc);
 }
 
-//! main %Qore Programming Language namespace
-/**# namespace Qore {
-//! namespace for XML parsing and utility classes
-namespace Xml {
-*/
 //! The XmlDoc class provides access to a parsed XML document by wrapping a \c C \c xmlDocPtr from <a href="http://xmlsoft.org">libxml2</a>
 /** Currently this class provides read-only access to XML documents; it is possible that this restriction will be removed in future versions of the xml module.
  */
-/**# class XmlDoc {
-public:
-*/
+qclass XmlDoc [arg=QoreXmlDocData* xd; ns=Qore::Xml];
 
 //! creates a new XmlDoc object from the hash value passed
-/** @param $data the must have only one top-level key, as the XML string that will be used for the XmlDoc object will be created directly from the hash
+/** @param data the must have only one top-level key, as the XML string that will be used for the XmlDoc object will be created directly from the hash
 
     @par Example:
     @code my XmlDoc $xd($hash); @endcode
+
+    @throw XMLDOC-CONSTRUCTOR-ERROR error parsing XML string
  */
-//# constructor(hash $data) {}
-static void XMLDOC_constructor_hash(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
-   const QoreHashNode *h = HARD_QORE_HASH(params, 0);
-   SimpleRefHolder<QoreStringNode> xml(makeXMLString(QCS_UTF8, *h, false, xsink));
+XmlDoc::constructor(hash data) {
+   SimpleRefHolder<QoreStringNode> xml(makeXMLString(QCS_UTF8, *data, false, xsink));
    if (!xml)
       return;
    SimpleRefHolder<QoreXmlDocData> xd(new QoreXmlDocData(*xml));
@@ -141,10 +132,8 @@ static void XMLDOC_constructor_hash(QoreObject *self, const QoreListNode *params
     @par Example:
     @code my XmlDoc $xd($xml); @endcode
  */
-//# constructor(string $xml) {}
-static void XMLDOC_constructor_str(QoreObject *self, const QoreListNode *params, ExceptionSink *xsink) {
-   const QoreStringNode *str = HARD_QORE_STRING(params, 0);
-   SimpleRefHolder<QoreXmlDocData> xd(new QoreXmlDocData(str));
+XmlDoc::constructor(string xml) {
+   SimpleRefHolder<QoreXmlDocData> xd(new QoreXmlDocData(xml));
    if (!xd->isValid()) {
       xsink->raiseException("XMLDOC-CONSTRUCTOR-ERROR", "error parsing XML string");
       return;
@@ -159,8 +148,7 @@ static void XMLDOC_constructor_str(QoreObject *self, const QoreListNode *params,
     @par Example:
     @code my XmlDoc $xdcopy = $xd.copy(); @endcode
 */
-//# Qore::Xml::XmlDoc copy() {}
-static void XMLDOC_copy(QoreObject *self, QoreObject *old, QoreXmlDocData *xd, ExceptionSink *xsink) {
+XmlDoc::copy() {
    self->setPrivate(CID_XMLDOC, new QoreXmlDocData(*xd));
 }
 
@@ -170,8 +158,7 @@ static void XMLDOC_copy(QoreObject *self, QoreObject *old, QoreXmlDocData *xd, E
     @par Example:
     @code my string $xmlver = $xd.getVersion(); @endcode
  */
-//# string getVersion() {}
-static AbstractQoreNode *XMLDOC_getVersion(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
+string XmlDoc::getVersion() [flags=CONSTANT] {
    return new QoreStringNode(xd->getVersion());
 }
 
@@ -189,8 +176,7 @@ static AbstractQoreNode *XMLDOC_getVersion(QoreObject *self, QoreXmlDocData *xd,
 
     @see parseXMLAsData() and parseXML()
  */
-//# hash toQore() {}
-static AbstractQoreNode *XMLDOC_toQore(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
+hash XmlDoc::toQore() [flags=RET_VALUE_ONLY] {
    QoreXmlReader reader(xd->getDocPtr(), xsink);
    if (*xsink)
       return 0;
@@ -213,8 +199,7 @@ static AbstractQoreNode *XMLDOC_toQore(QoreObject *self, QoreXmlDocData *xd, con
 
     @see parseXMLAsData() and parseXML()
  */
-//# hash toQoreData() {}
-static AbstractQoreNode *XMLDOC_toQoreData(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
+hash XmlDoc::toQoreData() [flags=RET_VALUE_ONLY] {
    QoreXmlReader reader(xd->getDocPtr(), xsink);
    if (*xsink)
       return 0;
@@ -227,14 +212,15 @@ static AbstractQoreNode *XMLDOC_toQoreData(QoreObject *self, QoreXmlDocData *xd,
 
     @par Example:
     @code my string $xml = $xd.toString(); @endcode
+
+    @throw XML-DOC-TOSTRING-ERROR an error occurred converting the XmlDoc object to an XML string
 */
-//# string toString() {}
-static AbstractQoreNode *XMLDOC_toString(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
+string XmlDoc::toString() [flags=RET_VALUE_ONLY] {
    return xd->toString(xsink);
 }
 
 //! Evaluates an <a href="http://www.w3.org/TR/xpath">XPath</a> expression and returns a list of matching XmlNode objects.
-/** @param $xpath the <a href="http://www.w3.org/TR/xpath">XPath</a> expression to evaluate against the XmlDoc object
+/** @param xpath the <a href="http://www.w3.org/TR/xpath">XPath</a> expression to evaluate against the XmlDoc object
 
     @return a list of XmlNode object matching the <a href="http://www.w3.org/TR/xpath">XPath</a> expression passed as an argument
 
@@ -244,14 +230,12 @@ static AbstractQoreNode *XMLDOC_toString(QoreObject *self, QoreXmlDocData *xd, c
     @par Example:
     @code my list $list = $xd.evalXPath("//list[2]"); @endcode
  */
-//# list evalXPath(string $xpath) {}
-static AbstractQoreNode *XMLDOC_evalXPath(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
-   const QoreStringNode *expr = HARD_QORE_STRING(params, 0);
+list XmlDoc::evalXPath(string xpath) [flags=RET_VALUE_ONLY] {
    QoreXPath xp(xd, xsink);
    if (!xp)
       return 0;
 
-   return xp.eval(expr->getBuffer(), xsink);
+   return xp.eval(xpath->getBuffer(), xsink);
 }
 
 //! Returns an XmlNode object representing the root element of the document, if any exists, otherwise returns \c NOTHING
@@ -260,16 +244,14 @@ static AbstractQoreNode *XMLDOC_evalXPath(QoreObject *self, QoreXmlDocData *xd, 
     @par Example:
     @code my *XmlNode $xn = $xd.getRootElement(); @endcode
  */
-//# *XmlNode getRootElement() {}
-static AbstractQoreNode *XMLDOC_getRootElement(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
+*XmlNode XmlDoc::getRootElement() [flags=CONSTANT] {
    QoreXmlNodeData *n = xd->getRootElement();
-   if (!n) return 0;
-   return new QoreObject(QC_XMLNODE, getProgram(), n);
+   return !n ? 0 : new QoreObject(QC_XMLNODE, getProgram(), n);
 }
 
 //! Validates the XML document against a RelaxNG schema; if any errors occur, exceptions are thrown
 /** The availability of this function depends on the presence of libxml2's \c xmlTextReaderRelaxNGSetSchema() function when this module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before running this method.
-    @param $relaxng the RelaxNG schema to use to validate the XmlDoc object
+    @param relaxng the RelaxNG schema to use to validate the XmlDoc object
 
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
     @throw RELAXNG-SYNTAX-ERROR invalid RelaxNG string
@@ -279,12 +261,10 @@ static AbstractQoreNode *XMLDOC_getRootElement(QoreObject *self, QoreXmlDocData 
     @par Example:
     @code $xd.validateRelaxNG($relaxng); @endcode    
  */
-//# nothing validateRelaxNG(string $relaxng) {}
-static AbstractQoreNode *XMLDOC_validateRelaxNG(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
+nothing XmlDoc::validateRelaxNG(string relaxng) {
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
-   const QoreStringNode *rng = HARD_QORE_STRING(params, 0);
    // convert to UTF-8 
-   TempEncodingHelper nrng(rng, QCS_UTF8, xsink);
+   TempEncodingHelper nrng(relaxng, QCS_UTF8, xsink);
    if (!nrng)
       return 0;
 
@@ -298,7 +278,7 @@ static AbstractQoreNode *XMLDOC_validateRelaxNG(QoreObject *self, QoreXmlDocData
 //! Validates the XML document against an XSD schema; if any errors occur, exceptions are thrown
 /** The availability of this function depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when this module was compiled; for maximum portability check the constant @ref optionconstants HAVE_PARSEXMLWITHSCHEMA before running this function
 
-    @param $xsd the XSD schema to use to validate the XmlDoc object
+    @param xsd the XSD schema to use to validate the XmlDoc object
 
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
     @throw XSD-SYNTAX-ERROR the RelaxNG schema string could not be parsed
@@ -308,10 +288,8 @@ static AbstractQoreNode *XMLDOC_validateRelaxNG(QoreObject *self, QoreXmlDocData
     @par Example:
     @code $xd.validateSchema($xsd); @endcode    
  */
-//# nothing validateSchema(string $xsd) {}
-static AbstractQoreNode *XMLDOC_validateSchema(QoreObject *self, QoreXmlDocData *xd, const QoreListNode *params, ExceptionSink *xsink) {
+nothing XmlDoc::validateSchema(string xsd) {
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
-   const QoreStringNode *xsd = HARD_QORE_STRING(params, 0);
    // convert to UTF-8 
    TempEncodingHelper nxsd(xsd, QCS_UTF8, xsink);
    if (!nxsd)
@@ -323,39 +301,3 @@ static AbstractQoreNode *XMLDOC_validateSchema(QoreObject *self, QoreXmlDocData 
 #endif
    return 0;
 }
-
-/**#
-};
-};
-};
- */
-
-QoreClass *initXmlDocClass(const QoreClass *QC_XmlNode) {
-   QORE_TRACE("initXmlDocClass()");
-
-   QoreClass *QC_XMLDOC = new QoreClass("XmlDoc");
-   CID_XMLDOC = QC_XMLDOC->getID();
-
-   QC_XMLDOC->setConstructorExtended(XMLDOC_constructor_hash, false, QC_NO_FLAGS, QDOM_DEFAULT, 1, hashTypeInfo, QORE_PARAM_NO_ARG);
-   QC_XMLDOC->setConstructorExtended(XMLDOC_constructor_str, false, QC_NO_FLAGS, QDOM_DEFAULT, 1, stringTypeInfo, QORE_PARAM_NO_ARG);
-
-   QC_XMLDOC->setCopy((q_copy_t)XMLDOC_copy);
-
-   QC_XMLDOC->addMethodExtended("getVersion",      (q_method_t)XMLDOC_getVersion, false, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo);
-
-   QC_XMLDOC->addMethodExtended("toQore",          (q_method_t)XMLDOC_toQore, false, QC_RET_VALUE_ONLY, QDOM_DEFAULT, hashTypeInfo);
-
-   QC_XMLDOC->addMethodExtended("toQoreData",      (q_method_t)XMLDOC_toQoreData, false, QC_RET_VALUE_ONLY, QDOM_DEFAULT, hashTypeInfo);
-
-   QC_XMLDOC->addMethodExtended("toString",        (q_method_t)XMLDOC_toString, false, QC_RET_VALUE_ONLY, QDOM_DEFAULT, stringTypeInfo);
-   QC_XMLDOC->addMethodExtended("evalXPath",       (q_method_t)XMLDOC_evalXPath, false, QC_RET_VALUE_ONLY, QDOM_DEFAULT, listTypeInfo, 1, stringTypeInfo, QORE_PARAM_NO_ARG);
-
-   // *XmlNode XmlDoc::getRootElement()  
-   QC_XMLDOC->addMethodExtended("getRootElement",  (q_method_t)XMLDOC_getRootElement, false, QC_RET_VALUE_ONLY, QDOM_DEFAULT, QC_XmlNode->getOrNothingTypeInfo());
-
-   QC_XMLDOC->addMethodExtended("validateRelaxNG", (q_method_t)XMLDOC_validateRelaxNG, false, QC_NO_FLAGS, QDOM_DEFAULT, nothingTypeInfo, 1, stringTypeInfo, QORE_PARAM_NO_ARG);
-   QC_XMLDOC->addMethodExtended("validateSchema",  (q_method_t)XMLDOC_validateSchema, false, QC_NO_FLAGS, QDOM_DEFAULT, nothingTypeInfo, 1, stringTypeInfo, QORE_PARAM_NO_ARG);
-
-   return QC_XMLDOC;   
-}
-

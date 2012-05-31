@@ -34,15 +34,15 @@ DLLLOCAL QoreClass *initXmlReaderClass(QoreClass *XmlDoc);
 
 class QoreXmlReaderData : public AbstractPrivateData, public QoreXmlReader {
 private:
-   QoreXmlDocData *doc;
-   QoreStringNode *xmlstr;
+   QoreXmlDocData* doc;
+   QoreStringNode* xmlstr;
 
    // not implemented
    DLLLOCAL QoreXmlReaderData(const QoreXmlReaderData &orig);
 
 public:
    // n_xml must be in UTF8 encoding and must be referenced for the object
-   DLLLOCAL QoreXmlReaderData(QoreStringNode *n_xml, ExceptionSink *xsink) : QoreXmlReader(xsink, n_xml, QORE_XML_PARSER_OPTIONS), doc(0), xmlstr(n_xml) {
+   DLLLOCAL QoreXmlReaderData(QoreStringNode* n_xml, ExceptionSink *xsink) : QoreXmlReader(xsink, n_xml, QORE_XML_PARSER_OPTIONS), doc(0), xmlstr(n_xml) {
    }
 
    DLLLOCAL QoreXmlReaderData(QoreXmlDocData *n_doc, ExceptionSink *xsink) : QoreXmlReader(xsink, n_doc->getDocPtr()), doc(n_doc), xmlstr(0) {
@@ -61,7 +61,7 @@ public:
 	 assert(!xmlstr);
 	 doc->deref();
       }
-      else
+      else if (xmlstr)
 	 xmlstr->deref();
    }
 };

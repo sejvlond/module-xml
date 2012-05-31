@@ -1,0 +1,444 @@
+/* -*- mode: c++; indent-tabs-mode: nil -*- */
+/** @file XmlNode.qpp defines the XmlNode class */
+/*
+ QC_XmlNode.qpp
+ 
+ Qore Programming Language
+ 
+ Copyright 2003 - 2012 David Nichols
+ 
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ 
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ 
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#include "qore-xml-module.h"
+
+static QoreObject* doObject(QoreXmlNodeData *data) {
+   return data ? new QoreObject(QC_XMLNODE, getProgram(), data) : 0;
+}
+
+#ifdef HAVE_XMLTEXTREADERSETSCHEMA
+#define XML_CONST_HAVE_XMLTEXTREADERSETSCHEMA 1
+#else
+#define XML_CONST_HAVE_XMLTEXTREADERSETSCHEMA 0
+#endif
+
+#ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
+#define XML_CONST_HAVE_XMLTEXTREADERRELAXNGSETSCHEMA 1
+#else
+#define XML_CONST_HAVE_XMLTEXTREADERRELAXNGSETSCHEMA 0
+#endif
+
+/** @defgroup XMLElementTypes XML Element Type Constants
+    values returned by:
+    - XmlNode::getElementType()
+ */
+//@{
+namespace Qore::Xml;
+
+//! Indicates an element
+const XML_ELEMENT_NODE = XML_ELEMENT_NODE;
+
+//! Indicates an attribute
+const XML_ATTRIBUTE_NODE = XML_ATTRIBUTE_NODE;
+
+//! Indicates text
+const XML_TEXT_NODE = XML_TEXT_NODE;
+
+//! Indicates CDATA: unparsed character data
+const XML_CDATA_SECTION_NODE = XML_CDATA_SECTION_NODE;
+
+//! Indicates an entity reference
+const XML_ENTITY_REF_NODE = XML_ENTITY_REF_NODE;
+
+//! Indicates an entity
+const XML_ENTITY_NODE = XML_ENTITY_NODE;
+
+//! Indicates a processing instruction
+const XML_PI_NODE = XML_PI_NODE;
+
+//! Indicates a comment
+const XML_COMMENT_NODE = XML_COMMENT_NODE;
+
+//! Indicates a document
+const XML_DOCUMENT_NODE = XML_DOCUMENT_NODE;
+
+//! Indicates a document type
+const XML_DOCUMENT_TYPE_NODE = XML_DOCUMENT_TYPE_NODE;
+
+//! Indicates a document fragment
+const XML_DOCUMENT_FRAG_NODE = XML_DOCUMENT_FRAG_NODE;
+
+//! Indicates a DTD notation
+const XML_NOTATION_NODE = XML_NOTATION_NODE;
+
+//! Indicates an HTML document
+const XML_HTML_DOCUMENT_NODE = XML_HTML_DOCUMENT_NODE;
+
+//! Indicates a DTD
+const XML_DTD_NODE = XML_DTD_NODE;
+
+//! Indicates an element declaration
+const XML_ELEMENT_DECL = XML_ELEMENT_DECL;
+
+//! Indicates an attribute declaration
+const XML_ATTRIBUTE_DECL = XML_ATTRIBUTE_DECL;
+
+//! Indicates an entity declaration
+const XML_ENTITY_DECL = XML_ENTITY_DECL;
+
+//! Indicates a namespace declaration
+const XML_NAMESPACE_DECL = XML_NAMESPACE_DECL;
+
+//! Indicates an XML xinclude start element
+const XML_XINCLUDE_START = XML_XINCLUDE_START;
+
+//! Indicates an XML xinclude end element
+const XML_XINCLUDE_END = XML_XINCLUDE_END;
+
+//! Indicates a docbook document element
+const XML_DOCB_DOCUMENT_NODE = XML_DOCB_DOCUMENT_NODE;
+
+//! gives a map from element type codes to symbolic names
+const ElementTypeMap = (
+   "1" : "XML_ELEMENT_NODE",
+   "2" : "XML_ATTRIBUTE_NODE",
+   "3" : "XML_TEXT_NODE",
+   "4" : "XML_CDATA_SECTION_NODE",
+   "5" : "XML_ENTITY_REF_NODE",
+   "6" : "XML_ENTITY_NODE",
+   "7" : "XML_PI_NODE",
+   "8" : "XML_COMMENT_NODE",
+   "9" : "XML_DOCUMENT_NODE",
+   "10" : "XML_DOCUMENT_TYPE_NODE",
+   "11" : "XML_DOCUMENT_FRAG_NODE",
+   "12" : "XML_NOTATION_NODE",
+   "13" : "XML_HTML_DOCUMENT_NODE",
+   "14" : "XML_DTD_NODE",
+   "15" : "XML_ELEMENT_DECL",
+   "16" : "XML_ATTRIBUTE_DECL",
+   "17" : "XML_ENTITY_DECL",
+   "18" : "XML_NAMESPACE_DECL",
+   "19" : "XML_XINCLUDE_START",
+   "20" : "XML_XINCLUDE_END",
+   "21" : "XML_DOCB_DOCUMENT_NODE",
+   );
+//@}
+
+/** @defgroup XmlNodeTypes XML Node Type Constants
+    Values returned by:
+    - XmlReader::nodeType()
+ */
+//@{
+namespace Qore::Xml;
+
+//! Indicates no node is available
+const XML_NODE_TYPE_NONE = XML_READER_TYPE_NONE;
+
+//! Indicates an XML element
+const XML_NODE_TYPE_ELEMENT = XML_READER_TYPE_ELEMENT;
+
+//! Indicates an attribute node
+const XML_NODE_TYPE_ATTRIBUTE = XML_READER_TYPE_ATTRIBUTE;
+
+//! Indicates a text node
+const XML_NODE_TYPE_TEXT = XML_READER_TYPE_TEXT;
+
+//! Indicates a CDATA node: unparsed character data
+const XML_NODE_TYPE_CDATA = XML_READER_TYPE_CDATA;
+
+//! Indicates an entity reference node
+const XML_NODE_TYPE_ENTITY_REFERENCE = XML_READER_TYPE_ENTITY_REFERENCE;
+
+//! Indicates an entity reference node
+const XML_NODE_TYPE_ENTITY = XML_READER_TYPE_ENTITY;
+
+//! Indicates an XML processing instruction
+const XML_NODE_TYPE_PROCESSING_INSTRUCTION = XML_READER_TYPE_PROCESSING_INSTRUCTION;
+
+//! Indicates an XML comment
+const XML_NODE_TYPE_COMMENT = XML_READER_TYPE_COMMENT;
+
+//! Indicates a document node
+const XML_NODE_TYPE_DOCUMENT = XML_READER_TYPE_DOCUMENT;
+
+//! Indicates a document type node
+const XML_NODE_TYPE_DOCUMENT_TYPE = XML_READER_TYPE_DOCUMENT_TYPE;
+
+//! Indicates a document fragment node
+const XML_NODE_TYPE_DOCUMENT_FRAGMENT = XML_READER_TYPE_DOCUMENT_FRAGMENT;
+
+//! Indicates a notation node
+const XML_NODE_TYPE_NOTATION = XML_READER_TYPE_NOTATION;
+
+//! Indicates a whitespace node
+const XML_NODE_TYPE_WHITESPACE = XML_READER_TYPE_WHITESPACE;
+
+//! Indicates a significant whitespace node
+const XML_NODE_TYPE_SIGNIFICANT_WHITESPACE = XML_READER_TYPE_SIGNIFICANT_WHITESPACE;
+
+//! Indicates an end element node
+const XML_NODE_TYPE_END_ELEMENT = XML_READER_TYPE_END_ELEMENT;
+
+//! Indicates an end entity node
+const XML_NODE_TYPE_END_ENTITY = XML_READER_TYPE_END_ENTITY;
+
+//! Indicates an XML declaration node
+const XML_NODE_TYPE_XML_DECLARATION = XML_READER_TYPE_XML_DECLARATION;
+
+//! provides a map from node type values to symbolic names
+const NodeTypeMap = (
+   "0": "XML_NODE_TYPE_NONE",
+   "1": "XML_NODE_TYPE_ELEMENT",
+   "2": "XML_NODE_TYPE_ATTRIBUTE",
+   "3": "XML_NODE_TYPE_TEXT",
+   "4": "XML_NODE_TYPE_CDATA",
+   "5": "XML_NODE_TYPE_ENTITY_REFERENCE",
+   "6": "XML_NODE_TYPE_ENTITY",
+   "7": "XML_NODE_TYPE_PROCESSING_INSTRUCTION",
+   "8": "XML_NODE_TYPE_COMMENT",
+   "9": "XML_NODE_TYPE_DOCUMENT",
+   "10": "XML_NODE_TYPE_DOCUMENT_TYPE",
+   "11": "XML_NODE_TYPE_DOCUMENT_FRAGMENT",
+   "12": "XML_NODE_TYPE_NOTATION",
+   "13": "XML_NODE_TYPE_WHITESPACE",
+   "14": "XML_NODE_TYPE_SIGNIFICANT_WHITESPACE",
+   "15": "XML_NODE_TYPE_END_ELEMENT",
+   "16": "XML_NODE_TYPE_END_ENTITY",
+   "17": "XML_NODE_TYPE_XML_DECLARATION",
+   );
+//@}
+
+//! The XmlNode class provides information about the components of an XML document
+/** This class currently cannot be constructed manually, but rather can only be returned by the XmlDoc class. It is possible that future versions of the xml module will remove this restriction.
+ */
+qclass XmlNode [arg=QoreXmlNodeData* xn; ns=Qore::Xml];
+
+//! cannot be called manually; throws an exception
+/** @throw XMLNODE-CONSTRUCTOR-ERROR this class cannot be constructed directly
+ */
+XmlNode::constructor() {
+   xsink->raiseException("XMLNODE-CONSTRUCTOR-ERROR", "this class cannot be constructed directly");
+}
+
+//! Returns a copy of the current object
+/** @return a copy of the current object
+
+    @par Example:
+    @code my XmlNode $xncopy = $xn.copy(); @endcode
+*/
+XmlNode::copy() {
+   self->setPrivate(CID_XMLNODE, new QoreXmlNodeData(*xn));
+}
+
+//! Returns the number of child elements of the XmlNode
+/** @return the number of child elements of the XmlNode
+
+    @par Example:
+    @code my int $val = $n.childElementCount(); @endcode
+*/
+int XmlNode::childElementCount() [flags=CONSTANT] {
+   return xn->childElementCount();
+}
+
+//! Searches the space preserving behaviour of the XmlNode object, i.e. the values of the \c xml:space attribute or the one carried by the nearest ancestor
+/** @return -1 if \c xml:space is not inherited, 0 if \c "default", 1 if \c "preserve"
+
+    @par Example:
+    @code my int $val = $n.getSpacePreserve(); @endcode
+*/
+int XmlNode::getSpacePreserve() [flags=CONSTANT] {
+   return xn->getSpacePreserve();
+}
+
+/*
+// line numbers are not activated by default and no option is provided to activate them
+int XmlNode::getLineNumber() {
+   return xn->getLineNumber();
+}
+*/
+
+//! Returns the type of the XmlNode object
+/** @return the element type as an integer; for possible values see @ref XMLElementTypes
+
+    @par Example:
+    @code my int $val = $n.getElementType(); @endcode
+*/
+int XmlNode::getElementType() [flags=CONSTANT] {
+   return xn->getElementType();
+}
+
+//! Returns the name of the type of the XmlNode object
+/** @return the name of the type of the XmlNode object; for possible values see the values of the @ref ElementTypeMap; if the type is unknown, then \c NOTHING is returned
+
+    @par Example:
+    @code my *string $name = $n.getElementTypeName(); @endcode
+*/
+*string XmlNode::getElementTypeName() [flags=CONSTANT] {
+   const char *nt = get_xml_element_type_name((int)xn->getElementType());
+   return nt ? new QoreStringNode(nt) : 0;
+}
+
+//! Returns an XmlNode object for the first child of the current XmlNode object that is an XML element, or \c NOTHING if there is none
+/** @return an XmlNode object for the first child of the current XmlNode object that is an XML element, or \c NOTHING if there is none
+
+    @par Example:
+    @code my *XmlNode $xn = $node.firstElementChild(); @endcode
+*/
+*XmlNode XmlNode::firstElementChild() [flags=CONSTANT] {
+   return doObject(xn->firstElementChild());
+}
+
+//! Returns an XmlNode object for the last child of the current XmlNode object, or \c NOTHING if there is none
+/** @return an XmlNode object for the last child of the current XmlNode object, or \c NOTHING if there is none
+
+    @par Example:
+    @code my *XmlNode $xn = $node.getLastChild(); @endcode
+*/
+*XmlNode XmlNode::getLastChild() [flags=CONSTANT] {
+   return doObject(xn->getLastChild());
+}
+
+//! Returns an XmlNode object for the last child of the current XmlNode object that is an XML element, or \c NOTHING if there is none
+/** @return an XmlNode object for the last child of the current XmlNode object that is an XML element, or \c NOTHING if there is none
+
+    @par Example:
+    @code my *XmlNode $xn = $node.lastElementChild(); @endcode
+*/
+*XmlNode XmlNode::lastElementChild() [flags=CONSTANT] {
+   return doObject(xn->lastElementChild());
+}
+
+//! Returns an XmlNode object for the next element at the same level of the current XmlNode object, or \c NOTHING if there is none
+/** @return an XmlNode object for the next element at the same level of the current XmlNode object, or \c NOTHING if there is none
+
+    @par Example:
+    @code my *XmlNode $xn = $node.nextElementSibling(); @endcode
+*/
+*XmlNode XmlNode::nextElementSibling() [flags=CONSTANT] {
+   return doObject(xn->nextElementSibling());
+}
+
+//! Returns an XmlNode object for the previous element at the same level of the current XmlNode object, or \c NOTHING if there is none
+/** @return an XmlNode object for the previous element at the same level of the current XmlNode object, or \c NOTHING if there is none
+
+    @par Example:
+    @code my *XmlNode $xn = $node.previousElementSibling(); @endcode
+*/
+*XmlNode XmlNode::previousElementSibling() [flags=CONSTANT] {
+   return doObject(xn->previousElementSibling());
+}
+
+//! Returns a string representing a structured path for the current node
+/** @return a string representing a structured path for the current node
+
+    @par Example:
+    @code my string $path = $node.getPath(); @endcode
+
+    @throw XMLNODE-GET-PATH-ERROR an error occurred retrieving the node's path
+*/
+string XmlNode::getPath() [flags=RET_VALUE_ONLY] {
+   return xn->getPath(xsink);
+}
+
+//! Returns the value of the given property anchored in the given namespace, or \c NOTHING if no such property exists in the current XmlNode
+/** @param prop the name of the property
+    @param ns the namespace anchoring the property
+
+    @return the value of the given property anchored in the given namespace, or \c NOTHING if no such property exists in the current XmlNode
+
+    @par Example:
+    @code my *string $val = $node.getNsProp($prop, $ns); @endcode
+*/
+*string XmlNode::getNsProp(string prop, string ns) [flags=CONSTANT] {
+   return xn->getNsProp(prop->getBuffer(), ns->getBuffer());
+}
+
+//! Returns the value of the given property, or \c NOTHING if no such property exists in the current XmlNode
+/** @param prop the name of the property
+
+    @return the value of the given property, or \c NOTHING if no such property exists in the current XmlNode
+
+    @par Example:
+    @code my *string $val = $node.getProp($prop); @endcode
+*/
+*string XmlNode::getProp(string prop) [flags=CONSTANT] {
+   return xn->getProp(prop->getBuffer());
+}
+
+/*
+static AbstractQoreNode *XMLNODE_getBase(QoreObject *self, QoreXmlNodeData *xn, const QoreListNode *params, ExceptionSink *xsink) {
+   return xn->getBase();
+}
+*/
+
+//! Returns a string of the content of the current node or \c NOTHING if there is none
+/** @return a string of the content of the current node or \c NOTHING if there is none
+
+    @par Example:
+    @code my *string $value = $xmlnode.getContent(); @endcode
+ */
+*string XmlNode::getContent() [flags=CONSTANT] {
+   return xn->getContent();
+}
+
+//! Returns the name of the current node or \c NOTHING if no name is available
+/** @return the name of the current node or \c NOTHING if no name is available
+
+    @par Example:
+    @code my *string $name = $xmlnode.getName(); @endcode
+*/
+*string XmlNode::getName() [flags=CONSTANT] {
+   return xn->getName();
+}
+
+//! Returns the language of the current node, determined by the value of the \c xml:lang attribute of this node or of the nearest ancestor; if no such property is available, then \c NOTHING is returned
+/** @return the language of the current node, determined by the value of the \c xml:lang attribute of this node or of the nearest ancestor; if no such property is available, then \c NOTHING is returned
+
+    @par Example:
+    @code my *string $lang = $xmlnode.getLang(); @endcode
+ */
+*string XmlNode::getLang() [flags=CONSTANT] {
+   return xn->getLang();
+}
+
+//! Returns \c True if the node is a text node, \c False if not
+/** @return \c True if the node is a text node, \c False if not
+
+    @par Example:
+    @code my bool $b = $xmlnode.isText(); @endcode
+*/
+bool XmlNode::isText() [flags=CONSTANT] {
+   return xn->isText();
+}
+
+//! Returns \c True if the node is empty or whitespace only, \c False if not
+/** @return \c True if the node is empty or whitespace only, \c False if not
+
+    @par Example:
+    @code my bool $b = $xmlnode.isBlank(); @endcode
+*/
+bool XmlNode::isBlank() [flags=CONSTANT] {
+   return xn->isBlank();
+}
+
+//! Returns a string containing XML corresponding to the current node and all its children or \c NOTHING if no information is available
+/** @return a string containing XML corresponding to the current node and all its children or \c NOTHING if no information is available
+
+    @par Example:
+    @code my *string $value = $xmlnode.getXML(); @endcode
+ */
+*string XmlNode::getXML() [flags=CONSTANT] {
+   return xn->getXML();
+}

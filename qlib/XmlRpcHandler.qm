@@ -1,0 +1,337 @@
+# -*- mode: qore; indent-tabs-mode: nil -*-
+#! @file XmlRpcHandler.qm @brief XML-RPC handler class definition for the HttpServer module
+
+/*  XmlRpcHandler.qm Copyright 2012 David Nichols
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+# minimum qore version
+%requires qore >= 0.8.4
+
+# requires the binary xml module
+%requires xml >= 1.1
+
+# need mime definitions
+%requires Mime >= 1.0
+
+# need HttpServer definitions
+%requires HttpServer >= 0.3.3
+
+module XmlRpcHandler {
+    version = "1.0";
+    desc = "XmlRpcHandler module for use with the HttpServer module";
+    author = "David Nichols <david@qore.org>";
+    url = "http://qore.org";
+}
+
+/*  Version History
+    * 2012-05-31 v1.0: David Nichols <david@qore.org>: updated to a user module
+*/
+
+/** @mainpage XmlRpcHandler Module
+
+    @section intro Introduction
+
+    This module implements server-side support for the <a href="http://en.wikipedia.org/wiki/XML-RPC">XML-RPC protocol</a> for serialization/deserialization of message data.
+
+    This module provides the @ref XmlRpcHandler::XmlRpcHandler "XmlRpcHandler" class which can be used to provide an RPC handler for the HttpServer class provided by the HttpServer module.
+
+    @section example Example Usage
+    @code
+%requires HttpServer
+%requires XmlRpcHandler
+%requires Mime
+
+const ApiMethods = (
+     ("name": "^sys\\.shutdown\$",
+      "text": "sys.shutdown",
+      "function": sub () { background $http.stop();  return "OK"; },
+      "help": "shuts down this server",
+      "logopt": 0,
+      ),
+);
+
+# a logging closure
+my code $log = sub (string $str) {printf("%y: %s\n", now_us(), $str);};
+
+# our bind address
+const Bind = 8888;
+
+my XmlRpcHandler $xmlRpcHandler(new AbstractAuthenticator(), $api);
+our HttpServer $http($log, $log);
+$http.addListener(Bind);
+$http.setHandler("xmlrpc", "", MimeTypeXmlRpc, $xmlRpcHandler);
+$http.setDefaultHandler("xmlrpc", $xmlRpcHandler);
+$log("now listening on %s\n", Bind);
+$http.waitStop();
+    @endcode
+*/
+
+#! the %XmlRpcHandler namespace holds all public definitions in the %XmlRpcHandler module
+public namespace XmlRpcHandler {
+    #! XML-RPC Handler implementation; to be registered as a request handler in the HttpServer class
+    /**
+     */
+    public class XmlRpcHandler inherits public AbstractHttpRequestHandler {
+        #! version of the implementation
+        const Version = "1.0";
+
+        #! internal methods (for introspection)
+        const InternalMethods = (
+            ("function": "help",
+             "help": "shows a list of XML-RPC methods registered with this handler",
+             "text": "help",
+             "logopt": 2,
+            ),
+            ("function": "listMethods",
+             "help": "lists XML-RPC method names registered with this handler",
+             "text": "system.listMethods",
+             "logopt": 2,
+            ),
+            );
+
+        #! error code for invalid XML-RPC
+        const XMLRPC_INVALID_XML = 2001;
+
+        #! @cond nodoc
+        private {
+            list $.methods = ();
+            hash $.mi = hash();
+            int $.loglevel;
+
+            # if True then verbose exception info will be logged
+            bool $.debug;
+
+            # a closure/call reference to get the log message and/or process arguments in incoming requests
+            *code $.getLogMessage;
+        }
+        #! @endcond
+
+        #! creates the handler with the given method list
+        /** @param auth an authentication object (use new AbstractAuthenticator() for no authentication)
+            @param methods a list of hashes with the following keys:
+            - \c name: a regular expression to use for matching the method name
+            - \c function: a string (giving a function name to call), a call reference, or a closure to call with the deserialized arguments to the method; the return value will be serialized to XML-RPC and sent back to the caller
+            - \c help: help text for the method
+            - \c text: the human-readable name of the method
+            - \c logopt: (optional - by convention) log options which can be used by a custom logger (see the getLogMessage parameter)
+            @param getLogMessage an optional closure or call reference to be called when an incoming request is received; if this is set then it will 
+be called with the following arguments: a context hash (see HttpServer::AbstractHttpRequestHandler::handleRequest() for a description of the context h
+ash), the method definition as passed in the methods argument to this constructor, and a reference to the arguments in this call
+            @param dbg  this parameter is set to @ref Qore::True "True", then additional information will be logged when errors occur
+         */
+        constructor(AbstractAuthenticator $auth, list $methods, *code $getLogMessage, bool $dbg = False) : AbstractHttpRequestHandler($auth) {
+            $.getLogMessage = $getLogMessage;
+            $.debug = $dbg;
+
+            # add internal methods
+            foreach my hash $im in (XmlRpcHandler::InternalMethods)
+                $.addMethodInternal($im + ( "internal" : True ));
+            
+            foreach my hash $m in ($methods) {
+                if (!exists $m.name)
+                    throw "XML-RPC-CONSTRUCTOR-ERROR", sprintf("expecting 'name' key in method hash (%n)", $m);
+                if (!exists $m.function)
+                    throw "XML-RPC-CONSTRUCTOR-ERROR", sprintf("expecting 'function' key in method hash (%n)", $m);
+
+                if (!exists $m.text)
+                    throw "XML-RPC-CONSTRUCTOR-ERROR", sprintf("expecting 'text' key in method hash (%n)", $m);
+                delete $m.internal;
+                $.addMethodInternal($m);
+            }
+        }
+
+        #! adds a method to the handler dynamically
+        /** @param name a regular expression to use for matching the method name
+            @param func a string (giving a function name to call), a call reference, or a closure to call with the deserialized arguments to the method; the return value will be serialized to XML-RPC and sent back to the caller
+            @param text the human-readable name of the method
+            @param help help text for the method
+            @param logopt log options which can be used by a custom logger (see the getLogMessage parameter)
+            @param cmark any value that will be added in the method hash under the \c "cmark" key
+          */
+        addMethod(string $name, any $func, string $text, string $help, int $logopt, any $cmark) {
+            if (!exists $func)
+                throw "XML-RPC-SERVER-ADD-METHOD-PARAMETER-ERROR", "expecting function name and text name as hash key in argument";
+
+            $.addMethodInternal(("name": $name,
+                                 "function": $func,
+                                 "text": $text,
+                                 "help": $help,
+                                 "logopt": $logopt,
+                                 "cmark": $cmark,
+                                ));
+        }
+
+        #! turns on or off debugging; when debugging is enabled more verbose error messages are reported
+        setDebug(bool $dbg = True) {
+            $.debug = $dbg;
+        }
+
+        #! returns the current status of the debug flag
+        bool getDebug() {
+            return $.debug;
+        }
+
+        #! @cond nodoc
+        # don't reimplement this method; fix/enhance it in the module
+        final private addMethodInternal(hash $h) {
+            # check for duplicate in method index
+            my any $i = $.mi.($h.text);
+            if (!exists $i)
+                $i = elements $.methods;
+
+            if (!exists $h.name)
+                $h.name = sprintf("^%s\$", $h.text);
+            $.methods[$i] = $h;
+        }
+
+        private hash help() {
+            my hash $h;
+            foreach my hash $m in ($.methods) {
+                $h.($m.text).description = $m.help;
+                if (exists $m.params)
+                    $h.($m.text).params  = $m.params;
+            }
+            return $h;
+        }
+
+        private list listMethods() {
+            my list $l;
+            foreach my hash $m in ($.methods)
+                $l += $m.text;
+            return $l;
+        }
+
+        private log(hash $cx, string $str) {
+            my string $msg = "XML-RPC ";
+            if (exists $cx.user)
+                $msg += sprintf("user %s ", $cx.user);
+            $msg += sprintf("from %s: ", $cx."peer-info".address_desc);
+            $msg += vsprintf($str, $argv);
+
+            call_function_args($cx.logfunc, $msg);
+        }
+
+        # don't reimplement this method; fix/enhance it in the module
+        final private hash callMethod(hash $cx, any $params) {
+            my string $method = $cx.method;
+            # find method function
+            my hash $found;
+            foreach my hash $m in ($.methods) {
+                if (regex($method, $m.name)) {
+                    $found = $m;
+                    break;
+                }
+            }
+            
+            if (!exists $found)
+                throw "XML-RPC-SERVER-UNKNOWN-METHOD", sprintf("unknown method %n", $method);
+            
+            # add context marker, if any
+            $cx.cmark = $found.cmark;
+            $cx.function = $found.function;
+
+            my *string $msg = exists $.getLogMessage ? call_function($.getLogMessage, $cx, $found, \$params) : NOTHING;
+            if (exists $msg)
+                $.log($cx, $msg);
+
+            #printf("DEBUG: about to call function '%s' (method=%s params=%y)\n", $found.function, $method, $params);
+
+            my any $rv = $found.internal ? callObjectMethodArgs($self, $found.function, $params) : call_function_args($found.function, $params);
+            my hash $h.body = makeXMLRPCResponseStringWithEncoding($cx."response-encoding", $rv);
+            return $h;
+        }
+
+        # method called by HttpServer to handle an XML-RPC request
+        # don't reimplement this method; fix/enhance it in the module
+        final hash handleRequest(hash $cx, hash $hdr, *data $body) {
+            #printf("xmlrpc handler context=%y hdr=%y body=%y\n", $cx, $hdr, $body);
+            if (!exists $cx."response-encoding")
+                $cx."response-encoding" = get_default_encoding();
+
+            my hash $xmlrpc;
+
+            if ($hdr.method == "GET") {
+                my string $path = substr($hdr.path, index($hdr.path, "/") + 1);
+                
+                if (!strlen($path))
+                    return (
+                        "code": 501,
+                        "desc": "invalid HTTP GET: no path/XML-RPC method name given",
+                    ); 
+                
+                if (index($path, ".") == -1)
+                    $path = "omq.system." + $path;
+                $xmlrpc.methodName = $path;
+            }
+            else {
+                if ($hdr.method != "POST")
+                    return (
+                        "code": 501,
+                        "body": sprintf("don't know how to handle method %n", $hdr.method),
+                    );
+
+                if ($hdr."content-type" != MimeTypeXml && $hdr."content-type" != MimeTypeXmlApp)
+                    return (
+                        "code": 501,
+                        "body": sprintf("don't know how to handle content-type %n", $hdr."content-type"),
+                    );
+
+                try {
+                    $xmlrpc = parseXMLRPCCall($body);
+                }
+                catch (hash $ex) {
+                    $.log($cx, HttpServer::get_exception_string($ex));
+                    $.log($cx, "error parsing XML-RPC string: %s", $body);
+                    return (
+                        "code": 200,
+                        "errlog": sprintf("%s: %s", $ex.err, $ex.desc),
+                        "hdr": ( "Content-Type" : MimeTypeXml ),
+                        "body": makeXMLRPCFaultResponseStringWithEncoding($cx."response-encoding", XMLRPC_INVALID_XML, $ex.err),
+                        );
+                }
+            }
+            try {
+                $cx.method = $xmlrpc.methodName;
+                my any $rh = $.callMethod($cx, $xmlrpc.params);
+                #printf("method=%s args=%n\nans=%N\n", $xmlrpc.methodName, $xmlrpc.params, $rh);flush();
+                return ( "code" : 200, "hdr" : ( "Content-Type" : MimeTypeXml ) ) + $rh;
+            }
+            catch (hash $ex) {
+                #$.log($cx, getExceptionString($ex));
+                #log(LL_CRITICAL, "context=%N\nxmlrpc=%N\n", $cx, $xmlrpc);
+                #log(LL_CRITICAL, getExceptionString($ex));
+
+                # show complete exception trace if system debug option is enabled
+                my string $str = !$.debug
+                    ? sprintf("%s: %s", $ex.err, $ex.desc)
+                    : HttpServer::get_exception_string($ex);
+
+                return (
+                    "code": 200,
+                    "errlog": $str,
+                    "hdr": ("Content-Type": MimeTypeXml),
+                    "body": makeXMLRPCFaultResponseStringWithEncoding($cx."response-encoding", int($ex.arg), $str),
+                    );
+            }
+        }
+        #! @endcond
+    }
+}

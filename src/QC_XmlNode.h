@@ -29,7 +29,7 @@
 
 DLLEXPORT extern qore_classid_t CID_XMLNODE;
 DLLEXPORT extern QoreClass *QC_XMLNODE;
-DLLLOCAL QoreClass *initXmlNodeClass();
+DLLLOCAL QoreClass *initXmlNodeClass(QoreNamespace& ns);
 
 class QoreXmlNodeData : public AbstractPrivateData {
 private:

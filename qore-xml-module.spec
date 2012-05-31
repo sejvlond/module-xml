@@ -1,3 +1,4 @@
+%define mod_ver 1.1
 %define module_api %(qore --latest-module-api 2>/dev/null)
 %define module_dir %{_libdir}/qore-modules
 
@@ -34,7 +35,7 @@
 
 Summary: XML module for Qore
 Name: qore-xml-module
-Version: 1.1
+Version: %{mod_ver}
 Release: 1%{dist}
 License: LGPL
 Group: Development/Languages/Other
@@ -51,12 +52,25 @@ BuildRequires: openssl-devel
 BuildRequires: qore
 
 %description
-XML module for the Qore Programming Language.
+This package contains the xml module for the Qore Programming Language.
 
+XML is a markup language for encoding information.
 
 %if 0%{?suse_version}
 %debug_package
 %endif
+
+%package doc
+Summary: Documentation and examples for the Qore xml module
+Group: Development/Languages
+
+%description doc
+This package contains the HTML documentation and example programs for the Qore
+xml module.
+
+%files doc
+%defattr(-,root,root,-)
+%doc docs/xml docs/XmlRpcHandler test examples
 
 %prep
 %setup -q
@@ -81,26 +95,15 @@ rm -rf $RPM_BUILD_ROOT
 %{module_dir}
 %doc COPYING README RELEASE-NOTES ChangeLog AUTHORS
 
-%package doc
-Summary: XML module for Qore
-Group: Development/Languages/Other
-
-%description doc
-XML module for the Qore Programming Language.
-
-This RPM provides API documentation, test and example programs
-
-
-%files doc
-%defattr(-,root,root,-)
-%doc docs/xml/html examples/ test/ 
-
 %changelog
+* Thu May 31 2012 David Nichols <david@qore.org> - 1.1
+- updated to qpp
+
 * Thu Oct 20 2011 Petr Vanek <petr.vanek@qoretechnologies.com> - 1.1
 - 1.1 release
 
-* Tue Dec 28 2010 David Nichols <david@qore.org>
+* Tue Dec 28 2010 David Nichols <david@qore.org> - 1.1
 - updated to version 1.1
 
-* Fri Dec 17 2010 David Nichols <david@qore.org>
+* Fri Dec 17 2010 David Nichols <david@qore.org> - 1.0
 - initial spec file for xml module

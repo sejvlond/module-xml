@@ -1,0 +1,606 @@
+/* -*- mode: c++; indent-tabs-mode: nil -*- */
+/** @file XmlReader.qpp defines the XmlReader class */
+/*
+  QC_XmlReader.qpp
+
+  Qore Programming Language
+  
+  Copyright 2003 - 2012 David Nichols
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+  
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+  
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
+#include "qore-xml-module.h"
+
+#include "QC_XmlReader.h"
+#include "QC_XmlNode.h"
+#include "ql_xml.h"
+
+//! The XmlReader class allows XML strings to be iterated and parsed piecewise
+/** 
+ */
+qclass XmlReader [arg=QoreXmlReaderData* xr; ns=Qore::Xml];
+
+//! Creates the XmlReader object based on an XmlDoc object
+/** @throw XML-READER-ERROR libxml2 returned an error code when creating the XML reader object
+    
+    @par Example:
+    @code my XmlReader $xr($xmldoc); @endcode
+*/
+XmlReader::constructor(XmlDoc[QoreXmlDocData] doc) {
+   ReferenceHolder<QoreXmlDocData> doc_holder(doc, xsink);
+
+   SimpleRefHolder<QoreXmlReaderData> xr(new QoreXmlReaderData(doc, xsink));
+   if (*xsink)
+      return;
+
+   self->setPrivate(CID_XMLREADER, xr.release());   
+}
+
+//! Creates the XmlReader object based on the string passed; the string will be converted to UTF-8 encoding before parsing if necessary
+/** @par Example:
+    @code my XmlReader $xr($xmlstr); @endcode
+
+    @throw XML-READER-ERROR libxml2 returned an error code when creating the XML reader object (ex: XML string could not be parsed)
+    @throw ENCODING-CONVERSION-ERROR the string could not be converted to UTF-8 (usually due to an encoding error in the source string)
+*/
+XmlReader::constructor(string xml) {
+   // FIXME: there is no TempNodeEncodingHelper class :(
+   QoreStringNode* xarg;
+   if (xml->getEncoding() == QCS_UTF8)
+      xarg = xml->stringRefSelf();
+   else {
+      xarg = xml->convertEncoding(QCS_UTF8, xsink);
+      if (!xarg)
+         return;
+   }
+
+   SimpleRefHolder<QoreXmlReaderData> xr(new QoreXmlReaderData(xarg, xsink));
+   if (*xsink)
+      return;
+
+   self->setPrivate(CID_XMLREADER, xr.release());
+}
+
+//! Creates an independent copy of the XmlReader object
+/** @return an independent copy of the XmlReader object
+    
+    @par Example:
+    @code my XmlReader $xrcopy = $xr.copy(); @endcode
+*/
+XmlReader::copy() {
+   ReferenceHolder<QoreXmlReaderData> doc(xr->copy(xsink), xsink);
+   if (!*xsink)
+      self->setPrivate(CID_XMLREADER, doc.release());
+}
+
+//! Moves the position of the current instance to the next node in the stream
+/** If an error occurs parsing the XML string, an exception is raised
+
+    @return \c True if the read was successful, \c False if there are no more nodes to read
+
+    @par Example:
+    @code if (!$xr.read())
+        break; @endcode
+
+    @throw PARSE-XML-EXCEPTION cannot move to next node due to an error parsing the XML string (exception description string contains details about the error)
+    
+    @see XmlReader::readSkipWhitespace()
+*/
+bool XmlReader::read() [flags=RET_VALUE_ONLY] {
+   return xr->read(xsink);
+}
+
+//! the position of the current instance to the next node in the stream, skipping any whitespace nodes
+/** If an error occurs parsing the XML string, an exception is raised
+
+    @return \c True if the read was successful, \c False if there are no more nodes to read
+
+    @par Example:
+    @code if (!$xr.readSkipWhitespace())
+        break; @endcode
+
+    @throw PARSE-XML-EXCEPTION cannot move to next node due to an error parsing the XML string (exception description string contains details about the error)
+    
+    @see XmlReader::read()
+*/
+bool XmlReader::readSkipWhitespace() [flags=RET_VALUE_ONLY] {
+   return xr->readSkipWhitespace(xsink) ? false : true;
+}
+
+//! Returns the node type of the current node
+/** @return the node type of the current node; for return values, see @ref XmlNodeTypes
+
+    @par Example:
+    @code my int $nt = $xr.nodeType(); @endcode
+
+    @see @ref NodeTypeMap
+    @see XmlReader::nodeTypeName()
+*/
+int XmlReader::nodeType() [flags=CONSTANT] {
+   return xr->nodeType();
+}
+
+//! Returns a string giving the node type of the current node or \c NOTHING if no current node is available
+/** @return a string giving the node type of the current node or \c NOTHING if no current node is available; for possible return values, see the values of the @ref NodeTypeMap
+
+    @par Example:
+    @code my *string $value = $xmlreader.nodeTypeName(); @endcode
+
+    @see XmlReader::nodeType()
+*/
+*string XmlReader::nodeTypeName() [flags=CONSTANT] {
+   const char *n = get_xml_node_type_name(xr->nodeType());
+   return n ? new QoreStringNode(n) : 0;
+}
+
+//! Returns the depth of the node in the tree
+/** @return the depth of the node in the tree
+    
+    @par Example:
+    @code my int $depth = $xr.depth(); @endcode
+*/
+int XmlReader::depth() [flags=CONSTANT] {
+   return xr->depth();
+}
+
+//! Returns the qualified name of the node (\c prefix:LocalName) or \c NOTHING if no name is available
+/** @return the qualified name of the node (\c prefix:LocalName) or \c NOTHING if no name is available
+    
+    @par Example:
+    @code my *string $value = $xmlreader.name(); @endcode
+
+    @see XmlReader::localName()
+*/
+*string XmlReader::name() [flags=CONSTANT] {
+   const char *n = xr->constName();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns the text value of the node or \c NOTHING if not available
+/** @return the text value of the node or \c NOTHING if not available
+    
+    @par Example:
+    @code my *string $val = $xr.value(); @endcode
+ */
+*string XmlReader::value() [flags=CONSTANT] {
+   const char *n = xr->constValue();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns \c True if the node has attributes or \c False if not
+/** @return \c True if the node has attributes or \c False if not
+    
+    @par Example:
+    @code my bool $b = $xr.hasAttributes(); @endcode
+ */
+bool XmlReader::hasAttributes() [flags=CONSTANT] {
+   return xr->hasAttributes();
+}
+
+//! Returns \c True if the node has a text value or \c False if not
+/** @return \c True if the node has a text value or \c False if not
+    
+    @par Example:
+    @code my bool $b = $xr.hasValue(); @endcode
+ */
+bool XmlReader::hasValue() [flags=CONSTANT] {
+   return xr->hasValue();
+}
+
+//! Returns \c True if an attribute node was generated from the default value defined in the DTD or schema, \c False if not
+/** @return \c True if an attribute node was generated from the default value defined in the DTD or schema, \c False if not
+    
+    @par Example:
+    @code my bool $b = $xr.isDefault(); @endcode
+ */
+bool XmlReader::isDefault() [flags=CONSTANT] {
+   return xr->isDefault();
+}
+
+//! Returns \c True if the current node is empty or \c False if not
+/** @return \c True if the current node is empty or \c False if not
+    
+    @par Example:
+    @code my bool $b = $xr.isEmptyElement(); @endcode
+ */
+bool XmlReader::isEmptyElement() [flags=CONSTANT] {
+   return xr->isEmptyElement();
+}
+
+//! Returns \c True if the current node is a namespace declaration rather than a regular attribute or \c False if not
+/** @return \c True if the current node is a namespace declaration rather than a regular attribute or \c False if not
+    
+    @par Example:
+    @code my bool $b = $xr.isNamespaceDecl(); @endcode
+ */
+bool XmlReader::isNamespaceDecl() [flags=CONSTANT] {
+   return xr->isNamespaceDecl();
+}
+
+//! Returns \c True if the current reader parser context is valid, \c False if not
+/** @return \c True if the current reader parser context is valid, \c False if not
+    
+    @par Example:
+    @code my bool $b = $xr.isValid(); @endcode
+ */
+bool XmlReader::isValid() [flags=CONSTANT] {
+   return xr->isValid();
+}
+
+//! Returns Qore data corresponding to the XML starting at the current node position, maintains element order by mangling node names
+/** If duplicate, out-of-order XML elements are found in the input string, they are deserialized to hash elements with the same name as the XML element but including a caret "^" and a numeric prefix to maintain the same key order in the hash as in the input XML string.
+
+    @return If there are sub elements, a hash of the XML is returned, the sub elements representing the current node's children.  If only text is present at the current element, a string is returned. If no information is available, then \c NOTHING is returned.
+
+    @note This method is functionally similar to parseXML()
+    
+    @par Example:
+    @code my any $data = $xr.toQore(); @endcode
+
+    @see XmlReader::toQoreData()
+ */
+any XmlReader::toQore() [flags=RET_VALUE_ONLY] {
+   return xr->parseXMLData(QCS_UTF8, false, xsink);
+}
+
+//! Returns Qore data corresponding to the XML starting at the current node position, collapses duplicate out of order elements to a list
+/** Data deserialized with this method may not be reserialized to an identical XML string due to the fact that XML elements with the same name are collapsed into Qore lists in the resulting Qore hash irrespective of the order in the original XML string.
+
+    @return If there are sub elements, a hash of the XML is returned, the sub elements representing the current node's children.  If only text is present at the current element, a string is returned.  If no information is available, then \c NOTHING is returned.
+    
+    @note This method is functionally similar to parseXMLAsData()
+
+    @par Example:
+    @code my any $data = $xr.toQoreData(); @endcode
+
+    @see XmlReader::toQore()
+ */
+any XmlReader::toQoreData() [flags=RET_VALUE_ONLY] {
+   return xr->parseXMLData(QCS_UTF8, true, xsink);
+}
+
+//! Returns the number of attributes of the current node
+/** @return the number of attributes of the current node
+    
+    @par Example:
+    @code my int $n = $xr.attributeCount(); @endcode
+ */
+int XmlReader::attributeCount() [flags=CONSTANT] {
+   return xr->attributeCount();
+}
+
+//! Returns the base URI of the node if known, \c NOTHING if not.
+/** @return the base URI of the node if known, \c NOTHING if not.
+    
+    @par Example:
+    @code my *string $value = $xmlreader.baseUri(); @endcode
+ */
+*string XmlReader::baseUri() [flags=CONSTANT] {
+   const char *n = xr->baseUri();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns the encoding string given in the original XML string or \c NOTHING if none is given
+/** @return the encoding string given in the original XML string or \c NOTHING if none is given
+    
+    @par Example:
+    @code my *string $value = $xmlreader.encoding(); @endcode
+
+    @note all XML strings are automatically converted to UTF-8 before parsing
+ */
+*string XmlReader::encoding() [flags=CONSTANT] {
+   const char *n = xr->encoding();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns the local name of the node or \c NOTHING if no name is available
+/** @return the local name of the node or \c NOTHING if no name is available
+    
+    @par Example:
+    @code my *string $value = $xmlreader.localName(); @endcode
+ */
+*string XmlReader::localName() [flags=CONSTANT] {
+   const char *n = xr->localName();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns the URI defining the namespace associated with the node, or \c NOTHING if not available
+/** @return the URI defining the namespace associated with the node, or \c NOTHING if not available
+    
+    @par Example:
+    @code my *string $value = $xmlreader.namespaceUri(); @endcode
+ */
+*string XmlReader::namespaceUri() [flags=CONSTANT] {
+   const char *n = xr->namespaceUri();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns the shorthand reference to the namespace associated with the node, or \c NOTHING if not available
+/** @return the shorthand reference to the namespace associated with the node, or \c NOTHING if not available
+    
+    @par Example:
+    @code my *string $value = $xmlreader.prefix(); @endcode
+ */
+*string XmlReader::prefix() [flags=CONSTANT] {
+   const char *n = xr->prefix();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns the \c xml:lang scope within which the node resides or \c NOTHING if there is none
+/** @return the \c xml:lang scope within which the node resides or \c NOTHING if there is none
+    
+    @par Example:
+    @code my *string $value = $xmlreader.xmlLang(); @endcode
+ */
+*string XmlReader::xmlLang() [flags=CONSTANT] {
+   const char *n = xr->xmlLang();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns a string giving the XML version of the source document (normally \c "1.0") or \c NOTHING if none is present
+/** @return a string giving the XML version of the source document (normally \c "1.0") or \c NOTHING if none is present
+    
+    @par Example:
+    @code my *string $value = $xmlreader.xmlVersion(); @endcode
+ */
+*string XmlReader::xmlVersion() [flags=CONSTANT] {
+   const char *n = xr->xmlVersion();
+   return n ? new QoreStringNode(n, QCS_UTF8) : 0;
+}
+
+//! Returns the value of the attribute matching the qualified name passed, or \c NOTHING if no such attribute exists in the current XmlReader
+/** @param attr the name of the attribute to retrieve
+
+    @return the value of the attribute matching the qualified name passed, or \c NOTHING if no such attribute exists in the current XmlReader
+    
+    @par Example:
+    @code my *string $value = $xmlreader.getAttribute($name); @endcode
+
+    @see XmlReader::getAttributeNs()
+ */
+*string XmlReader::getAttribute(string attr) [flags=CONSTANT] {
+   return xr->getAttribute(attr->getBuffer());
+}
+
+//! Returns the value of the attribute with the specified index relative to the containing element, or \c NOTHING if no such attribute exists in the current XmlReader
+/** @param offset the attribute number of the attribute to retrieve relative to the containing element starting from 0
+
+    @return the value of the attribute with the specified index relative to the containing element, or \c NOTHING if no such attribute exists in the current XmlReader
+    
+    @par Example:
+    @code my *string $value = $xmlreader.getAttributeOffset($offset); @endcode
+
+    @see XmlReader::getAttribute()
+ */
+*string XmlReader::getAttributeOffset(softint offset = 0) [flags=CONSTANT] {
+   return xr->getAttributeOffset((int)offset);
+}
+
+//! Returns the value of the given attribute anchored in the given namespace, or \c NOTHING if no such attribute exists in the current XmlReader
+/** @param $attr the name of the attribute to retrieve
+    @param $ns the namespace URI of the attribute
+    
+    @return the value of the given attribute anchored in the given namespace, or \c NOTHING if no such attribute exists in the current XmlReader
+    
+    @par Example:
+    @code my *string $value = $xmlreader.getAttributeNs($localname, $namespaceuri); @endcode
+
+    @see XmlReader::getAttribute()
+ */
+*string XmlReader::getAttributeNs(string attr, string ns) [flags=CONSTANT] {
+   return xr->getAttributeNs(attr->getBuffer(), ns->getBuffer());
+}
+
+//! Returns the default namespace in the scope of the current element, or \c NOTHING if none exists
+/** @return the default namespace in the scope of the current element, or \c NOTHING if none exists
+
+    @par Example:
+    @code my *string $ns = $xr.lookupNamespace(); @endcode
+ */
+*string XmlReader::lookupNamespace() [flags=CONSTANT] {
+   return xr->lookupNamespace(0);
+}
+
+//! Returns the namespace corresponding to the given prefix in the scope of the current element, or \c NOTHING if none exists
+/** @param prefix the namespace prefix to resolve
+
+    @return the namespace corresponding to the given prefix in the scope of the current element, or \c NOTHING if none exists
+
+    @par Example:
+    @code my *string $value = $xmlreader.lookupNamespace($prefix); @endcode
+ */
+*string XmlReader::lookupNamespace(string prefix) [flags=CONSTANT] {
+   return xr->lookupNamespace(prefix->getBuffer());
+}
+
+//! Moves the position of the current instance to the attribute with the specified qualified name
+/** If an XML parsing error occurs, an exception is thrown
+
+    @param attr the qualified name of the attribute to move to
+
+    @return \c True in case of success, \c False if not found
+
+    @throw PARSE-XML-EXCEPTION error parsing XML
+    
+    @par Example:
+    @code my bool $b = $xmlreader.moveToAttribute($name); @endcode
+
+    @see XmlReader::moveToAttributeNs()
+ */
+bool XmlReader::moveToAttribute(string attr) {
+   return xr->moveToAttribute(attr->getBuffer(), xsink);
+}
+
+//! Moves the position of the current instance to the attribute with the specified index relative to the containing element
+/** If an XML parsing error occurs, an exception is thrown
+
+    @param offset the index of the attribute relative to the containing element to move to starting with 0
+
+    @return \c True in case of success, \c False if not found
+
+    @throw PARSE-XML-EXCEPTION error parsing XML
+    
+    @par Example:
+    @code my bool $b = $xmlreader.moveToAttributeOffset($offset); @endcode
+
+    @see XmlReader::moveToAttribute()
+ */
+bool XmlReader::moveToAttributeOffset(softint offset) {
+   return xr->moveToAttributeOffset((int)offset, xsink);
+}
+
+//! Moves the position of the current instance to the attribute with the specified local name and namespace URI
+/** If an XML parsing error occurs, an exception is thrown
+
+    @param $attr the qualified name of the attribute to move to
+    @param $ns the namespace URI of the attribute
+    
+    @return \c True in case of success, \c False if not found
+
+    @throw PARSE-XML-EXCEPTION error parsing XML
+    
+    @par Example:
+    @code my bool $b = $xmlreader.moveToAttributeNs($localname, $namespaceuri); @endcode
+
+    @see XmlReader::moveToAttribute()
+ */
+bool XmlReader::moveToAttributeNs(string attr, string ns) {
+   return xr->moveToAttributeNs(attr->getBuffer(), ns->getBuffer(), xsink);
+}
+
+//! Moves the position of the current instance to the element node containing the current attribute node
+/** If an XML parsing error occurs, an exception is thrown
+
+    @return \c True in case of success, \c False if not found
+    
+    @throw PARSE-XML-EXCEPTION error parsing XML
+    
+    @par Example:
+    @code my bool $b = $xmlreader.moveToElement(); @endcode
+ */
+bool XmlReader::moveToElement() {
+   return xr->moveToElement(xsink);
+}
+
+//! Moves the position of the current instance to the first attribute of the current node
+/** If an XML parsing error occurs, an exception is thrown
+    
+    @return \c True in case of success, \c False if not found
+
+    @throw PARSE-XML-EXCEPTION error parsing XML
+    
+    @par Example:
+    @code my bool $b = $xmlreader.moveToFirstAttribute(); @endcode
+ */
+bool XmlReader::moveToFirstAttribute() {
+   return xr->moveToFirstAttribute(xsink);
+}
+
+//! Moves the position of the current instance to the next attribute of the current node
+/** If an XML parsing error occurs, an exception is thrown
+    
+    @return \c True in case of success, \c False if not found
+
+    @throw PARSE-XML-EXCEPTION error parsing XML
+    
+    @par Example:
+    @code my bool $b = $xmlreader.moveToNextAttribute(); @endcode
+ */
+bool XmlReader::moveToNextAttribute() {
+   return xr->moveToNextAttribute(xsink);
+}
+
+//! Moves the position of the current instance to the next node in the tree at the same level, skipping any subtree
+/** If an XML parsing error occurs, an exception is thrown
+    
+    @return \c True in case of success, \c False if not found
+
+    @throw PARSE-XML-EXCEPTION error parsing XML
+    
+    @par Example:
+    @code my bool $b = $xmlreader.next(); @endcode
+ */
+bool XmlReader::next() {
+   return xr->next(xsink);
+}
+
+//! Returns an XML string of the contents of the all current node's child nodes and markup, or \c NOTHING if the current node is neither an element nor an attribute or has no child nodes
+/** @return an XML string of the contents of the all current node's child nodes and markup, or \c NOTHING if the current node is neither an element nor an attribute or has no child nodes
+    
+    @par Example:
+    @code my *string $value = $xmlreader.getInnerXml(); @endcode
+
+    @see XmlReader::getOuterXml()
+ */
+*string XmlReader::getInnerXml() [flags=CONSTANT] {
+   return xr->getInnerXml();
+}
+
+//! Return an XML string of the contents of the current node and all child nodes and markup, or \c NOTHING if the current node is neither an element nor an attribute or has no child nodes 
+/** @return an XML string of the contents of the current node and all child nodes and markup, or \c NOTHING if the current node is neither an element nor an attribute or has no child nodes
+    
+    @par Example:
+    @code my *string $value = $xmlreader.getOuterXml(); @endcode
+
+    @see XmlReader::getInnerXml()
+ */
+*string XmlReader::getOuterXml() [flags=CONSTANT] {
+   return xr->getOuterXml();
+}
+
+//! Set a RelaxNG schema for schema validation while parsing the XML document
+/** This method must be called before the first call to XmlReader::read()
+
+    The availability of this method depends on the presence of libxml2's \c xmlTextReaderRelaxNGValidate() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this method.
+
+    @param relaxng the RelaxNG schema string to use to validate the XML document
+
+    @throw RELAXNG-SYNTAX-ERROR invalid RelaxNG string
+    @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
+
+    @par Example:
+    @code $xr.relaxNGValidate($relaxng); @endcode
+ */
+nothing XmlReader::relaxNGValidate(string relaxng) [flags=RET_VALUE_ONLY] {
+#ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
+   xr->relaxNGValidate(relaxng->getBuffer(), xsink);
+#else
+   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the qore library did not support the xmlTextReaderRelaxNGValidate() function, therefore XmlReader::relaxNGValidate() is not available in Qore; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHRELAXNG to check if this method is implemented before calling");
+#endif
+   return 0;
+}
+
+//! Set an XSD schema for schema validation while parsing the XML document
+/** This method must be called before the first call to XmlReader::read()
+
+    The availability of this method depends on the presence of libxml2's \c xmlTextReaderSetSchema() function when the xml module was compiled; for maximum portability check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this method.
+
+    @param xsd the XSD schema string to use to validate the XML document
+
+    @throw XSD-SYNTAX-ERROR invalid XSD string
+    @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
+
+    @par Example:
+    @code $xr.schemaValidate($xsd); @endcode
+ */
+nothing XmlReader::schemaValidate(string xsd) [flags=RET_VALUE_ONLY] {
+#ifdef HAVE_XMLTEXTREADERSETSCHEMA
+   xr->schemaValidate(xsd->getBuffer(), xsink);
+#else
+   xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the qore library did not support the xmlTextReaderSchemaValidate() function, therefore XmlReader::schemaValidate() is not available in Qore; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHSCHEMA to check if this method is implemented before calling");
+#endif
+   return 0;
+}
