@@ -6,14 +6,15 @@
 %require-our
 %enable-all-warnings
 
-# require qore >= 0.8.1 for type support
-%requires qore >= 0.8.1
+# require qore >= 0.8.5 for the XmlRpcHandler user module
+%requires qore >= 0.8.5
 
 # require xml support
 %requires xml
 
-%include HttpServer.qc
-%include XmlRpcHandler.qc
+%requires XmlRpcHandler >= 1.0
+
+%requires HttpServer >= 0.3.3
 
 # default port for server
 const DefaultPort = 8081;
@@ -22,42 +23,42 @@ const ApiMethods =
     (
      ( "name"     : "^sys\\.shutdown\$",
        "text"     : "sys.shutdown",
-       "function" : "shutdown",
+       "function" : \shutdown(),
        "help"     : "shuts down this server",
        "logopt"   : 0 ),
      ( "name"     : "^validator1\\.arrayOfStructsTest\$",
        "text"     : "validator1.arrayOfStructsTest",
-       "function" : "arrayOfStructsTest",
+       "function" : \arrayOfStructsTest(),
        "help"     : "the 'arrayOfStructsTest' method as per the official XML-RPC validator specifications",
        "logopt"   : 0 ),
      ( "name"     : "^validator1\\.countTheEntities\$",
        "text"     : "validator1.countTheEntities",
-       "function" : "countTheEntities",
+       "function" : \countTheEntities(),
        "help"     : "the 'countTheEntities' method as per the official XML-RPC validator specifications",
        "logopt"   : 0 ),
      ( "name"     : "^validator1\\.easyStructTest\$",
        "text"     : "validator1.easyStructTest",
-       "function" : "easyStructTest",
+       "function" : \easyStructTest(),
        "help"     : "the 'easyStructTest' method as per the official XML-RPC validator specifications",
        "logopt"   : 0 ),
      ( "name"     : "^validator1\\.echoStructTest\$",
        "text"     : "validator1.echoStructTest",
-       "function" : "echoStructTest",
+       "function" : \echoStructTest(),
        "help"     : "the 'echoStructTest' method as per the official XML-RPC validator specifications",
        "logopt"   : 0 ),
      ( "name"     : "^validator1\\.manyTypesTest\$",
        "text"     : "validator1.manyTypesTest",
-       "function" : "manyTypesTest",
+       "function" : \manyTypesTest(),
        "help"     : "the 'manyTypesTest' method as per the official XML-RPC validator specifications",
        "logopt"   : 0 ),
      ( "name"     : "^validator1\\.nestedStructTest\$",
        "text"     : "validator1.nestedStructTest",
-       "function" : "nestedStructTest",
+       "function" : \nestedStructTest(),
        "help"     : "the 'nestedStructTest' method as per the official XML-RPC validator specifications",
        "logopt"   : 0 ),
      ( "name"     : "^validator1\\.simpleStructReturnTest\$",
        "text"     : "validator1.simpleStructReturnTest",
-       "function" : "simpleStructReturnTest",
+       "function" : \simpleStructReturnTest(),
        "help"     : "the 'simpleStructReturnTest' method as per the official XML-RPC validator specifications",
        "logopt"   : 0 )
  );
@@ -144,13 +145,13 @@ sub nestedStructTest($m, $s) {
     return $s.2000."04"."01".moe + $s.2000."04"."01".larry + $s.2000."04"."01".curly;
 }
 
-sub simpleStructReturnTest($m, $n) {
+hash sub simpleStructReturnTest($m, $n) {
     return ( "times10" : $n * 10,
 	     "times100" : $n * 100,
 	     "times1000" : $n * 1000 );
 }
 
-sub shutdown() {
+string sub shutdown() {
     background stop();
     return "OK";
 }
@@ -163,7 +164,7 @@ sub main() {
     process_command_line();
 
     # start HTTP server
-    $http_server = new HttpServer("log", "log");
+    $http_server = new HttpServer(\log(), \log());
     $http_server.addListener($o.port);
 
     # add XML-RPC handler to HTTP server - will handle all requests with
@@ -171,6 +172,8 @@ sub main() {
     $http_server.setHandler("xmlrpc", "^RPC2", "text/xml", new XmlRpcHandler(new AbstractAuthenticator(), ApiMethods));
 
     printf("HTTP Server listening on port '%s' for XML-RPC requests\n", $o.port);
+    # wait for the server to stop
+    $http_server.waitStop();
 }
 
 main();
