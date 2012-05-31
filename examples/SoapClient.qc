@@ -42,21 +42,22 @@
 # my any $result = $sc.call("SubmitDocument", $msg);
 
 # we need qore 0.7.3 or later for parseXMLAsData
-# qore 0.8 for hard typing
-%requires qore >= 0.8
+# qore 0.8.2 for hard typing
+# qore 0.8.4 for pseudo-methods
+%requires qore >= 0.8.4
 
 #! SOAP client class implementation, publically inherits qore's HTTPClient class
 class SoapClient inherits HTTPClient {
     #! version of the implementation of this class
     const Version = "0.2.2";
     #! default HTTP headers
-    const Headers = ("Accept":"application/soap+xml,text/xml", "User-Agent":("Qore Soap Client " + SoapClient::Version));
+    const Headers = ("Accept": (MimeTypeSoapXml + "," + MimeTypeXml + "," + MimeTypeXmlApp), "User-Agent": ("Qore Soap Client " + SoapClient::Version));
     #! option keys passed to the HTTPClient constructor
     const HTTPOptions = ( "connect_timeout", "http_version", "max_redirects", "proxy", "timeout" );
 
     private {
         WebService $.wsdl;  # web service definition
-        string $.svc;   # service name
+        string $.portType;   # service name
     }
 
     public {
@@ -68,7 +69,13 @@ class SoapClient inherits HTTPClient {
 
     #! creates the object based on a %WSDL which is parsed to a WSDL::WebService object which provides the basis for all communication with this object
     /** one of either the \c wsdl or \c wsdl_file keys is required in the hash given to the constructor or an exception will be thrown
-        @param $h valid option keys:\n- \c wsdl: the URL of the web service or a WSDL::WebService object itself\n- \c wsdl_file: a path to use to load the %WSDL and create the WSDL::WebService object\n- \c url: override the target URL given in the %WSDL\n- also all options from SoapClient::HTTPOptions, which are passed to the HTTPClient constructor
+        @param $h valid option keys:
+	- \c wsdl: the URL of the web service or a WSDL::WebService object itself
+	- \c wsdl_file: a path to use to load the %WSDL and create the WSDL::WebService object
+	- \c url: override the target URL given in the %WSDL
+	- [\c portType]: in case multiple portType entries are found in the WSDL, give the one to be used here
+	- [\c port]: in case multiple port entries are found in the WSDL, give the one to be used here
+	- also all options from SoapClient::HTTPOptions, which are passed to the HTTPClient constructor
       */
     constructor(hash $h) : HTTPClient($h{HTTPOptions}) {
 	if (exists $h.wsdl_file && exists $h.wsdl)
@@ -93,24 +100,44 @@ class SoapClient inherits HTTPClient {
 
 	# set service
 	# get list of services in this wsdl
-	my any $svcs = keys $.wsdl.portType;
-	if (elements $svcs > 1 && !exists $h.service)
-	    throw "SOAP-CLIENT-ERROR", sprintf("no 'service' key passed in the option hash argument to SoapClient::constructor() (WSDL defines the following services: %n)", $svcs);
+	my list $portTypes = keys $.wsdl.portType;
+	if (elements $portTypes > 1 && !exists $h.portType)
+	    throw "SOAP-CLIENT-ERROR", sprintf("no 'portType' key passed in the option hash argument to SoapClient::constructor() (WSDL defines the following services: %n)", $portTypes);
 	
-	if (exists $h.service) {
-	    if (!inlist($h.service, $svcs))
-		throw "SOAP-CLIENT-ERROR", sprintf("service %n is not defined by this WSDL (valid services: %n)", $h.service, $svcs);
-	    $.svc = $h.service;
+	if (exists $h.portType) {
+	    if (!inlist($h.portType, $portTypes))
+		throw "SOAP-CLIENT-ERROR", sprintf("portType %n is not defined by this WSDL (valid portTypes: %y)", $h.portType, $portTypes);
+	    $.portType = $h.portType;
 	}
 	else
-	    $.svc = $svcs[0];
+	    $.portType = $portTypes[0];
 	
 	if (exists $h.url)
 	    $.url = $h.url;
 	else {
-	    if (elements $.wsdl.services.port > 1)
-		throw "SOAP-CLIENT-ERROR", sprintf("don't know how to handle more than one port in a WSDL (this WSDL has %n)", keys $.wsdl.services.port);
-	    my string $port = (keys $.wsdl.services.port)[0];
+	    my string $port;
+	    if (elements $.wsdl.services.port > 1) {
+		if (exists $h.binding) {
+		    foreach my string $p in (keys $.wsdl.services.port) {
+			#printf("b=%y == %y\n", $.wsdl.services.port.$p.binding.val, $h.binding);
+			if ($.wsdl.services.port.$p.binding.val === $h.binding) {
+			    $port = $p;
+			    break;
+			}
+		    }
+		    if (!exists $port)
+			throw "SOAP-CLIENT-ERROR", sprintf("cannot find any port with binding: %y (valid ports: %y)", $h.binding, keys $.wsdl.services.port);
+		}
+		else if (exists $h.port) {
+		    if (!exists $.wsdl.services.port)
+			throw "SOAP-CLIENT-ERROR", sprintf("cannot find any port %y (valid ports: %y)", $h.port, keys $.wsdl.services.port);
+		    $port = $h.port;
+		}
+		else
+		    throw "SOAP-CLIENT-ERROR", sprintf("don't know how to handle more than one port in a WSDL (this WSDL has %n)", keys $.wsdl.services.port);
+	    }
+	    else
+		$port = ($.wsdl.services.port).firstKey();
 
 	    $.url = $.wsdl.services.port.$port.address;
 	}
@@ -118,9 +145,9 @@ class SoapClient inherits HTTPClient {
 	$.headers += $h.headers;
 	# setup default headers
 	if ($.wsdl.isSoap12())
-	    $.headers += ("Content-Type":"application/soap+xml");
+	    $.headers += ("Content-Type": MimeTypeSoapXml);
 	else
-	    $.headers += ("Content-Type":"text/xml");
+	    $.headers += ("Content-Type": MimeTypeXml);
 
 	# set URL
 	$.setURL($.url);
@@ -131,33 +158,71 @@ class SoapClient inherits HTTPClient {
     /** the returned hash can be passed to makeXMLString() to make the actual SOAP message
         @param $operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying WebService class, an exception will be thrown
         @param $h the operation parameter(s)
+        @param $header data structure for the SOAP header, if required by the message
         @param $op a reference to return the WSOperation object found
       */
-    hash getMsg(string $operation, any $h, reference $op) {
-	$op = $.wsdl.portType.$.svc.operations.$operation;
-	if (!exists $op)
-	    throw "SOAP-CLIENT-ERROR", sprintf("operation %n does not exist (operations defined by service %n: %n)", 
-					       $operation, $.svc, keys $.wsdl.portType.$.svc.operations);
+    hash getMsg(string $operation, any $h, any $header, reference $op) {
+	if (!exists $.wsdl.portType.$.portType.operations.$operation)
+	    throw "SOAP-CLIENT-ERROR", sprintf("operation %n does not exist (operations defined by service %n: %y)", 
+					       $operation, $.portType, keys $.wsdl.portType.$.portType.operations);
 
-	return $op.serializeRequest($h, $.headers);
+	$op = $.wsdl.portType.$.portType.operations.$operation;
+	my hash $msg = $op.serializeRequest($h, $header, $.getEncoding());
+	if ($msg.hdr."Content-Type" !~ /charset=/i)
+	    $msg.hdr."Content-Type" += ";charset=" + $.getEncoding();
+	return $msg;
     }
 
     #! makes a server call with the given operation and arguments and returns the deserialized result
     /** @param $operation the operation name for the SOAP call
         @param $h the operation parameter(s)
-        @param $info an optional reference to return technical information about the SOAP call (raw message info and headers)
+	@param $header optional soap headers (if required by the operation)
         @return the deserialized result of the SOAP call to the SOAP server
       */
-    any call(string $operation, any $h, any $info) {
+    any call(string $operation, any $h, *hash $header) {
 	my WSOperation $op;
-	my hash $msg = $.getMsg($operation, $h, \$op);
+	my hash $msg = $.getMsg($operation, $h, $header, \$op);
+	my hash $response = $.send($msg.body, "POST", $.url, $.headers + $msg.hdr, True);
+	my hash $xmldata = WSDLLib::parseSOAPMessage($response);	
+	return $op.deserializeResponse($xmldata);
+    }
+
+    #! makes a server call with the given operation and arguments and returns the deserialized result
+    /** @param $operation the operation name for the SOAP call
+        @param $h the operation parameter(s)
+	@param $info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers)
+        @return the deserialized result of the SOAP call to the SOAP server
+      */
+    any call(string $operation, any $h, reference $info) {
+	my WSOperation $op;
+	my hash $msg = $.getMsg($operation, $h, NOTHING, \$op);
+	# we have to write the request key after the HTTPClient::post() call
+        on_exit $info.request.body = $msg.body;
+	$info.request.headers = $.headers + $msg.hdr;
+	$info.response = $.send($msg.body, "POST", $.url, $info.request.headers, True, \$info);
+	my hash $xmldata = WSDLLib::parseSOAPMessage($info.response);
+	#printf("DEBUG ans=%n\n", $info.response);
+	return $op.deserializeResponse($xmldata);
+    }
+
+    #! makes a server call with the given operation and arguments and returns the deserialized result with an output argument giving technical information about the call
+    /** @param $info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers)
+	@param $operation the operation name for the SOAP call
+        @param $h the operation parameter(s)
+	@param $header optional soap headers (if required by the operation)
+        @return the deserialized result of the SOAP call to the SOAP server
+      */
+    any call(reference $info, string $operation, any $h, any $header) {
+	my WSOperation $op;
+	my hash $msg = $.getMsg($operation, $h, $header, \$op);
+	my hash $hdr = $.headers + $msg.hdr;
 
 	# we have to write the request key after the HTTPClient::post() call
-        on_exit $info.request = $msg;
+        on_exit $info.request = ("body": $msg.body, "headers": $hdr);
 
-	$info.response = $.send($msg.body, "POST", $.url, $.headers + $msg.hdr, True, \$info);
+	$info.response = $.send($msg.body, "POST", $.url, $hdr, True, \$info);
 
-	my hash $xmldata = WSDLLib::parseSOAPMessage($info.response, $info.response.body);
+	my hash $xmldata = WSDLLib::parseSOAPMessage($info.response);
 	
 	#printf("DEBUG ans=%n\n", $info.response);
 	return $op.deserializeResponse($xmldata);
@@ -165,9 +230,10 @@ class SoapClient inherits HTTPClient {
 
     #! uses SoapClient::call() to transparently serialize the argument and make a call to the given operation and return the deserialized results
     /** @param $op the operation name, which is the method name passed to methodGate()
+        @param $arg a list or arguments or a single argument (or NOTHING) for the operation
         @return the deserialized result of the SOAP call to the SOAP server
       */
-    any methodGate(string $op) {
-        return $.call($op, $argv[0]);
+    any methodGate(string $op, any $arg) {
+        return $.call($op, $arg);
     }
 }

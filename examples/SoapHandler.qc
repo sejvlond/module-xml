@@ -95,14 +95,14 @@ class SoapHandler inherits public AbstractHttpRequestHandler {
 	return $h;
     }
 
-    private log($context, $str) {
+    private log($cx, $str) {
         my $msg = "SOAP ";
-        if (exists $context.user)
-            $msg += sprintf("user %s ", $context.user);
-        $msg += sprintf("from %s: ", $context.source);
+        if (exists $cx.user)
+            $msg += sprintf("user %s ", $cx.user);
+        $msg += sprintf("from %s: ", $cx."peer-info".address_desc);
         $msg += vsprintf($str, $argv);
 
-        call_function_args($context.logfunc, $msg);
+        call_function_args($cx.logfunc, $msg);
     }
 
     private static makeSoapFaultResponse($soap12, $err, $desc) {
@@ -128,12 +128,12 @@ class SoapHandler inherits public AbstractHttpRequestHandler {
 	return makeXMLString($o);
     }
 
-    private callOperation($context, $args) {
-	my $element = $context.element;
+    private callOperation($cx, $args) {
+	my $element = $cx.element;
 
 	my $method;
-	if (exists $context.url.path) {
-	    my $path = $context.url.path;
+	if (exists $cx.url.path) {
+	    my $path = $cx.url.path;
 	    # prepend "/" if it's not already there
 	    if ($path !~ /^\//)
 		$path =~ s/(.*)/\/$1/;
@@ -148,7 +148,7 @@ class SoapHandler inherits public AbstractHttpRequestHandler {
 	#printf("DEBUG: found element %N method %N\n", $element, $method);
 	if (!exists $method) {
 	    if (!exists $element)
-		throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $context);	    
+		throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $cx);	    
 	    throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot map top-level element %n to a SOAP operation: %s", $element, elements $.methods ? sprintf("currently recognized top-level elements: %n", keys $.methods) : "no SOAP services are currently registered");
 	}
 
@@ -167,25 +167,25 @@ class SoapHandler inherits public AbstractHttpRequestHandler {
 	catch ($ex) {
 	    return ( "errlog" : sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
 		     "body"   : SoapHandler::makeSoapFaultResponse($soap12, $ex.err, $ex.desc),
-		     "hdr"    : ( "Content-Type" : $soap12 ? "application/soap+xml" : "text/xml" ) );
+		     "hdr"    : ( "Content-Type" : $soap12 ? MimeTypeSoapXml : MimeTypeXml ) );
 	}
 
 	# add context marker, if any
-	$context.cmark = $method.cmark;
-	$context.function = $method.function;
-	$context.operation = $method.operation;
+	$cx.cmark = $method.cmark;
+	$cx.function = $method.function;
+	$cx.operation = $method.operation;
 
-	if (($method.logopt & HttpServer::LP_LEVELMASK) <= $.loglevel && exists $context.logfunc) {
+	if (($method.logopt & HttpServer::LP_LEVELMASK) <= $.loglevel && exists $cx.logfunc) {
 	    my $msg;
 
-	    $msg = sprintf("SOAP call from %s: %s", $context.source, $method.name);
+	    $msg = sprintf("SOAP call from %s: %s", $cx."peer-info".address_desc, $method.name);
 	    if ($method.logopt & HttpServer::LP_LOGPARAMS) {
 		$msg += sprintf("(");
 		my $i = 0;
 		foreach my $arg in ($args) {
 		    if (inlist($i++, $method.maskargs))
 			$msg += "<masked>, ";
-		    else if (type($arg) == Type::Hash && elements $arg) {
+		    else if ($arg.typeCode() == NT_HASH && elements $arg) {
 			$msg += "(";
 			foreach my $k in (keys $arg) {
 			    if ($k == $method.maskkey)
@@ -205,18 +205,18 @@ class SoapHandler inherits public AbstractHttpRequestHandler {
 		$msg += ")";
 	    }
 
-	    $.log($context, $msg);
+	    $.log($cx, $msg);
 	    $h.logreply = True;
 	}
 	#printf("about to call function '%s' (method=%s params=%N)\n", $method.function, $method.name, $args);flush();
 	my $rv;
 
-	if (type($args) == Type::List)
-	    unshift $args, $context;
+	if ($args.typeCode() == NT_LIST)
+	    unshift $args, $cx;
 	else if (exists $args)
-	    $args = ($context, $args);
+	    $args = ($cx, $args);
 	else
-	    $args = $context;
+	    $args = $cx;
 
 	if ($method.internal)
 	    $rv = callObjectMethodArgs($self, $method.function, $args);
@@ -227,25 +227,30 @@ class SoapHandler inherits public AbstractHttpRequestHandler {
 	if (exists $method.operation.output)
 	    $h += $method.operation.serializeResponse($rv);
 
-	#$.log($context, "body=%N", $h.body);
+	#$.log($cx, "body=%N", $h.body);
 	
 	return $h;
     }
 
     # method called by HttpServer
-    hash handleRequest(hash $context, hash $hdr, *data $body, reference $close) {
-	$context.http_header = $hdr;
-	$context.http_body = $body;
+    hash handleRequest(hash $cx, hash $hdr, *data $body) {
+	#log(LL_DEBUG_1, "soap handler context=%n hdr=%n body=%n ws=%n", $cx, $hdr, $body, keys $.ws);
+	#printf("soap handler context=%y hdr=%y body=%y keys ws=%y\n", $cx, $hdr, $body, keys $.ws);
+	$cx.http_header = $hdr;
+	$cx.http_body = $body;
 
 	my $args;
 	my $reqsoap12; # set to True if soap 1.2 envelope is used in request
 
 	if ($hdr.method == "GET") {
-	    my $path = $context.url.path;
+	    my *string $path = $cx.url.path;
 
 	    # prepend "/" if it's not already there
 	    if ($path !~ /^\//)
-		$path =~ s/(.*)/\/$1/;
+		$path = "/" + $path;
+
+	    # remove ?wsdl if there
+	    $path =~ s/\?wsdl$//i;
 
 	    #printf("DEBUG: PATH=%N (%n %n)\n", $path, exists $.ws.$path, keys $.ws);
 	    
@@ -265,10 +270,6 @@ class SoapHandler inherits public AbstractHttpRequestHandler {
 	    if ($hdr.method != "POST")
 		return ( "code" : 501,
 			 "body" : sprintf("don't know how to handle method %n", $hdr.method) );
-
-	    #if (!inlist($hdr."content-type", ("application/soap+xml", "text/xml")))
-	    #return ( "code" : 501,
-		#	 "body" : sprintf("don't know how to handle content-type %n (expecting 'application/soap+xml')", $hdr."content-type") );
 
 	    try {
 		my $ct = $hdr."_qore_orig_content_type";
@@ -321,26 +322,28 @@ class SoapHandler inherits public AbstractHttpRequestHandler {
 		if (!exists $element)
 		    throw "SOAP-CALL-ERROR", "no operation call found in message";
 		
-		$context.element = $element;
+		$cx.element = $element;
 	    }
 	    catch ($ex) {
+		log(LL_DETAIL_2, "exception parsing SOAP msg: %n", $body);
+		#my string $str = sprintf("exception in %s:%d: %s: %s (1: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
 		return ( "code"   : 200,
 			 "errlog" : sprintf("%s: %s", $ex.err, $ex.desc),
 			 "body"   : SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
-			 "hdr"    : ( "Content-Type" : "application/soap+xml" )
+			 "hdr"    : ( "Content-Type" : MimeTypeSoapXml )
 		    );
 	    }
 	}
 	try {
-	    #printf("DEBUG: context: %N\nargs: %N\n", $context, $args);
-	    return ( "code" : 200 ) + $.callOperation($context, $args);
+	    #printf("DEBUG: context: %N\nargs: %N\n", $cx, $args);
+	    return ( "code" : 200 ) + $.callOperation($cx, $args);
 	}
 	catch ($ex) {
 	    my $str = sprintf("exception in %s:%d: %s: %s (2: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
 	    return ( "code"   : 200,
 		     "errlog" : $str,
 		     "body"   : SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
-		     "hdr"    : ( "Content-Type" : "application/soap+xml" )
+		     "hdr"    : ( "Content-Type" : MimeTypeSoapXml )
 		);
 	}
     }
