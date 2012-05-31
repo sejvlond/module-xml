@@ -135,7 +135,7 @@ public namespace XmlRpcHandler {
             @param getLogMessage an optional closure or call reference to be called when an incoming request is received; if this is set then it will 
 be called with the following arguments: a context hash (see HttpServer::AbstractHttpRequestHandler::handleRequest() for a description of the context h
 ash), the method definition as passed in the methods argument to this constructor, and a reference to the arguments in this call
-            @param dbg  this parameter is set to @ref Qore::True "True", then additional information will be logged when errors occur
+            @param dbg this parameter is set to @ref Qore::True "True", then additional information will be logged when errors occur
          */
         constructor(AbstractAuthenticator $auth, list $methods, *code $getLogMessage, bool $dbg = False) : AbstractHttpRequestHandler($auth) {
             $.getLogMessage = $getLogMessage;

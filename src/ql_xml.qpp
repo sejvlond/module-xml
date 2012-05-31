@@ -2277,7 +2277,7 @@ const HAVE_PARSEXMLWITHSCHEMA = {HAVE_PARSEXMLWITHSCHEMA}bool(XML_CONST_HAVE_XML
 namespace Qore::Xml;
 
 //! serializes a hash into an XML string without whitespace formatting but with an XML header
-/** @param $key top-level key
+/** @param key top-level key
     @param h the rest of the data to serialize under the top-level key
     @param encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
 

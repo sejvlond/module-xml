@@ -390,8 +390,8 @@ int XmlReader::attributeCount() [flags=CONSTANT] {
 }
 
 //! Returns the value of the given attribute anchored in the given namespace, or \c NOTHING if no such attribute exists in the current XmlReader
-/** @param $attr the name of the attribute to retrieve
-    @param $ns the namespace URI of the attribute
+/** @param attr the name of the attribute to retrieve
+    @param ns the namespace URI of the attribute
     
     @return the value of the given attribute anchored in the given namespace, or \c NOTHING if no such attribute exists in the current XmlReader
     
@@ -465,8 +465,8 @@ bool XmlReader::moveToAttributeOffset(softint offset) {
 //! Moves the position of the current instance to the attribute with the specified local name and namespace URI
 /** If an XML parsing error occurs, an exception is thrown
 
-    @param $attr the qualified name of the attribute to move to
-    @param $ns the namespace URI of the attribute
+    @param attr the qualified name of the attribute to move to
+    @param ns the namespace URI of the attribute
     
     @return \c True in case of success, \c False if not found
 

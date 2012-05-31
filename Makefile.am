@@ -14,7 +14,7 @@ noinst_HEADERS = src/QC_XmlDoc.h \
 	src/ql_xml.h \
 	src/qore-xml-module.h
 
-USER_MODULES = qlib/XmlRpcHandler.qm
+USER_MODULES = qlib/XmlRpcHandler.qm qlib/WSDL.qm qlib/SoapClient.qm qlib/SoapHandler.qm
 
 EXTRA_DIST = COPYING ChangeLog AUTHORS README \
 	RELEASE-NOTES \
@@ -24,11 +24,6 @@ EXTRA_DIST = COPYING ChangeLog AUTHORS README \
 	src/QC_XmlRpcClient.qpp \
 	src/ql_xml.qpp \
 	test/xml-test.q \
-	examples/HttpServer.qc \
-	examples/SoapClient.qc \
-	examples/WSDL.qc \
-	examples/MultiPartMessage.qc \
-	examples/SoapHandler.qc \
 	examples/xml-rpc-client.q \
 	examples/XmlRpcServerValidation.q \
 	$(USER_MODULES) \
@@ -39,13 +34,49 @@ ACLOCAL_AMFLAGS=-I m4
 dist_modver_DATA = $(USER_MODULES)
 
 if COND_DOXYGEN
-DOX = xml XmlRpcHandler
-DOXYGEN_OUTPUT=docs/xml/html docs/XmlRpcHandler/html
+DOX = xml SoapClient SoapHandler WSDL XmlRpcHandler
+DOXYGEN_OUTPUT=docs/xml/html docs/XmlRpcHandler/html docs/WSDL/html docs/SoapClient/html docs/SoapHandler/html
 DOXYFILES = docs/doxyfile docs/mainpage.doxygen
 DOXYFILES_SRC = docs/doxyfile.tmpl docs/qlib/Doxyfile.tmpl docs/footer_template.html
-QLIB_TMP_DOXYFILES = docs/qlib/XmlRpcHandler.qm.dox.h docs/qlib/Doxyfile.XmlRpcHandler
+QLIB_TMP_DOXYFILES = docs/qlib/XmlRpcHandler.qm.dox.h docs/qlib/Doxyfile.XmlRpcHandler \
+	docs/qlib/SoapClient.qm.dox.h docs/qlib/Doxyfile.SoapClient \
+	docs/qlib/SoapHandler.qm.dox.h docs/qlib/Doxyfile.SoapHandler \
+	docs/qlib/WSDL.qm.dox.h docs/qlib/Doxyfile.WSDL
 QDX = qdx
 DX_CLEANFILES = ${DOXYFILES} $(QLIB_TMP_DOXYFILES)
+
+docs/qlib/Doxyfile.SoapClient: docs/qlib/Doxyfile.tmpl
+	$(QDX) -M=qlib/SoapClient.qm:docs/qlib/SoapClient.qm.dox.h $< $@
+
+docs/qlib/SoapClient.qm.dox.h: qlib/SoapClient.qm
+	$(QDX) $< $@
+
+docs/SoapClient/html: docs/qlib/SoapClient.qm.dox.h docs/qlib/Doxyfile.SoapClient
+	$(DOXYGEN_CMD) docs/qlib/Doxyfile.SoapClient
+	$(QDX) --post docs/SoapClient/html/*html
+	$(QDX) --post docs/SoapClient/html/search/*html
+
+docs/qlib/Doxyfile.SoapHandler: docs/qlib/Doxyfile.tmpl
+	$(QDX) -M=qlib/SoapHandler.qm:docs/qlib/SoapHandler.qm.dox.h $< $@
+
+docs/qlib/SoapHandler.qm.dox.h: qlib/SoapHandler.qm
+	$(QDX) $< $@
+
+docs/SoapHandler/html: docs/qlib/SoapHandler.qm.dox.h docs/qlib/Doxyfile.SoapHandler
+	$(DOXYGEN_CMD) docs/qlib/Doxyfile.SoapHandler
+	$(QDX) --post docs/SoapHandler/html/*html
+	$(QDX) --post docs/SoapHandler/html/search/*html
+
+docs/qlib/Doxyfile.WSDL: docs/qlib/Doxyfile.tmpl
+	$(QDX) -M=qlib/WSDL.qm:docs/qlib/WSDL.qm.dox.h $< $@
+
+docs/qlib/WSDL.qm.dox.h: qlib/WSDL.qm
+	$(QDX) $< $@
+
+docs/WSDL/html: docs/qlib/WSDL.qm.dox.h docs/qlib/Doxyfile.WSDL
+	$(DOXYGEN_CMD) docs/qlib/Doxyfile.WSDL
+	$(QDX) --post docs/WSDL/html/*html
+	$(QDX) --post docs/WSDL/html/search/*html
 
 docs/qlib/Doxyfile.XmlRpcHandler: docs/qlib/Doxyfile.tmpl
 	$(QDX) -M=qlib/XmlRpcHandler.qm:docs/qlib/XmlRpcHandler.qm.dox.h $< $@

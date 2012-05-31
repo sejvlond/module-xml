@@ -127,7 +127,7 @@ XmlDoc::constructor(hash data) {
 }
 
 //! a new XmlDoc object from the XML string passed
-/** @param $xml the XML string to use as a basis for the XmlDoc object 
+/** @param xml the XML string to use as a basis for the XmlDoc object 
 
     @par Example:
     @code my XmlDoc $xd($xml); @endcode

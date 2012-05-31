@@ -1,67 +1,115 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
-#! @file WSDL.qc WSDL: Web Services Description Language: http://www.w3.org/TR/wsdl
+#! @file WSDL.qm WSDL: Web Services Description Language: http://www.w3.org/TR/wsdl
 
-# WSDL classes
+/*  WSDL.qm Copyright 2012 David Nichols
 
-# provides some minimal WSDL and XSD support for SOAP messaging used by the
-# SoapClient class and the SoapHandler
-# not complete, needs namespace verification, improved XSD support, element
-# groups, etc
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
 
-# 0.3.3: added initial support for the anyAttribute element of complexType
-#        added initial support for SOAP header processing
-#        added initial support for multiple portType and bindings in a WSDL
-#
-# 0.3.2: fixed bugs de/serializing negative values for "int" and "short"
-# 0.3.1: improved XSD imports and namespace handling
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
 
-# 0.3: implemented WSDLLib class of helper functions
-#      implemented support for xsd import statements in WSDLs
-
-# 0.2: use parseXMLAsData() instead of parseXML()
-#      implemented initial simpleType support
-#      fixed xsd:date serialization and deserialization
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
 
 # make sure we have the required qore version
-# 0.7.3 has parseXMLAsData()
-# 0.7.6 has object -= list and object -= string handling
-# 0.8.0 converted to hard typing for compatibility with %require-types
-%requires qore >= 0.8.1
+%requires qore >= 0.8.4
 
 # requires XML functionality
 %requires xml
 
+# need mime definitions
+%requires Mime >= 1.1
+
 %disable-warning unreferenced-variable
 
-#! main WSDL namespace
-namespace WSDL {
-    #! this WSDL implementation version
-    const version     = "0.3.3";
+module WSDL {
+    version = "0.3.4";
+    desc = "WSDL module providing functionality for SOAP";
+    author = "David Nichols <david@qore.org>";
+    url = "http://qore.org";
+}
 
-    const XET_ALL      = "ALL";
-    const XET_CHOICE   = "CHOICE";
-    const XET_SEQUENCE = "SEQUENCE";
+/*  Version History
+    * 2012-05-31 v0.3.4: David Nichols <david@qore.org>: updated to a user module
+    *            v0.3.3: added initial support for the anyAttribute element of complexType
+                         added initial support for SOAP header processing
+                         added initial support for multiple portType and bindings in a WSDL
+
+    *            v0.3.2: fixed bugs de/serializing negative values for "int" and "short"
+    *            v0.3.1: improved XSD imports and namespace handling
+
+    *            v0.3.0: implemented WSDLLib class of helper functions
+                         implemented support for xsd import statements in WSDLs
+
+    *            v0.2.0: use parseXMLAsData() instead of parseXML()
+                         implemented initial simpleType support
+                         fixed xsd:date serialization and deserialization
+
+
+    WSDL classes
+    provides some minimal WSDL and XSD support for SOAP messaging used by the SoapClient class and the SoapHandler
+
+    not complete, needs namespace verification, improved XSD support, element groups, etc
+*/
+
+/** @mainpage WSDL Module
+    
+    @section intro Introduction
+
+    The %WSDL module provides functionality for <a href="http://en.wikipedia.org/wiki/SOAP">SOAP</a>.
+
+    The main purpose of this module is to provide the infrastructure for developing SOAP client and server services.
+
+    The main components of this module are as follows:
+    - @ref WSDL::WebService "WebService": represents a WSDL file; an easy way to get an object of this type from a URL is by calling WSDL::WSDLLib::getWSDL()
+    - @ref WSDL::WSDLLib "WSDLLib": a class of static functions providing helper functions for the module
+    - @ref WSDL::WSOperation "WSOperation": a class representing a single operation from a web service
+
+    See the following for modules using the %WSDL module:
+    - <a href="../../SoapClient/html/index.html">SoapClient user module</a>
+    - <a href="../../SoapHandler/html/index.html">SoapHandler user module</a>
+*/
+
+#! main WSDL namespace
+public namespace WSDL {
+    #! this WSDL implementation version
+    public const version     = "0.3.4";
+    
+    public const XET_ALL      = "ALL";
+    public const XET_CHOICE   = "CHOICE";
+    public const XET_SEQUENCE = "SEQUENCE";
 
     #! SOAP 1.1 envelope URI
-    const SOAP_11_ENV  = "http://schemas.xmlsoap.org/soap/envelope/";
+    public const SOAP_11_ENV  = "http://schemas.xmlsoap.org/soap/envelope/";
     #! SOAP 1.2 envelope URI
-    const SOAP_12_ENV  = "http://www.w3.org/2003/05/soap-envelope";
+    public const SOAP_12_ENV  = "http://www.w3.org/2003/05/soap-envelope";
 
     #! SOAP 1.2 namespace URI
-    const SOAP_12_NS   = "http://schemas.xmlsoap.org/wsdl/soap12/";
+    public const SOAP_12_NS   = "http://schemas.xmlsoap.org/wsdl/soap12/";
 
     #! XSD namespace URI
-    const XSD_NS       = "http://www.w3.org/2001/XMLSchema";
+    public const XSD_NS       = "http://www.w3.org/2001/XMLSchema";
     #! XSI namespace URI
-    const XSI_NS       = "http://www.w3.org/2001/XMLSchema-instance";
+    public const XSI_NS       = "http://www.w3.org/2001/XMLSchema-instance";
 
     #! HTTP namespace URI
-    const HTTP_NS      = "http://schemas.xmlsoap.org/wsdl/http/";
+    public const HTTP_NS      = "http://schemas.xmlsoap.org/wsdl/http/";
     #! MIME namespace URI
-    const MIME_NS      = "http://schemas.xmlsoap.org/wsdl/mime/";
+    public const MIME_NS      = "http://schemas.xmlsoap.org/wsdl/mime/";
 
     #! soap 1.1 envelope namespaces
-    const ENVELOPE_11_NS = 
+    public const ENVELOPE_11_NS = 
 	( "soapenv:Envelope" :
 	  ( "^attributes^" : 
 	    ( "xmlns:soapenv" : SOAP_11_ENV,
@@ -69,7 +117,7 @@ namespace WSDL {
 	      "xmlns:xsi"     : XSI_NS ) ) );
 
     #! soap 1.2 envelope namespaces
-    const ENVELOPE_12_NS = 
+    public const ENVELOPE_12_NS = 
 	( "soapenv:Envelope" :
 	  ( "^attributes^" : 
 	    ( "xmlns:soapenv" : SOAP_12_ENV,
@@ -77,10 +125,10 @@ namespace WSDL {
 	      "xmlns:xsi"     : XSI_NS ) ) );
 
     #! soap encoding URI
-    const SOAP_ENCODING = "http://schemas.xmlsoap.org/soap/encoding/";
+    public const SOAP_ENCODING = "http://schemas.xmlsoap.org/soap/encoding/";
 
     #! mapping from Qore types to xsd types for xsd type "anyType"
-    const any_type_map = 
+    public const any_type_map = 
 	( Type::String      : "string",
 	  Type::Int         : "long",
 	  Type::Boolean     : "boolean",
@@ -90,19 +138,23 @@ namespace WSDL {
 	  Type::NullType    : "string",
 	  Type::Binary      : "base64Binary" );
 
-    # error codes, to save memory, only defined once
+    # error codes
     const SOAP_SERIALIZATION_ERROR = "SOAP-SERIALIZATION-ERROR";
     const SOAP_DESERIALIZATION_ERROR = "SOAP-DESERIALIZATION-ERROR";
     const WSDL_ERROR = "WSDL-ERROR";
 
+    #! SOAP transport URL
     const SOAP_TRANSPORT_HTTP = "http://schemas.xmlsoap.org/soap/http";
 
-    const RANGE_SHORT = (-32768, 32767);
-    const RANGE_INT = (-2147483648, 2147483647);
+    #! range of "short" values (16 bits)
+    public const RANGE_SHORT = (-32768, 32767);
+
+    #! range of "int" values (32 bits)
+    public const RANGE_INT = (-2147483648, 2147483647);
 }
 
 #! contains helper methods for retrieving WSDLs from a URL
-class WSDL::WSDLLib {
+public class WSDL::WSDLLib {
     #! Mime types recognized as SOAP messages
     const SoapMimeTypes = (MimeTypeSoapXml, MimeTypeXml, MimeTypeXmlApp);
 
@@ -300,7 +352,7 @@ class WSDL::WSDLLib {
 }
 
 # abstract class providing helper methods to subclasses
-class WSDL::XSDBase {
+public class WSDL::XSDBase {
     static private hash doType(string $t) {
 	#printf("DEBUG: XSDBase::doType(%n, %n)\n", $t, $nsinfo);
 	my (*string $ns, *string $type) = $t =~ x/(\w+):(\w+)/;
@@ -347,7 +399,7 @@ class WSDL::XSDBase {
 }
 
 # abstract type common to all XSD classes
-class WSDL::XSDData inherits XSDBase {
+public class WSDL::XSDData inherits XSDBase {
     any getValue(any $mrh, any $val) {
 	if (exists $val."^attributes^".href) {
 	    my string $href = substr($val."^attributes^".href, 1);
@@ -362,7 +414,7 @@ class WSDL::XSDData inherits XSDBase {
 }
 
 # abstract type common to all XSD classes with a "name" attribute
-class WSDL::XSDNamedData inherits XSDData {
+public class WSDL::XSDNamedData inherits XSDData {
     public {
         *string $.name;
         *string $.ns;
@@ -383,7 +435,7 @@ class WSDL::XSDNamedData inherits XSDData {
 }
 
 # class for XSD base types
-class WSDL::XSDBaseType inherits XSDData {
+public class WSDL::XSDBaseType inherits XSDData {
     public {
         string $.type;
         string $.nstype;
@@ -624,7 +676,7 @@ class WSDL::XSDBaseType inherits XSDData {
 }
 
 # class for XSD array types; currently only supports "binary"; used, for example with HTTP MultiPart messages
-class WSDL::XSDArrayType inherits XSDData {
+public class WSDL::XSDArrayType inherits XSDData {
     public {
         string $.type;
     }
@@ -666,7 +718,7 @@ class WSDL::XSDArrayType inherits XSDData {
 }
 
 # XSD element class
-class WSDL::XSDElement inherits XSDNamedData {
+public class WSDL::XSDElement inherits XSDNamedData {
     public {
         any $.type;
         int $.minOccurs = 1;
@@ -790,7 +842,7 @@ class WSDL::XSDElement inherits XSDNamedData {
 }
 
 # XSD simple type class
-class WSDL::XSDSimpleType inherits XSDNamedData {
+public class WSDL::XSDSimpleType inherits XSDNamedData {
     public {
         any $.nsinfo;
         list $.enum = ();
@@ -852,7 +904,7 @@ class WSDL::XSDSimpleType inherits XSDNamedData {
 }
 
 # XSD complex type class
-class WSDL::XSDComplexType inherits XSDNamedData {
+public class WSDL::XSDComplexType inherits XSDNamedData {
     public {
         any $.nsinfo;
         any $.array;
@@ -1066,7 +1118,7 @@ class WSDL::XSDComplexType inherits XSDNamedData {
 }
 
 #! web service operation class
-class WSDL::WSOperation inherits XSDNamedData {
+public class WSDL::WSOperation inherits XSDNamedData {
     public {
         WSMessage $.input;
         WSMessage $.output;
@@ -1136,9 +1188,9 @@ class WSDL::WSOperation inherits XSDNamedData {
     }
 
     #! serializes a request to an XML string for the operation
-    /** @param $h the request to serialize
-	@param $header optional soap header info to serialize if required (ex: authorization info)
-        @param $enc the optional encoding to use; if this argument is not present, then the default encoding will be used
+    /** @param h the request to serialize
+	@param header optional soap header info to serialize if required (ex: authorization info)
+        @param enc the optional encoding to use; if this argument is not present, then the default encoding will be used
 	@return a hash with keys:
 	- \c body: XML string in the SOAP request format
 	- \c hdr: hash of HTTP headers
@@ -1187,7 +1239,7 @@ class WSDL::WSOperation inherits XSDNamedData {
 		$ct += sprintf(";action=%s", $.soapAction);
 	}
 	else
-	    $ct = "text/xml";
+	    $ct = MimeTypeXml;
 
         $ct += sprintf(";charset=%s", exists $enc ? $enc : get_default_encoding());
 
@@ -1201,8 +1253,8 @@ class WSDL::WSOperation inherits XSDNamedData {
     }
 
     #! serializes a SOAP response to an XML string for the operation
-    /** @param $h the response to serialize
-        @param $enc the optional encoding to use; if this argument is not present, then the default encoding will be used
+    /** @param h the response to serialize
+        @param enc the optional encoding to use; if this argument is not present, then the default encoding will be used
         @return a hash with keys:
         - \c body: XML string in the SOAP request format
         - \c hdr: hash of HTTP headers
@@ -1294,7 +1346,7 @@ class WSDL::WSOperation inherits XSDNamedData {
     }
 
     #! parses a hash representing a parsed XML request (parsed with parseXMLAsData()) for the operation and returns the corresponding Qore data structure
-    /** @param $o the parsed XML request (parsed with parseXMLAsData()) for the operation
+    /** @param o the parsed XML request (parsed with parseXMLAsData()) for the operation
     @return the Qore data structure corresponding to the request data
     */
     any deserializeRequest(hash $o) {
@@ -1312,7 +1364,7 @@ class WSDL::WSOperation inherits XSDNamedData {
     }
 
     #! parses a hash representing a parsed XML response (parsed with parseXMLAsData()) for the operation and returns the corresponding Qore data structure
-    /** @param $o the parsed XML response (parsed with parseXMLAsData()) for the operation
+    /** @param o the parsed XML response (parsed with parseXMLAsData()) for the operation
     @return the Qore data structure corresponding to the response data
     */
     any deserializeResponse(hash $o) {
@@ -1454,7 +1506,7 @@ class WSDL::WSOperation inherits XSDNamedData {
 }
 
 # web service message class
-class WSDL::WSMessage inherits XSDNamedData {
+public class WSDL::WSMessage inherits XSDNamedData {
     public {
         hash $.args;
         bool $.encoded = False;
@@ -1565,7 +1617,7 @@ class WSDL::WSMessage inherits XSDNamedData {
     }
 }
 
-# helper class for lazy name resolution
+# private helper class for lazy name resolution
 class WSDL::XSDLateResolverHelper {
     private { list $.l = (); }
 
@@ -1581,7 +1633,7 @@ class WSDL::XSDLateResolverHelper {
     }
 }
 
-# helper class to save namespaces in the WebService class, parses the imported definitions, and restores the namespace info on exit
+# private helper class to save namespaces in the WebService class, parses the imported definitions, and restores the namespace info on exit
 class WSDL::XSDImportHelper {
     public {
         any $.ws;
@@ -1603,7 +1655,7 @@ class WSDL::XSDImportHelper {
 }
 
 #! class for WSDL bindings
-class WSDL::Binding inherits XSDNamedData {
+public class WSDL::Binding inherits XSDNamedData {
     public {
 	bool $.docStyle = False;
     }
@@ -1649,7 +1701,7 @@ class WSDL::Binding inherits XSDNamedData {
 		}
 	    }
 	    else if (exists $ophash.input.multipartRelated) {
-		$op.setInputMultipart(MultiPartMessage::MPT_RELATED);
+		$op.setInputMultipart(Mime::MPT_RELATED);
 		WSDL::XSDBase::removeNS(\$ophash.input.multipartRelated);		
 
 		if (!exists $ophash.input.multipartRelated.part)
@@ -1692,7 +1744,7 @@ class WSDL::Binding inherits XSDNamedData {
 		}
 	    }
 	    else if (exists $ophash.output.multipartRelated) {
-		$op.setOutputMultipart(MultiPartMessage::MPT_RELATED);
+		$op.setOutputMultipart(Mime::MPT_RELATED);
 		WSDL::XSDBase::removeNS(\$ophash.output.multipartRelated);		
 
 		if (!exists $ophash.output.multipartRelated.part)
@@ -1714,7 +1766,7 @@ class WSDL::Binding inherits XSDNamedData {
 #! main class representing a parsed WSDL file
 /** This is the main class for handling SOAP communication and is based on a WSDL file
 */
-class WSDL::WebService inherits XSDBase {
+public class WSDL::WebService inherits XSDBase {
     public {
         string $.wsdl;
         hash $.ns;
@@ -1733,8 +1785,8 @@ class WSDL::WebService inherits XSDBase {
     }
 
     #! creates the WebService object
-    /** @param $str the XML string representing the WSDL
-	@param $opts an optional hash of options with the following possible keys:
+    /** @param str the XML string representing the WSDL
+	@param opts an optional hash of options with the following possible keys:
 	- \c http_client a HTTPClient object for retrieving data from import commands
 	- \c http_headers a hash of optional HTTP header info to use when retrieving data from import commands
     */
