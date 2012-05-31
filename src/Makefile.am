@@ -7,6 +7,8 @@ GENERATED_SOURCES = QC_XmlDoc.cpp QC_XmlNode.cpp QC_XmlReader.cpp QC_XmlRpcClien
 CLEANFILES = $(GENERATED_SOURCES)
 
 if COND_SINGLE_COMPILATION_UNIT
+single-compilation-unit.cpp: $(GENERATED_SOURCES)
+
 XML_SOURCES = single-compilation-unit.cpp
 else
 XML_SOURCES = xml-module.cpp
