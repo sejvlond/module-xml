@@ -119,6 +119,9 @@ public namespace XmlRpcHandler {
             # if True then verbose exception info will be logged
             bool $.debug;
 
+            # prefix to add to derived methods with GET requests if no "." characters are in the path
+            *string $.get_prefix;
+
             # a closure/call reference to get the log message and/or process arguments in incoming requests
             *code $.getLogMessage;
         }
@@ -129,17 +132,21 @@ public namespace XmlRpcHandler {
             @param methods a list of hashes with the following keys:
             - \c name: a regular expression to use for matching the method name
             - \c function: a string (giving a function name to call), a call reference, or a closure to call with the deserialized arguments to the method; the return value will be serialized to XML-RPC and sent back to the caller
-            - \c help: help text for the method
             - \c text: the human-readable name of the method
+            - \c help: help text for the method
             - \c logopt: (optional - by convention) log options which can be used by a custom logger (see the getLogMessage parameter)
             @param getLogMessage an optional closure or call reference to be called when an incoming request is received; if this is set then it will 
 be called with the following arguments: a context hash (see HttpServer::AbstractHttpRequestHandler::handleRequest() for a description of the context h
 ash), the method definition as passed in the methods argument to this constructor, and a reference to the arguments in this call
             @param dbg this parameter is set to @ref Qore::True "True", then additional information will be logged when errors occur
+            @param get_prefix prefix to add to derived methods with GET requests if no "." characters are in the path
+
+            @throw XML-RPC-CONSTRUCTOR-ERROR missing \c "name", \c "function", or \"text" key in method hash, \c "function" key not assigned to a callable value
          */
-        constructor(AbstractAuthenticator $auth, list $methods, *code $getLogMessage, bool $dbg = False) : AbstractHttpRequestHandler($auth) {
+        constructor(AbstractAuthenticator $auth, list $methods, *code $getLogMessage, bool $dbg = False, *string $get_prefix) : AbstractHttpRequestHandler($auth) {
             $.getLogMessage = $getLogMessage;
             $.debug = $dbg;
+            $.get_prefix = $get_prefix;
 
             # add internal methods
             foreach my hash $im in (XmlRpcHandler::InternalMethods)
@@ -148,9 +155,8 @@ ash), the method definition as passed in the methods argument to this constructo
             foreach my hash $m in ($methods) {
                 if (!exists $m.name)
                     throw "XML-RPC-CONSTRUCTOR-ERROR", sprintf("expecting 'name' key in method hash (%n)", $m);
-                if (!exists $m.function)
-                    throw "XML-RPC-CONSTRUCTOR-ERROR", sprintf("expecting 'function' key in method hash (%n)", $m);
-
+                if ($m.function.typeCode() != NT_CLOSURE && $m.function.typeCode() != NT_CALLREF)
+                    throw "XML-RPC-CONSTRUCTOR-ERROR", sprintf("expecting 'function' key assigned to code in method hash: %y", $m);
                 if (!exists $m.text)
                     throw "XML-RPC-CONSTRUCTOR-ERROR", sprintf("expecting 'text' key in method hash (%n)", $m);
                 delete $m.internal;
@@ -166,10 +172,7 @@ ash), the method definition as passed in the methods argument to this constructo
             @param logopt log options which can be used by a custom logger (see the getLogMessage parameter)
             @param cmark any value that will be added in the method hash under the \c "cmark" key
           */
-        addMethod(string $name, any $func, string $text, string $help, int $logopt, any $cmark) {
-            if (!exists $func)
-                throw "XML-RPC-SERVER-ADD-METHOD-PARAMETER-ERROR", "expecting function name and text name as hash key in argument";
-
+        addMethod(string $name, code $func, string $text, string $help, int $logopt, any $cmark) {
             $.addMethodInternal(("name": $name,
                                  "function": $func,
                                  "text": $text,
@@ -271,15 +274,18 @@ ash), the method definition as passed in the methods argument to this constructo
             if ($hdr.method == "GET") {
                 my string $path = substr($hdr.path, index($hdr.path, "/") + 1);
                 
-                if (!strlen($path))
+                if ($path.empty())
                     return (
                         "code": 501,
                         "desc": "invalid HTTP GET: no path/XML-RPC method name given",
                     ); 
                 
-                if (index($path, ".") == -1)
-                    $path = "omq.system." + $path;
-                $xmlrpc.methodName = $path;
+                $xmlrpc += parse_uri_query($path);
+                # rename "method" to "methodName"
+                $xmlrpc.methodName = remove $xmlrpc.method;
+
+                if (exists $.get_prefix && index($xmlrpc.methodName, ".") == -1)
+                    $xmlrpc.methodName = $.get_prefix + $xmlrpc.methodName;
             }
             else {
                 if ($hdr.method != "POST")

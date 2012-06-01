@@ -13,8 +13,8 @@
 %requires xml
 
 %requires XmlRpcHandler >= 1.0
-
 %requires HttpServer >= 0.3.3
+%requires Mime >= 1.0
 
 # default port for server
 const DefaultPort = 8081;
@@ -169,7 +169,7 @@ sub main() {
 
     # add XML-RPC handler to HTTP server - will handle all requests with
     # URL RPC2* or content-type = "text/xml"
-    $http_server.setHandler("xmlrpc", "^RPC2", "text/xml", new XmlRpcHandler(new AbstractAuthenticator(), ApiMethods));
+    $http_server.setHandler("xmlrpc", "^RPC2", MimeTypeXml, new XmlRpcHandler(new AbstractAuthenticator(), ApiMethods));
 
     printf("HTTP Server listening on port '%s' for XML-RPC requests\n", $o.port);
     # wait for the server to stop
