@@ -85,7 +85,7 @@ my any $result = $sc.call("SubmitDocument", $msg);
 #! main SoapClient namespace
 public namespace SoapClient {
     #! SOAP client class implementation, publically inherits qore's HTTPClient class
-    class SoapClient inherits HTTPClient {
+    public class SoapClient inherits HTTPClient {
         #! version of the implementation of this class
         const Version = "0.2.3";
 
