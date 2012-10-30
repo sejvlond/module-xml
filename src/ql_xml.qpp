@@ -380,6 +380,13 @@ static int concatSimpleValue(QoreString &str, const AbstractQoreNode *n, Excepti
 	 return 0;
       }
 
+#ifdef _QORE_HAS_NUMBER_TYPE
+      case NT_NUMBER: {
+         reinterpret_cast<const QoreNumberNode*>(n)->getStringRepresentation(str);
+         return 0;
+      }
+#endif
+
       case NT_BOOLEAN: {
 	 str.sprintf("%d", reinterpret_cast<const QoreBoolNode *>(n)->getValue());
 	 return 0;
@@ -745,6 +752,14 @@ static void addXMLRPCValueIntern(QoreString *str, const AbstractQoreNode *n, int
 
    else if (ntype == NT_FLOAT)
       str->sprintf("<double>%.20g</double>", reinterpret_cast<const QoreFloatNode *>(n)->f);
+
+#ifdef _QORE_HAS_NUMBER_TYPE
+   else if (ntype == NT_NUMBER) {
+      str->concat("<double>");
+      reinterpret_cast<const QoreNumberNode*>(n)->getStringRepresentation(*str);
+      str->concat("</double>");
+   }
+#endif
 	
    else if (ntype == NT_DATE) {
       str->concat("<dateTime.iso8601>");

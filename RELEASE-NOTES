@@ -8,6 +8,8 @@ version 1.1
 * added additional validation to XML-RPC parsing (checking close elements)
 * set the character encoding correctly in the outgoing Content-Type request
   header
+* added suport for the new arbitrary-precision numeric type introduced with
+  Qore 0.8.6
 
 
 ***********
