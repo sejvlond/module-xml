@@ -10,6 +10,7 @@
     - <a href="../../SoapClient/html/index.html">SoapClient user module</a>
     - <a href="../../SoapHandler/html/index.html">SoapHandler user module</a>
     - <a href="../../XmlRpcHandler/html/index.html">XmlRpcHandler user module</a>
+    - @ref releasenotes
 
     @section intro Introduction
 
@@ -165,6 +166,7 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     |\c string|\c string|direct conversion to UTF-8 string
     |\c integer|\c i4 or \c string|If the integer requires more than 32 bits to represent, then it is sent as a string
     |\c float|\c double|direct conversion
+    |\c number|\c double|conversion to a double for serialization
     |\c boolean|\c boolean|direct conversion
     |\c date|\c iso8601|Absolute date/time values will convert to the default time zone for the calling context for the output string if necessary. Note that relative date/time values (durations) will be serialized with the same format as absolute date/time values.
     |\c binary|\c base64|direct conversion
@@ -237,4 +239,16 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     @subsection DEPRECATED
 	
     Code with this flag is deprecated and may be removed in a future version of this module; if a variant with this flag is resolved at parse time, a \c "deprecated" warning is raised (assuming this warning is enabled).
+
+    @section releasenotes Release Notes
+
+    @subsection xml11 xml Module Version 1.1
+
+    <b>Changes and Bug Fixes in This Release</b>
+    - fixed internal XMl to Qore processing for extreme cases
+    - fixed makeFormattedXMLString() to really format the output
+    - fixed XML-RPC parsing with empty elements in structures
+    - added additional validation to XML-RPC parsing (checking close elements)
+    - set the character encoding correctly in the outgoing \c "Content-Type" request header
+    - added suport for the new arbitrary-precision numeric type introduced with Qore 0.8.6
 */

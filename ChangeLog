@@ -1,2 +1,300 @@
+2012-10-30 21:55  david_nichols
 
+	* RELEASE-NOTES, src/ql_xml.qpp: serialize "number" values as
+	  "double"
+
+2012-09-28 16:19  david_nichols
+
+	* configure.ac: applied reini urban's multi-arch patches for debian
+	  to all modules
+
+2012-06-25 08:51  david_nichols
+
+	* configure.ac: updated configure.ac logic to deal with /lib ->
+	  /usr/lib and /lib64 -> /usr/lib64 as with Fedora 17 - the
+	  previous logic was too clever for its own good
+
+2012-06-11 17:20  david_nichols
+
+	* qlib/SoapClient.qm: made SoapClient class public
+
+2012-06-01 09:09  david_nichols
+
+	* examples/XmlRpcServerValidation.q, qlib/XmlRpcHandler.qm,
+	  src/Makefile.am: minor updates
+
+2012-05-31 18:47  david_nichols
+
+	* docs/mainpage.doxygen.tmpl: minor doc update
+
+2012-05-31 17:24  david_nichols
+
+	* qlib/SoapHandler.qm: fixed param
+
+2012-05-31 17:18  david_nichols
+
+	* Makefile.am, docs/mainpage.doxygen.tmpl,
+	  examples/MultiPartMessage.qc, examples/SoapClient.qc,
+	  examples/SoapHandler.qc, examples/WSDL.qc, qlib/SoapClient.qm,
+	  qlib/SoapHandler.qm, qlib/WSDL.qm, qlib/XmlRpcHandler.qm,
+	  src/QC_XmlDoc.qpp, src/QC_XmlReader.qpp, src/ql_xml.qpp:
+	  converted remaining classes to user modules
+
+2012-05-31 12:28  david_nichols
+
+	* examples/SoapClient.qc, examples/SoapHandler.qc,
+	  examples/WSDL.qc: updated examples classes before converting to
+	  user modules
+
+2012-05-31 12:12  david_nichols
+
+	* examples/HttpServer.qc, examples/XmlRpcServerValidation.q:
+	  updated example to use new user modules, removed HttpServer (now
+	  delivered as a user module with Qore)
+
+2012-05-31 11:56  david_nichols
+
+	* src/Makefile.am: rpm build fix
+
+2012-05-31 11:46  david_nichols
+
+	* Makefile.am, configure.ac, docs/doxyfile.tmpl,
+	  docs/doxygen-api-filter.q, docs/mainpage.doxygen.tmpl, docs/qlib,
+	  docs/qlib/Doxyfile.tmpl, examples/XmlRpcHandler.qc, qlib,
+	  qlib/XmlRpcHandler.qm, qore-xml-module.spec, src/Makefile.am,
+	  src/QC_XmlDoc.cpp, src/QC_XmlDoc.h, src/QC_XmlDoc.qpp,
+	  src/QC_XmlNode.cpp, src/QC_XmlNode.h, src/QC_XmlNode.qpp,
+	  src/QC_XmlReader.cpp, src/QC_XmlReader.h, src/QC_XmlReader.qpp,
+	  src/QC_XmlRpcClient.cpp, src/QC_XmlRpcClient.h,
+	  src/QC_XmlRpcClient.qpp, src/ql_xml.cpp, src/ql_xml.h,
+	  src/ql_xml.qpp, src/xml-module.cpp: updated module to qpp
+
+2012-01-16 13:07  david_nichols
+
+	* configure.ac: updated configure scripts to only set LIBSUFFIX=64
+	  on 64-bit platfiorms if /usr/lib64 exists
+
+2011-12-21 08:38  david_nichols
+
+	* RELEASE-NOTES, src/QC_XmlRpcClient.cpp, src/ql_xml.cpp: fixed
+	  setting the character encoding in the outgoing Content-Type
+	  header
+	  (charset=utf-8 by default)
+
+2011-12-21 07:05  david_nichols
+
+	* src/QC_XmlRpcClient.cpp: set character encoding on each request
+	  in the content-type header
+
+2011-10-20 11:04  subik
+
+	* ChangeLog, README, RELEASE-NOTES, qore-xml-module.spec: 1.1
+	  released
+
+2011-10-19 11:27  david_nichols
+
+	* src/ql_xml.cpp: fixed a bug parsing repeated elements when the
+	  first element had no value
+
+2011-09-13 15:01  david_nichols
+
+	* configure.ac: cosmetic changes only
+
+2011-09-12 16:26  david_nichols
+
+	* configure.ac: added -mt to compile and link lines when building
+	  on solaris with CC
+
+2011-09-06 13:49  david_nichols
+
+	* src/QoreXmlReader.h, src/ql_xml.cpp, test/xml-test.q: added
+	  regrssion tests for XML-RPC parsing errors; fixed XML-RPC parsing
+	  again
+	  from yesterday's patch
+
+2011-09-05 14:06  david_nichols
+
+	* RELEASE-NOTES: updated release notes
+
+2011-09-05 14:05  david_nichols
+
+	* src/ql_xml.cpp: further fixes to xml-rpc parsing
+
+2011-09-05 12:50  david_nichols
+
+	* src/QoreXmlReader.h, src/ql_xml.cpp: fixed a bug parsing valid
+	  XML-RPC, when the value was given as an empty element
+	  (ex: <string/>) an exception was raised
+
+2011-09-02 15:09  subik
+
+	* ChangeLog: missing file for make dist
+
+2011-07-29 11:00  david_nichols
+
+	* configure.ac, src/Makefile.am: patches to the json module to
+	  allow for building under mingw32 cross-compile
+	  environment; updated xml module to delete temporary files in
+	  module directory
+	  when building for windows under mingw32
+
+2011-07-29 10:44  david_nichols
+
+	* configure.ac: cosmetic changes only
+
+2011-07-28 10:17  david_nichols
+
+	* configure.ac: working mingw module building support
+
+2011-07-27 17:52  david_nichols
+
+	* configure.ac, src/Makefile.am, src/QoreXmlDoc.h: mingw module
+	  building fixes - does not work automatically, but can be linked
+	  by hand
+
+2011-07-27 15:48  david_nichols
+
+	* configure.ac: changes to try and get a module compiled under
+	  mingw32 for windows (not yet working)
+
+2011-06-15 12:43  david_nichols
+
+	* src/ql_xml.cpp: allow hashes with zero-length keys to be
+	  serialized as XMLRPC structs by using default key value
+	  "!!empty-hash-key!!"
+
+2011-04-04 15:55  david_nichols
+
+	* RELEASE-NOTES: updated release notes with info from last fix
+
+2011-04-04 15:53  david_nichols
+
+	* src/ql_xml.cpp: fixed makeFormattedXMLString() to really format
+	  the output
+
+2010-12-28 08:31  david_nichols
+
+	* RELEASE-NOTES, configure.ac, qore-xml-module.spec: updated xml
+	  module to 1.1, updated release notes, updated ssh2 changelog
+
+2010-12-28 08:21  david_nichols
+
+	* src/QC_XmlDoc.cpp, src/QC_XmlNode.cpp, src/QC_XmlReader.cpp,
+	  src/QC_XmlRpcClient.cpp: updated documentation
+
+2010-12-26 20:44  david_nichols
+
+	* docs/doxygen-api-filter.q, examples/XmlRpcServerValidation.q,
+	  examples/xml-rpc-client.q: doc and example updates
+
+2010-12-23 21:03  david_nichols
+
+	* Makefile.am, README, configure.ac, qore-xml-module.spec:
+	  packaging fixes - use bz2, do not include .svn dirs
+
+2010-12-23 20:20  david_nichols
+
+	* qore-xml-module.spec: spec file fixes
+
+2010-12-23 07:59  david_nichols
+
+	* Makefile.am, qore-xml-module.spec: fixed rpm building - including
+	  doc rpms for the xml and json modules
+
+2010-12-22 20:03  david_nichols
+
+	* src/ql_xml.cpp: documentation updates
+
+2010-12-22 18:37  david_nichols
+
+	* docs/mainpage.doxygen.tmpl: minor doc updates
+
+2010-12-22 18:17  david_nichols
+
+	* README, docs/mainpage.doxygen.tmpl, examples/HttpServer.qc,
+	  examples/MultiPartMessage.qc, examples/SoapClient.qc,
+	  examples/SoapHandler.qc, examples/WSDL.qc,
+	  examples/XmlRpcHandler.qc, examples/XmlRpcServerValidation.q,
+	  examples/xml-rpc-client.q, qore-xml-module.spec,
+	  src/QC_XmlRpcClient.cpp, src/QC_XmlRpcClient.h: xml module
+	  updates, separated json functionality out to json module
+
+2010-12-22 10:31  david_nichols
+
+	* Makefile.am, docs/mainpage.doxygen.tmpl: dox updates
+
+2010-12-21 17:23  david_nichols
+
+	* Makefile.am, docs/doxyfile.tmpl, docs/doxygen-api-filter.q,
+	  docs/mainpage.doxygen.tmpl, src/QC_XmlDoc.cpp,
+	  src/QC_XmlNode.cpp, src/QC_XmlReader.cpp,
+	  src/QC_XmlRpcClient.cpp, src/ql_xml.cpp: doc updates - all
+	  methods documented
+
+2010-12-20 10:07  david_nichols
+
+	* Makefile.am: added targets for cleaning temporary doxygen files
+
+2010-12-19 12:31  david_nichols
+
+	* docs/mainpage.doxygen.tmpl, src/ql_xml.cpp: added links to all
+	  functions, added info on all function tags, corrected tags for 2
+	  functions that do not throw exceptions
+
+2010-12-19 11:37  david_nichols
+
+	* docs/mainpage.doxygen.tmpl, src/ql_xml.cpp: doc updates, added
+	  TOC and section on code tags, added first noop variant
+
+2010-12-19 08:22  david_nichols
+
+	* src/ql_xml.cpp: updated schema validation exceptions and docs -
+	  "noop" variants still not documented
+
+2010-12-18 16:17  david_nichols
+
+	* docs/mainpage.doxygen: removed temporary file
+
+2010-12-18 12:33  david_nichols
+
+	* docs/mainpage.doxygen, docs/mainpage.doxygen.tmpl,
+	  src/ql_xml.cpp: added remaining function docs; added examples for
+	  each function
+
+2010-12-18 11:31  david_nichols
+
+	* docs/doxygen-api-filter.q, src/ql_xml.cpp: more function docs;
+	  normalized exceptions and corrected documentation
+
+2010-12-17 22:02  david_nichols
+
+	* Makefile.am, docs/doxygen-api-filter.q, src/ql_xml.cpp: more
+	  doxygen updates for qore xml api
+
+2010-12-17 21:19  david_nichols
+
+	* Makefile.am, configure.ac, docs/doxyfile.tmpl,
+	  docs/doxygen-api-filter.q, docs/footer_template.html,
+	  docs/mainpage.doxygen, docs/mainpage.doxygen.tmpl: started adding
+	  doxygen support for doc generation
+
+2010-12-17 20:25  david_nichols
+
+	* Makefile.am, docs: fixed Makefile.am
+
+2010-12-17 17:00  david_nichols
+
+	* ., AUTHORS, COPYING, Makefile.am, README, README-BINARIES,
+	  RELEASE-NOTES, configure.ac, examples, examples/XmlRpcHandler.qc,
+	  examples/XmlRpcServerValidation.q, examples/xml-rpc-client.q, m4,
+	  m4/acx_pthread.m4, qore-xml-module.spec, reconf.sh, src,
+	  src/Makefile.am, src/QC_XmlDoc.cpp, src/QC_XmlDoc.h,
+	  src/QC_XmlNode.cpp, src/QC_XmlNode.h, src/QC_XmlReader.cpp,
+	  src/QC_XmlReader.h, src/QC_XmlRpcClient.cpp,
+	  src/QC_XmlRpcClient.h, src/QoreXPath.h, src/QoreXmlDoc.h,
+	  src/QoreXmlReader.h, src/ql_xml.cpp, src/ql_xml.h,
+	  src/qore-xml-module.h, src/single-compilation-unit.cpp,
+	  src/xml-module.cpp, test, test/xml-test.q: separated xml
+	  functionality from qore and moved into separate module ("xml") -
+	  docs not yet moved
 
