@@ -111,7 +111,7 @@ public namespace SoapClient {
 
         #! creates the object based on a %WSDL which is parsed to a WSDL::WebService object which provides the basis for all communication with this object
         /** one of either the \c wsdl or \c wsdl_file keys is required in the hash given to the constructor or an exception will be thrown
-            @param $h valid option keys:
+            @param h valid option keys:
             - \c wsdl: the URL of the web service or a WSDL::WebService object itself
             - \c wsdl_file: a path to use to load the %WSDL and create the WSDL::WebService object
             - \c url: override the target URL given in the %WSDL
@@ -199,10 +199,10 @@ public namespace SoapClient {
         #! returns a hash representing the serialized SOAP request for a given WSOperation
         /** the returned hash can be passed to makeXMLString() to make the actual SOAP message
 
-            @param $operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying WebService class, an exception will be thrown
-            @param $h the operation parameter(s)
-            @param $header data structure for the SOAP header, if required by the message
-            @param $op a reference to return the WSOperation object found
+            @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying WebService class, an exception will be thrown
+            @param h the operation parameter(s)
+            @param header data structure for the SOAP header, if required by the message
+            @param op a reference to return the WSOperation object found
 
             @throw SOAP-CLIENT-ERROR the operation is not defined in the WSDL
         */
@@ -219,9 +219,9 @@ public namespace SoapClient {
         }
 
         #! makes a server call with the given operation and arguments and returns the deserialized result
-        /** @param $operation the operation name for the SOAP call
-            @param $h the operation parameter(s)
-            @param $header optional soap headers (if required by the operation)
+        /** @param operation the operation name for the SOAP call
+            @param h the operation parameter(s)
+            @param header optional soap headers (if required by the operation)
 
             @return the deserialized result of the SOAP call to the SOAP server
         */
@@ -234,9 +234,9 @@ public namespace SoapClient {
         }
 
         #! makes a server call with the given operation and arguments and returns the deserialized result
-        /** @param $operation the operation name for the SOAP call
-            @param $h the operation parameter(s)
-            @param $info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers)
+        /** @param operation the operation name for the SOAP call
+            @param h the operation parameter(s)
+            @param info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers)
 
             @return the deserialized result of the SOAP call to the SOAP server
         */
@@ -253,10 +253,10 @@ public namespace SoapClient {
         }
 
         #! makes a server call with the given operation and arguments and returns the deserialized result with an output argument giving technical information about the call
-        /** @param $info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers)
-            @param $operation the operation name for the SOAP call
-            @param $h the operation parameter(s)
-            @param $header optional soap headers (if required by the operation)
+        /** @param info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers)
+            @param operation the operation name for the SOAP call
+            @param h the operation parameter(s)
+            @param header optional soap headers (if required by the operation)
 
             @return the deserialized result of the SOAP call to the SOAP server
         */
@@ -277,8 +277,8 @@ public namespace SoapClient {
         }
 
         #! uses SoapClient::call() to transparently serialize the argument and make a call to the given operation and return the deserialized results
-        /** @param $op the operation name, which is the method name passed to methodGate()
-            @param $arg a list or arguments or a single argument (or NOTHING) for the operation
+        /** @param op the operation name, which is the method name passed to methodGate()
+            @param arg a list or arguments or a single argument (or NOTHING) for the operation
 
             @return the deserialized result of the SOAP call to the SOAP server
         */
