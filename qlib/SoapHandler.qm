@@ -88,6 +88,12 @@ public namespace SoapHandler {
 
             # a closure/call reference to get the log message and/or process arguments in incoming requests
             *code $.getLogMessage;
+
+            # for atomicity when adding / removing methods
+            RWLock $.rwl();
+
+            # hash of methods by path
+            hash $.th;
         }
         #! @endcond
 
@@ -104,25 +110,41 @@ public namespace SoapHandler {
         #! adds a method to the handler dynamically
         /** @param ws the WebService object for the method
             @param op the WSOperation object for the web service operation the method corresponds to
-            @param func a call reference, or a closure to call with the deserialized arguments to the method; the return value will be serialized to SOAP according to the WSDL and sent back to the caller
+            @param func a call reference, a closure, or a string function name to call with the deserialized arguments to the method; the return value will be serialized to SOAP according to the WSDL and sent back to the caller
             @param help optional help text for the method
             @param logopt log options which can be used by a custom logger (see the getLogMessage parameter in the constructor)
             @param cmark an optional "context marker" for the method
             @param path an optional path for the method
          */
         addMethod(WebService $ws, WSOperation $op, any $func, *string $help, *int $logopt, any $cmark, *string $path) {
-            if (!exists $func)
-                throw "SOAP-SERVER-ADDMETHOD-PARAMETER-ERROR", "second argument is not a function name";
+            if (!$func)
+                throw "SOAP-SERVER-ADDMETHOD-PARAMETER-ERROR", sprintf("second argument is not a function name or callable value type (got: %y)", $func);
 
-            $.addMethodInternal($ws,
+            $.addMethodInternal($ws, 
                                 ( "operation" : $op,
                                   "name"      : $op.name,
                                   "function"  : $func,
                                   "help"      : $help,
                                   "logopt"    : $logopt,
                                   "cmark"     : $cmark,
-                                  "path"      : $path));
+                                  "path"      : $path,
+                                ));
             #printf("methods=%N\n", $.methods);
+        }
+
+        #! call to remove all service mappings for services with the given path
+        removeServicesWithPath(string $path) {
+            $.rwl.writeLock();
+            on_exit $.rwl.writeUnlock();
+
+            # remove webservice mappings
+            delete $.ws.$path;
+
+            # remove path/method mappings
+            delete $.pathmethods.$path;
+
+            # remove method link mappings
+            map delete $.methods.$1, $.th.$path.keyIterator();
         }
 
         #! @cond nodoc
@@ -130,40 +152,54 @@ public namespace SoapHandler {
         final private addMethodInternal(WebService $ws, hash $method) {
             my string $rn = $method.operation.getTopLevelRequestName();
 
+            $.rwl.writeLock();
+            on_exit $.rwl.writeUnlock();
+
             # map top-level element to method
-            if (exists $method.path) {
-                my $path = $method.path;
+            if ($method.path) {
+                my string $path = $method.path;
 
                 # add link to WebService object
-                if (!exists $.ws.$path)
+                if (!$.ws.$path)
                     $.ws.$path = $ws;
 
-                $.pathmethods.$path.$rn = $method;
+                if (!$.pathmethods.$path.$rn)
+                    $.pathmethods.$path.$rn = $method;
 
                 # add method link if it doesn't already exist
-                if (!exists $.methods.$rn)
+                if (!$.methods.$rn) {
+                    $.methods.$rn = $method;
+                    $.th.$path.$rn = True;
+                }
+            }
+            else {
+                # add method link if it doesn't already exist
+                if (!$.methods.$rn)
                     $.methods.$rn = $method;
             }
-            else
-                $.methods.$rn = $method;
-
+                
             #printf("DEBUG: addMethodInternal() %N %N\n", $method.name, $method.path);
         }
 
         private *hash help(hash $cx) {
             my hash $h;
-            foreach my string $cmd in (keys $.methods) {
+
+            $.rwl.readLock();
+            on_exit $.rwl.readUnlock();
+
+            foreach my string $cmd in ($.methods.keyIterator()) {
                 $h.$cmd.description = $.methods.$cmd.help;
-                if (exists $.methods.$cmd.params)
-                    $h.$cmd.params  = $.methods.$cmd.params;
+                if ($.methods.$cmd.params)
+                    $h.$cmd.params = $.methods.$cmd.params;
             }
-            foreach my string $path in (keys $.pathmethods) {
-                foreach my $cmd in (keys $.pathmethods.$path) {
+            foreach my string $path in ($.pathmethods.keyIterator()) {
+                foreach my string $cmd in ($.pathmethods.$path.keyIterator()) {
                     $h.$cmd.description = $.methods.$cmd.help;
-                    if (exists $.pathmethods.$path.$cmd.params)
-                        $h.$path.$cmd.params  = $.pathmethods.$path.$cmd.params;
+                    if ($.pathmethods.$path.$cmd.params)
+                        $h.$path.$cmd.params = $.pathmethods.$path.$cmd.params;
                 }
             }
+
             return $h;
         }
 
@@ -204,25 +240,30 @@ public namespace SoapHandler {
         final private hash callOperation(hash $cx, any $args) {
             my $element = $cx.element;
 
-            my $method;
-            if (exists $cx.url.path) {
-                my $path = $cx.url.path;
-                # prepend "/" if it's not already there
-                if ($path !~ /^\//)
-                    $path =~ s/(.*)/\/$1/;
+            my *hash $method;
+            {
+                $.rwl.readLock();
+                on_exit $.rwl.readUnlock();
 
-                $method = $.pathmethods.$path.$element;
-                #printf("DEBUG: path=%n method exists=%n (%n)\n", $path, exists $method, keys $.pathmethod);
-            }
+                if (exists $cx.url.path) {
+                    my $path = $cx.url.path;
+                    # prepend "/" if it's not already there
+                    if ($path !~ /^\//)
+                        $path =~ s/(.*)/\/$1/;
 
-            if (!exists $method)
-                $method = $.methods.$element;
+                    $method = $.pathmethods.$path.$element;
+                    #printf("DEBUG: path=%n method exists=%n (%n)\n", $path, exists $method, keys $.pathmethod);
+                }
 
-            #printf("DEBUG: found element %N method %N\n", $element, $method);
-            if (!exists $method) {
-                if (!exists $element)
-                    throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $cx);	    
-                throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot map top-level element %n to a SOAP operation: %s", $element, elements $.methods ? sprintf("currently recognized top-level elements: %n", keys $.methods) : "no SOAP services are currently registered");
+                if (!exists $method)
+                    $method = $.methods.$element;
+
+                #printf("DEBUG: found element %N method %N\n", $element, $method);
+                if (!exists $method) {
+                    if (!exists $element)
+                        throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $cx);	    
+                    throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot map top-level element %n to a SOAP operation: %s", $element, elements $.methods ? sprintf("currently recognized top-level elements: %n", keys $.methods) : "no SOAP services are currently registered");
+                }
             }
 
             # NOTE: internal methods have no operation definition and can take no parameters
@@ -328,11 +369,14 @@ public namespace SoapHandler {
 
                 #printf("DEBUG: PATH=%N (%n %n)\n", $path, exists $.ws.$path, keys $.ws);
                 
-                if (!strlen($path))
+                if (!$path)
                     return (
                         "code": 501,
                         "desc": "invalid HTTP GET: no path given in URL",
                     ); 
+
+                $.rwl.readLock();
+                on_exit $.rwl.readUnlock();
 
                 if (!exists $.ws.$path)
                     return (
