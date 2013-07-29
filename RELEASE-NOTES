@@ -2,7 +2,8 @@
 version 1.2
 ***********
 
-in progress
+* implemented dynamic unbinding of SOAP methods in SoapHandler
+* doc updates
 
 
 ***********

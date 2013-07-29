@@ -1,3 +1,28 @@
+2013-07-05 13:23  david_nichols
+
+	* qlib/SoapHandler.qm: implemented dynamic unbinding of service
+	  methods
+
+2013-02-27 10:10  david_nichols
+
+	* README-BINARIES: updated binary location (and changelog for
+	  pgsql)
+
+2012-12-28 14:22  david_nichols
+
+	* qlib/SoapClient.qm: fixed parameter docs (removed "$" in doxygen
+	  param docs)
+
+2012-11-12 07:08  david_nichols
+
+	* RELEASE-NOTES, configure.ac, docs/mainpage.doxygen.tmpl,
+	  qore-xml-module.spec: updated for v1.2 for next release
+
+2012-11-12 06:45  david_nichols
+
+	* ChangeLog, docs/mainpage.doxygen.tmpl: doc updated for 1.1
+	  release
+
 2012-10-30 21:55  david_nichols
 
 	* RELEASE-NOTES, src/ql_xml.qpp: serialize "number" values as
