@@ -3,6 +3,7 @@ version 1.2
 ***********
 
 * implemented dynamic unbinding of SOAP methods in SoapHandler
+* fixed XmlReader::toQore() and XmlReader::toQoreData() for SAX parsing
 * doc updates
 
 

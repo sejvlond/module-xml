@@ -56,7 +56,7 @@ protected:
       xs = xsink;
    }
 
-   DLLLOCAL AbstractQoreNode *getXmlData(const QoreEncoding *data_ccsid, bool as_data, ExceptionSink *xsink);
+   DLLLOCAL AbstractQoreNode *getXmlData(const QoreEncoding *data_ccsid, bool as_data, ExceptionSink *xsink, int min_depth = -1);
 
    DLLLOCAL void init(const QoreString *n_xml, int options, ExceptionSink *xsink) {
       xml = n_xml;
