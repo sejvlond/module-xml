@@ -949,7 +949,7 @@ static bool keys_are_equal(const char *k1, const char *k2, bool &get_value) {
    return false;
 }
 
-AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool as_data, ExceptionSink *xsink) {
+AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool as_data, ExceptionSink *xsink, int min_depth) {
    xml_stack xstack;
 
    QORE_TRACE("getXMLData()");
@@ -1133,6 +1133,11 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 	 }
       }
       rc = read();
+
+      if (min_depth > 0 && QoreXmlReader::depth() < min_depth) {
+         rc = 0;
+         break;
+      }
    }
    return rc ? 0 : xstack.getVal();
 }
@@ -1578,7 +1583,7 @@ QoreHashNode *QoreXmlReader::parseXMLData(const QoreEncoding *data_ccsid, bool a
    if (read(xsink) != 1)
       return 0;
 
-   AbstractQoreNode *rv = getXmlData(data_ccsid, as_data, xsink);
+   AbstractQoreNode *rv = getXmlData(data_ccsid, as_data, xsink, depth());
 
    if (!rv) {
       if (!*xsink)
