@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file XmlRpcHandler.qm @brief XML-RPC handler class definition for the HttpServer module
 
-/*  XmlRpcHandler.qm Copyright 2012 David Nichols
+/*  XmlRpcHandler.qm Copyright 2012 - 2013 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -124,6 +124,9 @@ public namespace XmlRpcHandler {
 
             # a closure/call reference to get the log message and/or process arguments in incoming requests
             *code $.getLogMessage;
+
+            # a closure/call reference for logging (when set this is used instead of the HTTP server's logfunc for logging)
+            *code $.log;
         }
         #! @endcond
 
@@ -143,10 +146,11 @@ ash), the method definition as passed in the methods argument to this constructo
 
             @throw XML-RPC-CONSTRUCTOR-ERROR missing \c "name", \c "function", or \"text" key in method hash, \c "function" key not assigned to a callable value
          */
-        constructor(AbstractAuthenticator $auth, list $methods, *code $getLogMessage, bool $dbg = False, *string $get_prefix) : AbstractHttpRequestHandler($auth) {
+        constructor(AbstractAuthenticator $auth, list $methods, *code $getLogMessage, bool $dbg = False, *string $get_prefix, *code $log) : AbstractHttpRequestHandler($auth) {
             $.getLogMessage = $getLogMessage;
             $.debug = $dbg;
             $.get_prefix = $get_prefix;
+            $.log = $og;
 
             # add internal methods
             foreach my hash $im in (XmlRpcHandler::InternalMethods)
@@ -229,7 +233,7 @@ ash), the method definition as passed in the methods argument to this constructo
             $msg += sprintf("from %s: ", $cx."peer-info".address_desc);
             $msg += vsprintf($str, $argv);
 
-            call_function_args($cx.logfunc, $msg);
+            call_function_args($.log ? $.log : $cx.logfunc, $msg);
         }
 
         # don't reimplement this method; fix/enhance it in the module
