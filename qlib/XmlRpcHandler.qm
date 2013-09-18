@@ -150,7 +150,7 @@ ash), the method definition as passed in the methods argument to this constructo
             $.getLogMessage = $getLogMessage;
             $.debug = $dbg;
             $.get_prefix = $get_prefix;
-            $.log = $og;
+            $.log = $log;
 
             # add internal methods
             foreach my hash $im in (XmlRpcHandler::InternalMethods)
