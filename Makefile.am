@@ -16,7 +16,7 @@ noinst_HEADERS = src/QC_XmlDoc.h \
 
 USER_MODULES = qlib/XmlRpcHandler.qm qlib/WSDL.qm qlib/SoapClient.qm qlib/SoapHandler.qm
 
-EXTRA_DIST = COPYING ChangeLog AUTHORS README \
+EXTRA_DIST = COPYING.LGPL COPYING.MIT ChangeLog AUTHORS README \
 	RELEASE-NOTES \
 	src/QC_XmlDoc.qpp \
 	src/QC_XmlNode.qpp \

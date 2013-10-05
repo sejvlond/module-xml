@@ -16,7 +16,11 @@
 
     XML functionality in the %Qore xml module is provided by the <a href="http://xmlsoft.org">libxml2 library</a>, which provides a powerful, stable, clean, and thread-safe basis for XML integration in %Qore.  XML provides a way to describe hierarchical data, and thanks to <a href="http://xmlsoft.org">libxml2</a>, the xml module allows for easy serialization and deserialization between XML strings and %Qore data structures.
 
-    This module is released under the <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">LGPL 2.1</a> and is tagged as such in the module's header (meaning it can be loaded unconditionally regardless of how the %Qore library was initialized).
+    This module is released under a choice of two licenses:
+    - <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">LGPL 2.1</a>
+    - MIT (see COPYING.MIT in the source distribution for more information)
+    .
+    The module is tagged as such in the module's header (meaning it can be loaded unconditionally regardless of how the %Qore library was initialized).
 
     To use the module in a %Qore script, use the \c %%requires directive as follows:
     @code %requires xml @endcode
@@ -245,8 +249,8 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     @subsection xml12 xml Module Version 1.2
     <b>Changes and Bug Fixes in This Release</b>
     - implemented dynamic unbinding of service methods in the <a href="../../SoapHandler/html/index.html">SoapHandler</a> module
-    - fixed XmlReader::toQore() and XmlReader::toQoreData() for SAX parsing
-    - implemented enhanced logging for the XmlRpcHandler module
+    - fixed bugs in @ref Qore::Xml::XmlReader::toQore() "XmlReader::toQore()" and @ref Qore::Xml::XmlReader::toQoreData() "XmlReader::toQoreData()" for SAX parsing
+    - implemented enhanced logging for the <a href="../../XmlRpcHandler/html/index.html">XmlRpcHandler</a> module
     - doc updates
 
     @subsection xml11 xml Module Version 1.1

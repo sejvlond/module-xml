@@ -1,3 +1,35 @@
+2013-09-24 14:56  david_nichols
+
+	* qlib/XmlRpcHandler.qm: cosmetic/doc updates
+
+2013-09-18 15:32  david_nichols
+
+	* qlib/XmlRpcHandler.qm: fixed typo in last commit
+
+2013-09-18 15:28  david_nichols
+
+	* RELEASE-NOTES, docs/mainpage.doxygen.tmpl, qlib/XmlRpcHandler.qm:
+	  implemented enhanced logging for the XmlRpcHandler module
+
+2013-09-08 19:06  david_nichols
+
+	* src/QC_XmlRpcClient.qpp: updated to compile with the new
+	  QoreHttpClientObject class if available
+
+2013-09-02 10:58  david_nichols
+
+	* src/ql_xml.qpp: fixed XmlReader::toQore*()
+
+2013-08-30 17:57  david_nichols
+
+	* RELEASE-NOTES, docs/mainpage.doxygen.tmpl, src/QoreXmlReader.h:
+	  fixed XmlReader::toQore() and XmlReader::toQoreData() for SAX
+	  parsing
+
+2013-07-29 11:44  david_nichols
+
+	* ChangeLog, RELEASE-NOTES, docs/mainpage.doxygen.tmpl: doc updates
+
 2013-07-05 13:23  david_nichols
 
 	* qlib/SoapHandler.qm: implemented dynamic unbinding of service

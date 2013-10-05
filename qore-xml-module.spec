@@ -93,7 +93,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{module_dir}
-%doc COPYING README RELEASE-NOTES ChangeLog AUTHORS
+%doc COPYING.LGPL COPYING.MIT README RELEASE-NOTES ChangeLog AUTHORS
 
 %changelog
 * Mon Nov 12 2012 David Nichols <david@qore.org> - 1.2
