@@ -6,6 +6,7 @@ version 1.2
 * fixed XmlReader::toQore() and XmlReader::toQoreData() for SAX parsing
 * implemented enhanced logging for the XmlRpcHandler module
 * doc updates
+* added the MIT license as a source license option
 
 
 ***********
