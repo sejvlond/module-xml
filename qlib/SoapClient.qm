@@ -47,7 +47,7 @@ module SoapClient {
 
 /** @mainpage SoapClient Module
     
-    @section intro Introduction
+    @section soapclientintro Introduction to the SoapClient Module
 
     The SoapClient module implements a minimal SOAP client using WSDL, XSD, SOAP support implemented in the WSDL module.
 

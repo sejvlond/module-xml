@@ -56,7 +56,7 @@ module SoapHandler {
 
 /** @mainpage SoapHandler Module
     
-    @section intro Introduction
+    @section soaphandlerintro Introduction to the SoapHandler Module
 
     This module implements server-side support for the <a href="http://en.wikipedia.org/wiki/SOAP">SOAP protocol</a> for serialization/deserialization of message data.
 

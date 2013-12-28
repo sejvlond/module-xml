@@ -65,7 +65,7 @@ module WSDL {
 
 /** @mainpage WSDL Module
     
-    @section intro Introduction
+    @section wsdlintro Introduction to the WSDL Module
 
     The %WSDL module provides functionality for <a href="http://en.wikipedia.org/wiki/SOAP">SOAP</a>.
 
