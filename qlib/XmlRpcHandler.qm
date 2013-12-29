@@ -48,7 +48,7 @@ module XmlRpcHandler {
 
 /** @mainpage XmlRpcHandler Module
 
-    @section intro Introduction
+    @section xmlrpchandlerintro Introduction to the XmlRpcHandler Module
 
     This module implements server-side support for the <a href="http://en.wikipedia.org/wiki/XML-RPC">XML-RPC protocol</a> for serialization/deserialization of message data.
 
