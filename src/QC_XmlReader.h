@@ -49,6 +49,19 @@ public:
       doc->ref();
    }
 
+   DLLLOCAL QoreXmlReaderData(const QoreXmlReaderData& old, ExceptionSink* xsink) : QoreXmlReader(xsink, old.xmlstr, QORE_XML_PARSER_OPTIONS, old.doc ? old.doc->getDocPtr() : 0), doc((QoreXmlDocData*)old.doc), xmlstr(old.xmlstr) {
+      if (doc) {
+         assert(!xmlstr);
+         doc->ref();
+      }
+      else
+         xmlstr->ref();
+   }
+
+   DLLLOCAL void reset(ExceptionSink* xsink) {
+      QoreXmlReader::reset(xsink, xmlstr, QORE_XML_PARSER_OPTIONS, doc ? doc->getDocPtr() : 0);
+   }
+
    DLLLOCAL QoreXmlReaderData *copy(ExceptionSink *xsink) {
       if (doc)
 	 return new QoreXmlReaderData(doc, xsink);

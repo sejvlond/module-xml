@@ -1,4 +1,4 @@
-%define mod_ver 1.2
+%define mod_ver 1.3
 %define module_api %(qore --latest-module-api 2>/dev/null)
 %define module_dir %{_libdir}/qore-modules
 
@@ -96,6 +96,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING.LGPL COPYING.MIT README RELEASE-NOTES ChangeLog AUTHORS
 
 %changelog
+* Sat Jan 4 2014 David Nichols <david@qore.org> - 1.3
+- updated to version 1.3
+
 * Mon Nov 12 2012 David Nichols <david@qore.org> - 1.2
 - updated to version 1.2
 

@@ -8,6 +8,7 @@ noinst_HEADERS = src/QC_XmlDoc.h \
 	src/QC_XmlNode.h \
 	src/QC_XmlReader.h \
 	src/QC_XmlRpcClient.h \
+	src/QC_SaxIterator.h \
 	src/QoreXPath.h \
 	src/QoreXmlDoc.h \
 	src/QoreXmlReader.h \
@@ -22,6 +23,7 @@ EXTRA_DIST = COPYING.LGPL COPYING.MIT ChangeLog AUTHORS README \
 	src/QC_XmlNode.qpp \
 	src/QC_XmlReader.qpp \
 	src/QC_XmlRpcClient.qpp \
+	src/QC_SaxIterator.qpp \
 	src/ql_xml.qpp \
 	test/xml-test.q \
 	examples/xml-rpc-client.q \

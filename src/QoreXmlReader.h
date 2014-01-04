@@ -88,20 +88,45 @@ protected:
       return rc;
    }
 
+   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options) : xs(0) {
+      init(n_xml, options, xsink);
+   }
+
+   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, xmlDocPtr doc) : xs(0) {
+      init(doc, xsink);
+   }
+
+   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc) : xs(0) {
+      init(xsink, n_xml, options, doc);
+   }
+
+   DLLLOCAL void reset(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc) {
+      if (reader) {
+	 xmlFreeTextReader(reader);
+         reader = 0;
+      }
+      init(xsink, n_xml, options, doc);
+   }
+
+   DLLLOCAL void init(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc) {
+      assert(!xs);
+      
+      if (n_xml) {
+         assert(!doc);         
+         init(n_xml, options, xsink);
+      }
+      else {
+         assert(!n_xml);
+         init(doc, xsink);
+      }
+   }
+
 public:
    DLLLOCAL QoreXmlReader(const QoreString *n_xml, int options, ExceptionSink *xsink) : xs(xsink) {
       init(n_xml, options, xsink);
    }
 
    DLLLOCAL QoreXmlReader(xmlDocPtr doc, ExceptionSink *xsink) : xs(xsink) {
-      init(doc, xsink);
-   }
-
-   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options) : xs(0) {
-      init(n_xml, options, xsink);
-   }
-
-   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, xmlDocPtr doc) : xs(0) {
       init(doc, xsink);
    }
 
@@ -235,8 +260,12 @@ public:
 #endif
    }
 
-   DLLLOCAL bool isValid() {
+   DLLLOCAL bool isValid() const {
       return xmlTextReaderIsValid(reader) == 1;
+   }
+
+   DLLLOCAL bool isError() {
+      return xmlTextReaderIsValid(reader) < 0;
    }
 
    DLLLOCAL int moveToNextAttribute(ExceptionSink *xsink) {

@@ -25,6 +25,7 @@
 #include "QC_XmlDoc.h"
 #include "QC_XmlNode.h"
 #include "QC_XmlReader.h"
+#include "QC_SaxIterator.h"
 
 #include "ql_xml.h"
 
@@ -77,6 +78,7 @@ QoreStringNode *xml_module_init() {
    XNS.addSystemClass(initXmlNodeClass(XNS));
    XNS.addSystemClass(initXmlDocClass(XNS));
    XNS.addSystemClass(initXmlReaderClass(XNS));
+   XNS.addSystemClass(initSaxIteratorClass(XNS));
 
    XNS.addSystemClass(initXmlRpcClientClass(XNS));
 
