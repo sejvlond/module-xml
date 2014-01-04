@@ -48,7 +48,23 @@ public:
    }
 
    DLLLOCAL AbstractQoreNode* getReferencedValue(ExceptionSink* xsink) {
-      return parseXMLData(QCS_UTF8, true, xsink);
+      SimpleRefHolder<QoreStringNode> holder(getInnerXml());
+      if (!holder)
+         return 0;
+      TempEncodingHelper str(*holder, QCS_UTF8, xsink);
+      if (*xsink)
+         return 0;
+      str.makeTemp();
+      ((QoreString*)(*str))->prepend("<a>");
+      ((QoreString*)(*str))->concat("</a>");
+      
+      QoreXmlReader reader(*str, QORE_XML_PARSER_OPTIONS, xsink);
+      if (!reader)
+         return 0;
+
+      ReferenceHolder<QoreHashNode> h(reader.parseXMLData(QCS_UTF8, true, xsink), xsink);
+      AbstractQoreNode* n = h->getKeyValue("a");
+      return n ? n->refSelf() : 0;
    }
 
    DLLLOCAL bool next(ExceptionSink* xsink) {
