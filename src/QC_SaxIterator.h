@@ -35,16 +35,17 @@ DLLLOCAL QoreClass *initSaxIteratorClass(QoreNamespace& ns);
 class QoreSaxIterator : public QoreXmlReaderData, public QoreAbstractIteratorBase {
 protected:
    std::string element_name;
+   int element_depth;
    bool val;
-
+   
 public:
-   DLLLOCAL QoreSaxIterator(QoreStringNode* xml, const char* ename, ExceptionSink* xsink) : QoreXmlReaderData(xml, xsink), element_name(ename), val(false) {
+   DLLLOCAL QoreSaxIterator(QoreStringNode* xml, const char* ename, ExceptionSink* xsink) : QoreXmlReaderData(xml, xsink), element_name(ename), element_depth(-1), val(false) {
    }
 
-   DLLLOCAL QoreSaxIterator(QoreXmlDocData* doc, const char* ename, ExceptionSink* xsink) : QoreXmlReaderData(doc, xsink), element_name(ename), val(false) {
+   DLLLOCAL QoreSaxIterator(QoreXmlDocData* doc, const char* ename, ExceptionSink* xsink) : QoreXmlReaderData(doc, xsink), element_name(ename), element_depth(-1), val(false) {
    }
 
-   DLLLOCAL QoreSaxIterator(const QoreSaxIterator& old, ExceptionSink* xsink) : QoreXmlReaderData(old, xsink), element_name(old.element_name), val(false) {
+   DLLLOCAL QoreSaxIterator(const QoreSaxIterator& old, ExceptionSink* xsink) : QoreXmlReaderData(old, xsink), element_name(old.element_name), element_depth(-1), val(false) {
    }
 
    DLLLOCAL AbstractQoreNode* getReferencedValue(ExceptionSink* xsink) {
@@ -79,8 +80,13 @@ public:
             break;
          }
          if (nodeType() == XML_READER_TYPE_ELEMENT) {
+            if (element_depth >= 0 && element_depth != depth())
+               continue;
             const char* n = localName();
             if (n && element_name == n) {
+               if (element_depth == -1)
+                  element_depth = depth();
+
                if (!val)
                   val = true;
                break;
