@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file WSDL.qm WSDL: Web Services Description Language: http://www.w3.org/TR/wsdl
 
-/*  WSDL.qm Copyright 2012 David Nichols
+/*  WSDL.qm Copyright 2012 - 2014 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -1047,7 +1047,7 @@ public class WSDL::XSDComplexType inherits XSDNamedData {
 	else { # "choice" - union
 	    if (elements $h > 1)
 		throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize type %s with more than 1 member (%n)", $.getName(), keys $h);
-	    my *string $key = keys $h.firstKey();
+	    my *string $key = $h.firstKey();
 	    if (!exists $.elements.$key)
 		throw SOAP_SERIALIZATION_ERROR, sprintf("%n is an invalid member of type %n", $key, $.getName());
 
@@ -1122,6 +1122,8 @@ public class WSDL::WSOperation inherits XSDNamedData {
     public {
         WSMessage $.input;
         WSMessage $.output;
+        *string $.input_name;
+        *string $.output_name;
 	any $.types;
 	string $.targetns;
 	bool $.soap12 = False;
@@ -1146,11 +1148,13 @@ public class WSDL::WSOperation inherits XSDNamedData {
 	my any $msghash = $.processNSValue($p.input."^attributes^");
 
 	my *WSMessage $msg = $messages.($msghash.message.val);
-	if (!exists $msg)
+	if (!$msg)
 	    throw WSDL_ERROR, sprintf("missing definition for input message %n required by operation %n", $msghash.name.val, $.name);
 	$.input = $msg;
-
-	if (exists $p.output) {
+        if ($msghash.name)
+            $.input_name = $msghash.name;
+        
+	if ($p.output) {
 	    $msghash = $.processNSValue($p.output."^attributes^");
 
 	    $msg = $messages.($msghash.message.val);
@@ -1158,6 +1162,8 @@ public class WSDL::WSOperation inherits XSDNamedData {
 		throw WSDL_ERROR, sprintf("missing definition for output message %n required by operation %n", $msghash.name.val, $.name);
 
 	    $.output = $msg;
+            if ($msghash.name)
+                $.output_name = $msghash.name;
 	}
 	
 	my *string $op_ns = $.targetns;
@@ -1213,12 +1219,14 @@ public class WSDL::WSOperation inherits XSDNamedData {
 	#printf("DEBUG: docstyle=%n\n", $.docstyle);
 	if ($.docstyle)
 	    $rh."soapenv:Envelope"."soapenv:Body" = $.input.serializeDocument($.in, $mpm, $h, $.usedocns);
-	else
-	    $rh."soapenv:Envelope"."soapenv:Body" = $.input.serialize($.in, $mpm, $.name, $h);
+	else {
+            my string $mname = $.input_name ? $.input_name : $.name;
+	    $rh."soapenv:Envelope"."soapenv:Body" = $.input.serialize($.in, $mpm, $mname, $h);
+        }
 
 	my string $body = HAVE_LIBRARY_DEBUGGING ? makeFormattedXMLString($rh, $enc) : makeXMLString($rh, $enc);
 
-	if (exists $mpm) {
+	if ($mpm) {
 	    $mpm.splicePart($body, sprintf("<%s>", $.in.body.parts), $.soap12 ? MimeTypeSoapXml : MimeTypeXml);
 	    
 	    my hash $rv = $mpm.getMsgAndHeaders();
@@ -1273,8 +1281,10 @@ public class WSDL::WSOperation inherits XSDNamedData {
 	#printf("DEBUG: docstyle=%n\n", $.docstyle);
 	if ($.docstyle)
 	    $rh."soapenv:Envelope"."soapenv:Body" = $.output.serializeDocument($.out, $mpm, $h, $.usedocns);
-	else
-	    $rh."soapenv:Envelope"."soapenv:Body" = $.output.serialize($.out, $mpm, $.name, $h);
+	else {
+            my string $mname = $.input_name ? $.input_name : $.name + "Response";
+	    $rh."soapenv:Envelope"."soapenv:Body" = $.output.serialize($.out, $mpm, $mname, $h);
+        }
 
 	my string $body = HAVE_LIBRARY_DEBUGGING ? makeFormattedXMLString($rh, $enc) : makeXMLString($rh, $enc);
 
@@ -1511,22 +1521,23 @@ public class WSDL::WSMessage inherits XSDNamedData {
         hash $.args;
         bool $.encoded = False;
     }
+
     constructor(any $m, any $element_map) : XSDNamedData(\$m) {
 	#printf("DEBUG: WSMessage::constructor() m=%n element_map: %n\n", $m, $element_map);
 
 	$.name = $m."^attributes^".name;
 	foreach my any $p in ($m.part) {
 	    my any $arg = $p."^attributes^";
-	    if (exists $arg.element) {
-		my (any $ns, any $name) = $arg.element =~ x/(\w+):(\w+)/;
-		if (!exists $name)
+	    if ($arg.element) {
+		my (*string $ns, *string $name) = $arg.element =~ x/(\w+):(\w+)/;
+		if (!$name)
 		    $name = $arg.element;
 
 		if (!exists $element_map.$name) {
 		    #printf("DEBUG: WSMessage::constructor() message %n element %n (%n)\n", $.name, $arg.element, keys $element_map);
 		    throw WSDL_ERROR, sprintf("message %n references unknown element %n", $.name, $name);
 		}
-		$.args.($arg.name).element = $element_map.$name;
+		$.args.($name).element = $element_map.$name;
 	    }
 	    else {
 		$.args.($arg.name) = $arg;
@@ -1535,32 +1546,33 @@ public class WSDL::WSMessage inherits XSDNamedData {
 	}
     }
 
-    hash serialize(any $msginfo, any $mpm, any $name, any $h) {
+    hash serialize(any $msginfo, any $mpm, string $name, any $h) {
 	my hash $rh;
 	#printf("DEBUG: message %s: h=%n\n", $.name ,$h);
     
-	foreach my string $k in (keys $.args) {
-	    if (!exists $h.$k)
-		throw SOAP_SERIALIZATION_ERROR, sprintf("missing message argument %n (got %n instead)", $k, keys $h);
+	foreach my string $k in ($.args.keyIterator()) {
+	    if (!$h.$k)
+		throw SOAP_SERIALIZATION_ERROR, sprintf("missing message argument %y (got %y instead)", $k, keys $h);
 
 	    my any $hv;
 	    #printf("DEBUG: arg %n with %n\n", $k, $.args.$k);
-	    if (exists $.args.$k.element)
-		$hv = $.args.$k.element.serialize($h.$k, !$.encoded, True);
+	    if ($.args.$k.element)
+		$hv = $.args.$k.element.serialize($h.$k, !$.encoded);
 	    else
 		$hv = $.args.$k.type.serialize($h.$k, !$.encoded, True);
 	    #printf("DEBUG: arg %s got %n from %n (%n)\n", $k, $hv, $h.$k, exists $.args.$k.element ? $.args.$k.element : $.args.$k.type);
 
 	    #printf("DEBUG: WSMessage::serialize() k=%n args=%n, parts=%n\n", $k, keys $.args, $msginfo.parts);
-	    if (exists $msginfo.parts.$k) {
+	    if ($msginfo.parts.$k) {
 		my any $ct = $msginfo.parts.$k;
 		if ($ct.typeCode() == NT_LIST)
 		    $ct = shift $ct;
 		$mpm.addPart($hv, sprintf("<%s>", $k), $ct);
 		$hv."^attributes^".href = "cid:" + $k;
 	    }
-	    
-	    $rh.$k = $hv;
+
+            my string $en = $.args.$k.element ? ("ns1:" + $k) : $k;
+	    $rh.$en = $hv;
 	}
 	
 	if ($.encoded)
@@ -1595,7 +1607,7 @@ public class WSDL::WSMessage inherits XSDNamedData {
 	#my any $ns = $val.".ns";
 	$val -= ".ns";
 
-	foreach my string $key in (keys $.args) {
+	foreach my string $key in ($.args.keyIterator()) {
 	    if (!exists $val.$key)
 		throw SOAP_DESERIALIZATION_ERROR, sprintf("message %n is missing argument %n (%n)", $.name, $key, $val);
 	    
