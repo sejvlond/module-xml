@@ -1392,7 +1392,7 @@ public class WSDL::WSOperation inherits XSDNamedData {
 	# check for Soap Fault, if so raise an exception immediately with the fault info
 	WSDL::XSDBase::removeNS2(\$body);
 
-	if (exists $body.Fault) {
+	if ($body.Fault) {
 	    WSDL::XSDBase::removeNS(\$body.Fault);
 	    if ($.soap12) {
 		WSDL::XSDBase::removeNS(\$body.Fault.Code);

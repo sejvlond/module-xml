@@ -24,7 +24,7 @@
 
 
 # make sure we have the required qore version
-%requires qore >= 0.8.4
+%requires qore >= 0.8.9
 
 # requires XML functionality
 %requires xml
@@ -39,18 +39,26 @@
 %requires HttpServer >= 0.3.3
 
 module SoapHandler {
-    version = "0.2.4";
+    version = "0.2.5";
     desc = "SoapHandler module";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
 }
 
 /*  Version History
+    * 2014-01-14 v0.2.5: David Nichols <david@qore.org>: added the err_func argument 
+    *                    so SOAP response serialization errors can be logged at the source
+
     * 2012-05-31 v0.2.4: David Nichols <david@qore.org>: updated to a user module
+
     *            v0.2.3: return correct soap fault structure according to request
+
     *            v0.2.2: soap 1.2 improvements
+
     *            v0.2.1: matched to new WSDL and HttpServer implementation
+
     *            v0.2.0: better WSDL support
+
     *            v0.1.0: initial WSDL-based SOAP support (still incomplete)
 */
 
@@ -115,8 +123,9 @@ public namespace SoapHandler {
             @param logopt log options which can be used by a custom logger (see the getLogMessage parameter in the constructor)
             @param cmark an optional "context marker" for the method
             @param path an optional path for the method
+            @param err_func a call reference, a closure, or a string function name to call with error information if an exception is thrown with SOAP data
          */
-        addMethod(WebService $ws, WSOperation $op, any $func, *string $help, *int $logopt, any $cmark, *string $path) {
+        addMethod(WebService $ws, WSOperation $op, any $func, *string $help, *int $logopt, any $cmark, *string $path, any $err_func) {
             if (!$func)
                 throw "SOAP-SERVER-ADDMETHOD-PARAMETER-ERROR", sprintf("second argument is not a function name or callable value type (got: %y)", $func);
 
@@ -124,6 +133,7 @@ public namespace SoapHandler {
                                 ( "operation" : $op,
                                   "name"      : $op.name,
                                   "function"  : $func,
+                                  "err_func"  : $err_func,
                                   "help"      : $help,
                                   "logopt"    : $logopt,
                                   "cmark"     : $cmark,
@@ -338,8 +348,16 @@ public namespace SoapHandler {
                 $rv = call_function_args($method.function, $args);
 
             # if there is an output message, then serialize the response
-            if (exists $method.operation.output)
-                $h += $method.operation.serializeResponse($rv);
+            if ($method.operation.output) {
+                try {
+                    $h += $method.operation.serializeResponse($rv);
+                }
+                catch (hash $ex) {
+                    if ($method.err_func)
+                        call_function($method.err_func, $cx, $ex);
+                    rethrow;
+                }
+            }
 
             #$.log($cx, "body=%N", $h.body);
             
