@@ -97,7 +97,7 @@ public namespace SoapClient {
 
         #! @cond nodoc
         private {
-            WebService $.wsdl;  # web service definition
+            WSDL::WebService $.wsdl;  # web service definition
             string $.portType;   # service name
         }
         #! @endcond
@@ -109,15 +109,15 @@ public namespace SoapClient {
             hash $.headers = Headers;
         }
 
-        #! creates the object based on a %WSDL which is parsed to a WSDL::WebService object which provides the basis for all communication with this object
+        #! creates the object based on a %WSDL which is parsed to a @ref WSDL::WebService "WebService" object which provides the basis for all communication with this object
         /** one of either the \c wsdl or \c wsdl_file keys is required in the hash given to the constructor or an exception will be thrown
             @param h valid option keys:
-            - \c wsdl: the URL of the web service or a WSDL::WebService object itself
-            - \c wsdl_file: a path to use to load the %WSDL and create the WSDL::WebService object
+            - \c wsdl: the URL of the web service or a @ref WSDL::WebService "WebService" object itself
+            - \c wsdl_file: a path to use to load the %WSDL and create the @ref WSDL::WebService "WebService" object
             - \c url: override the target URL given in the %WSDL
             - [\c portType]: in case multiple portType entries are found in the WSDL, give the one to be used here
             - [\c port]: in case multiple port entries are found in the WSDL, give the one to be used here
-            - also all options from SoapClient::HTTPOptions, which are passed to the HTTPClient constructor
+            - also all options from SoapClient::SoapClient::HTTPOptions, which are passed to the HTTPClient constructor
         */
         constructor(hash $h) : HTTPClient($h{HTTPOptions}) {
             if (exists $h.wsdl_file && exists $h.wsdl)
@@ -196,13 +196,13 @@ public namespace SoapClient {
             #printf("DEBUG: set url to %n\n", $.url);
         }
 
-        #! returns a hash representing the serialized SOAP request for a given WSOperation
+        #! returns a hash representing the serialized SOAP request for a given @ref WSDL::WSOperation "WSOperation"
         /** the returned hash can be passed to makeXMLString() to make the actual SOAP message
 
-            @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying WebService class, an exception will be thrown
+            @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying @ref WSDL::WebService "WebService" class, an exception will be thrown
             @param h the operation parameter(s)
             @param header data structure for the SOAP header, if required by the message
-            @param op a reference to return the WSOperation object found
+            @param op a reference to return the @ref WSDL::WSOperation "WSOperation" object found
 
             @throw SOAP-CLIENT-ERROR the operation is not defined in the WSDL
         */

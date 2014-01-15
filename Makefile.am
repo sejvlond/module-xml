@@ -48,7 +48,7 @@ QDX = qdx
 DX_CLEANFILES = ${DOXYFILES} $(QLIB_TMP_DOXYFILES)
 
 docs/qlib/Doxyfile.SoapClient: docs/qlib/Doxyfile.tmpl
-	$(QDX) -M=qlib/SoapClient.qm:qlib/SoapClient.qm.dox.h $< $@
+	$(QDX) -M=qlib/SoapClient.qm:qlib/SoapClient.qm.dox.h -txml.tag=../../xml/html -tWSDL.tag=../../WSDL/html $< $@
 
 docs/qlib/SoapClient.qm.dox.h: qlib/SoapClient.qm
 	$(QDX) $< $@

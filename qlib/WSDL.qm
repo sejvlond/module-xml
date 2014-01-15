@@ -160,7 +160,8 @@ public class WSDL::WSDLLib {
     const SoapMimeTypes = (MimeTypeSoapXml, MimeTypeXml, MimeTypeXmlApp);
 
     #! retrieves a local file and returns the file's contents as a string
-    /** called by WSDLLib::getFileFromURL() in case the scheme is "file" */
+    /** called by WSDLLib::getFileFromURL() in case the scheme is "file"
+    */
     static string getFile(string $fn) {
 	my File $f();
 	$f.open2($fn);
@@ -168,7 +169,8 @@ public class WSDL::WSDLLib {
     }
 
     #! retrieves a file from a URL with HTTP and returns the file's contents as a string
-    /** called by WSDLLib::getFileFromURL() in case the scheme is "http" */
+    /** called by WSDLLib::getFileFromURL() in case the scheme is "http"
+    */
     static string getHTTP(string $url, any $path, any $hc, any $headers) {
 	if (exists $hc) {
 	    if (!($hc instanceof HTTPClient))
@@ -181,7 +183,8 @@ public class WSDL::WSDLLib {
     }
 
     #! retrieves a file from a URL with the FTP protocol and returns the file's contents as binary data
-    /** called by WSDLLib::getFileFromURL() in case the scheme is "ftp" */
+    /** called by WSDLLib::getFileFromURL() in case the scheme is "ftp"
+    */
     static binary getFTP(string $url, string $path) {
 	my string $file = basename($path);
 	if (!exists $file)
@@ -352,7 +355,7 @@ public class WSDL::WSDLLib {
     }
 }
 
-# abstract class providing helper methods to subclasses
+#! base class with helper methods for XSD data processing
 public class WSDL::XSDBase {
     static private hash doType(string $t) {
 	#printf("DEBUG: XSDBase::doType(%n, %n)\n", $t, $nsinfo);
@@ -399,8 +402,8 @@ public class WSDL::XSDBase {
     }
 }
 
-# abstract type common to all XSD classes
-public class WSDL::XSDData inherits XSDBase {
+#! base class for XSD data classes
+public class WSDL::XSDData inherits WSDL::XSDBase {
     any getValue(any $mrh, any $val) {
 	if (exists $val."^attributes^".href) {
 	    my string $href = substr($val."^attributes^".href, 1);
@@ -414,8 +417,8 @@ public class WSDL::XSDData inherits XSDBase {
     }
 }
 
-# abstract type common to all XSD classes with a "name" attribute
-public class WSDL::XSDNamedData inherits XSDData {
+#! base class for XSD classes with a "name" attribute
+public class WSDL::XSDNamedData inherits WSDL::XSDData {
     public {
         *string $.name;
         *string $.ns;
@@ -435,8 +438,8 @@ public class WSDL::XSDNamedData inherits XSDData {
     }
 }
 
-# class for XSD base types
-public class WSDL::XSDBaseType inherits XSDData {
+#! class for XSD base types
+public class WSDL::XSDBaseType inherits WSDL::XSDData {
     public {
         string $.type;
         string $.nstype;
@@ -676,8 +679,8 @@ public class WSDL::XSDBaseType inherits XSDData {
     }
 }
 
-# class for XSD array types; currently only supports "binary"; used, for example with HTTP MultiPart messages
-public class WSDL::XSDArrayType inherits XSDData {
+#! class for XSD array types; currently only supports "binary"; used, for example with HTTP MultiPart messages
+public class WSDL::XSDArrayType inherits WSDL::XSDData {
     public {
         string $.type;
     }
@@ -718,14 +721,15 @@ public class WSDL::XSDArrayType inherits XSDData {
     }
 }
 
-# XSD element class
-public class WSDL::XSDElement inherits XSDNamedData {
+#! XSD element class
+public class WSDL::XSDElement inherits WSDL::XSDNamedData {
     public {
         any $.type;
         int $.minOccurs = 1;
         int $.maxOccurs = 1;
         bool $.nillable = False;
     }
+
     constructor(hash $e, any $nsinfo, XSDLateResolverHelper $unresolved) : XSDNamedData(\$e) {
 	if ($nsinfo instanceof XSDData) {
 	    $.type = $nsinfo;
@@ -842,8 +846,8 @@ public class WSDL::XSDElement inherits XSDNamedData {
     }
 }
 
-# XSD simple type class
-public class WSDL::XSDSimpleType inherits XSDNamedData {
+#! XSD simple type class
+public class WSDL::XSDSimpleType inherits WSDL::XSDNamedData {
     public {
         any $.nsinfo;
         list $.enum = ();
@@ -904,8 +908,8 @@ public class WSDL::XSDSimpleType inherits XSDNamedData {
     }
 }
 
-# XSD complex type class
-public class WSDL::XSDComplexType inherits XSDNamedData {
+#! XSD complex type class
+public class WSDL::XSDComplexType inherits WSDL::XSDNamedData {
     public {
         any $.nsinfo;
         any $.array;
@@ -1119,7 +1123,7 @@ public class WSDL::XSDComplexType inherits XSDNamedData {
 }
 
 #! web service operation class
-public class WSDL::WSOperation inherits XSDNamedData {
+public class WSDL::WSOperation inherits WSDL::XSDNamedData {
     public {
         WSMessage $.input;
         WSMessage $.output;
@@ -1516,10 +1520,12 @@ public class WSDL::WSOperation inherits XSDNamedData {
     }
 }
 
-# web service message class
-public class WSDL::WSMessage inherits XSDNamedData {
+#! web service message class
+public class WSDL::WSMessage inherits WSDL::XSDNamedData {
     public {
         hash $.args;
+        # part map; maps part names to element names
+        hash $.pmap;
         bool $.encoded = False;
     }
 
@@ -1533,10 +1539,13 @@ public class WSDL::WSMessage inherits XSDNamedData {
 		my (*string $ns, *string $name) = $arg.element =~ x/(\w+):(\w+)/;
 		if (!$name)
 		    $name = $arg.element;
+                if ($arg.name && $arg.name != $name) {
+                    $.pmap.$name = $arg.name;
+                }
 
-		if (!exists $element_map.$name) {
+		if (!$element_map.$name) {
 		    #printf("DEBUG: WSMessage::constructor() message %n element %n (%n)\n", $.name, $arg.element, keys $element_map);
-		    throw WSDL_ERROR, sprintf("message %n references unknown element %n", $.name, $name);
+		    throw WSDL_ERROR, sprintf("message %y references unknown element %y", $.name, $name);
 		}
 		$.args.($name).element = $element_map.$name;
 	    }
@@ -1552,8 +1561,12 @@ public class WSDL::WSMessage inherits XSDNamedData {
 	#printf("DEBUG: message %s: h=%n\n", $.name ,$h);
     
 	foreach my string $k in ($.args.keyIterator()) {
-	    if (!$h.$k)
-		throw SOAP_SERIALIZATION_ERROR, sprintf("missing message argument %y (got %y instead)", $k, keys $h);
+	    if (!$h.$k) {
+                if ($.pmap.$k && !$h.$k)
+                    $h.$k = remove $h.($.pmap.$k);
+                else
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("missing message argument %y (got %y instead)", $k, $h.keys());
+            }
 
 	    my any $hv;
 	    #printf("DEBUG: arg %n with %n\n", $k, $.args.$k);
@@ -1668,7 +1681,7 @@ class WSDL::XSDImportHelper {
 }
 
 #! class for WSDL bindings
-public class WSDL::Binding inherits XSDNamedData {
+public class WSDL::Binding inherits WSDL::XSDNamedData {
     public {
 	bool $.docStyle = False;
     }
@@ -1779,7 +1792,7 @@ public class WSDL::Binding inherits XSDNamedData {
 #! main class representing a parsed WSDL file
 /** This is the main class for handling SOAP communication and is based on a WSDL file
 */
-public class WSDL::WebService inherits XSDBase {
+public class WSDL::WebService inherits WSDL::XSDBase {
     public {
         string $.wsdl;
         hash $.ns;
