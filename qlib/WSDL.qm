@@ -783,9 +783,9 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
 		}
 	        else {
 		    if (exists $key && exists $typename)
-			throw SOAP_SERIALIZATION_ERROR, sprintf("missing value for %s.%s (minOccurs=%d, type %n)", $typename, $key, $.minOccurs, $.type.getName());
-		    else
-			throw SOAP_SERIALIZATION_ERROR, sprintf("missing element value (minOccurs=%d, type %n)", $.minOccurs, $.type.getName());
+			throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value for %s.%s (minOccurs=%d, type %n)", $.name, $typename, $key, $.minOccurs, $.type.getName());
+                    else
+			throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value (minOccurs=%d, type %n)", $.name, $.minOccurs, $.type.getName());
 		}
 	    }
 	    else
