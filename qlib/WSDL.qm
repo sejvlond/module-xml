@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file WSDL.qm WSDL: Web Services Description Language: http://www.w3.org/TR/wsdl
 
-/*  WSDL.qm Copyright 2012 - 2014 David Nichols
+/*  WSDL.qm Copyright (C) 2012 - 2014 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 */
 
 # make sure we have the required qore version
-%requires qore >= 0.8.4
+%requires qore >= 0.8.9
 
 # requires XML functionality
 %requires xml
@@ -1524,7 +1524,7 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 public class WSDL::WSMessage inherits WSDL::XSDNamedData {
     public {
         hash $.args;
-        # part map; maps part names to element names
+        # part map; maps element names to part names
         hash $.pmap;
         bool $.encoded = False;
     }
@@ -1539,9 +1539,9 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
 		my (*string $ns, *string $name) = $arg.element =~ x/(\w+):(\w+)/;
 		if (!$name)
 		    $name = $arg.element;
-                if ($arg.name && $arg.name != $name) {
+
+                if ($arg.name && $arg.name != $name)
                     $.pmap.$name = $arg.name;
-                }
 
 		if (!$element_map.$name) {
 		    #printf("DEBUG: WSMessage::constructor() message %n element %n (%n)\n", $.name, $arg.element, keys $element_map);
@@ -1624,15 +1624,19 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
 	foreach my string $key in ($.args.keyIterator()) {
 	    if (!exists $val.$key)
 		throw SOAP_DESERIALIZATION_ERROR, sprintf("message %n is missing argument %n (%n)", $.name, $key, $val);
+
+            my string $rk = $key;
+            if ($.pmap.$key && !$.args.($.pmap.$key))
+                $rk = $.pmap.$key;
 	    
-	    $ro.$key = exists $.args.$key.element 
+	    $ro.$rk = $.args.$key.element 
 		? $.args.$key.element.deserialize($types, $mrh, $.getValue($mrh, $val.$key)) 
 		: $.args.$key.type.deserialize($types, $mrh, $.getValue($mrh, $val.$key));
 	}
 
 	# if there is only one argument, return it directly
 	if (elements $ro == 1)
-	    return hash_values($ro)[0];
+	    return $ro.firstValue();
 	return $ro;
     }
 
