@@ -377,28 +377,42 @@ public class WSDL::XSDBase {
 		 "val" : $type );
     }
 
-    static removeNS(reference $h) {
-	foreach my string $k in (keys $h) {
-	    my (*string $ns, *string $name) = $k =~ x/(\w+):(\w+)/;
-	    if (exists $ns) {
-		if ($h.$k.typeCode() == NT_HASH)
-		    $h.$k.ns = $ns;
-		$h.$name = $h.$k;
-		$h -= $k;
-	    }
-	}
+    static removeNS(reference $v) {
+        foreach my hash $h in (\$v) {
+            foreach my string $k in ($h.keyIterator()) {
+                my (*string $ns, *string $name) = $k =~ x/(\w+):(\w+)/;
+                if ($ns) {
+                    if ($h.$k.typeCode() == NT_HASH)
+                        $h.$k.ns = $ns;
+                    if ($h.$name) {
+                        my softlist $l = $h.$name;
+                        $l += remove $h.$k;
+                        $h.$name = $l;
+                    }
+                    else
+                        $h.$name = remove $h.$k;
+                }
+            }
+        }
     }
 
-    static removeNS2(reference $h) {
-	foreach my string $k in (keys $h) {
-	    my (*string $ns, *string $name) = $k =~ x/(\w+):(\w+)/;
-	    if (exists $ns) {
-		if ($h.$k.typeCode() == NT_HASH)
-		    $h.$k.".ns" = $ns;
-		$h.$name = $h.$k;
-		$h -= $k;
-	    }
-	}
+    static removeNS2(reference $v) {
+        foreach my hash $h in (\$v) {
+            foreach my string $k in ($h.keyIterator()) {
+                my (*string $ns, *string $name) = $k =~ x/(\w+):(\w+)/;
+                if ($ns) {
+                    if ($h.$k.typeCode() == NT_HASH)
+                        $h.$k.".ns" = $ns;
+                    if ($h.$name) {
+                        my softlist $l = $h.$name;
+                        $l += remove $h.$k;
+                        $h.$name = $l;
+                    }
+                    else
+                        $h.$name = remove $h.$k;
+                }
+            }
+        }
     }
 }
 
@@ -753,7 +767,7 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
 	if ($a.nillable == "true")
 	    $.nillable = True;
 
-	if (exists $a.type) {
+	if ($a.type) {
 	    $.type = WSDL::XSDBase::doType($a.type, $nsinfo);
 
 	    # add self to unresolved list if element type cannot be resolved
@@ -762,9 +776,9 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
 		$unresolved.add($self);
 	    }
 	}
-	else if (exists $e.simpleType)
+	else if ($e.simpleType)
 	    $.type = new XSDSimpleType($e.simpleType, $nsinfo, $unresolved);
-	else if (exists $e.complexType)
+	else if ($e.complexType)
 	    $.type = new XSDComplexType($e.complexType, $nsinfo, $unresolved);
 
 	#printf("DEBUG: XSDElement self=%N\n", $self);
@@ -861,11 +875,11 @@ public class WSDL::XSDSimpleType inherits WSDL::XSDNamedData {
 
 	WSDL::XSDBase::removeNS(\$st);
 
-	if (exists $st.restriction) {
-	    my any $r = $st.restriction;
+	if ($st.restriction) {
+	    my *hash $r = $st.restriction;
 
 	    my any $base = $r."^attributes^".base;
-	    if (!exists $base)
+	    if (!$base)
 		throw "XSD-SIMPLETYPE-ERROR", sprintf("missing 'base' attribute in simpleType %n restriction", $.name);
 
 	    $.type = WSDL::XSDBase::doType($base, $nsinfo);
@@ -876,10 +890,12 @@ public class WSDL::XSDSimpleType inherits WSDL::XSDNamedData {
 
 	    WSDL::XSDBase::removeNS(\$r);
 	    
-	    if (exists $r.enumeration)
+	    if ($r.enumeration)
 		$.enum = map $1."^attributes^".value, $r.enumeration;
+            /*
 	    else
 		throw "XSD-SIMPLETYPE-ERROR", sprintf("missing enumeration element in simpleType %n restriction", $.name);
+            */
 	}
 	else
 	    throw "XSD-SIMPLETYPE-ERROR", sprintf("missing restriction element in simpleType %n", $.name);
@@ -920,15 +936,16 @@ public class WSDL::XSDComplexType inherits WSDL::XSDNamedData {
 
 	bool $.anyAttribute = False;
     }
+
     constructor(any $ct, any $nsinfo, XSDLateResolverHelper $unresolved) : XSDNamedData(\$ct) {
 	$.nsinfo = $nsinfo;
 	#my any $a = $ct."^attributes^";
 	delete $ct."^attributes^";
 
 	my any $d = $ct.complexContent;
-	if (exists $d) {
+	if ($d) {
 	    WSDL::XSDBase::removeNS(\$d);
-	    if (exists $d.restriction) {
+	    if ($d.restriction) {
 		WSDL::XSDBase::removeNS(\$d.restriction);
 
 		my any $base = $d.restriction."^attributes^".base;
@@ -963,9 +980,9 @@ public class WSDL::XSDComplexType inherits WSDL::XSDNamedData {
 		
 		delete $d.restriction."^attributes^";
 
-		$.parseData($d.restriction, $unresolved);
+                $.parseData($d.restriction, $unresolved);
 	    }
-	    else if (exists $d.extension) {
+	    else if ($d.extension) {
 		$.extension = $d.extension."^attributes^".base;
 
 		# FIXME: check for soap encoding namespace
@@ -973,17 +990,20 @@ public class WSDL::XSDComplexType inherits WSDL::XSDNamedData {
 		delete $d.extension."^attributes^";
 		WSDL::XSDBase::removeNS(\$d.extension);
 
-		$.parseData($d.extension, $unresolved);
+                $.parseData($d.extension, $unresolved);
 	    }
 	    else
 		throw "XSD-COMPLEXCONTENT-ERROR", sprintf("can't parse complexContent %n information", $d.firstKey());
 	}
-	else
+	else if ($ct)
 	    $.parseData($ct, $unresolved);
     }
 
     private parseData(any $d, XSDLateResolverHelper $unresolved) {
 	delete $d.ns;
+        if (!$d)
+            return;
+
 	my list $el = keys $d;
 	if (inlist("anyAttribute", $el)) {
 	    $.anyAttribute = True;
@@ -1516,7 +1536,9 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
     }
 
     setInputHeader(string $part, WSMessage $msg, bool $encoded) {
-	$.iheader = ("part": $part, "msg": $msg, "encoded": $encoded);
+        # FIXME: additional header parts are ignored!!!
+        if (!$.iheader)
+            $.iheader = ("part": $part, "msg": $msg, "encoded": $encoded);
     }
 }
 
@@ -1545,7 +1567,7 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
 
 		if (!$element_map.$name) {
 		    #printf("DEBUG: WSMessage::constructor() message %n element %n (%n)\n", $.name, $arg.element, keys $element_map);
-		    throw WSDL_ERROR, sprintf("message %y references unknown element %y", $.name, $name);
+		    throw WSDL_ERROR, sprintf("message %y references unknown element %y (known elements: %y)", $.name, $name, $element_map.keys());
 		}
 		$.args.($name).element = $element_map.$name;
 	    }
@@ -1746,14 +1768,14 @@ public class WSDL::Binding inherits WSDL::XSDNamedData {
 		throw WSDL_ERROR, sprintf("cannot parse input message definition for operation %n: %n", $name, $ophash);
 
 	    # check for header
-	    if (exists $ophash.input.header) {
-		my *hash $ma = $ophash.input.header."^attributes^";
+	    foreach my hash $hh in ($ophash.input.header) {
+		my *hash $ma = $hh."^attributes^";
 		
-		if (!exists $ma.message)
-		    throw WSDL_ERROR, sprintf("input binding %y specifies a soap header element without a 'message' attribute", $.name);
+		if (!$ma.message)
+		    throw WSDL_ERROR, sprintf("input binding %y for operation %y specifies a soap header element without a 'message' attribute (attr: %y)", $.name, $name, $ma);
 
-		if (!exists $ma.part)
-		    throw WSDL_ERROR, sprintf("input binding %y specifies a soap header element without a 'part' attribute", $.name);
+		if (!$ma.part)
+		    throw WSDL_ERROR, sprintf("input binding %y for operation %y specifies a soap header element without a 'part' attribute (attr: %y)", $.name, $name, $ma);
 
 		my hash $h = XSDBase::doType($ma.message);
 		my *WSMessage $msg = $messages.($h.val);
@@ -1897,8 +1919,12 @@ public class WSDL::WebService inherits WSDL::XSDBase {
 	    return $.getBaseType($v.val);
 
 	# find type
-	if (!exists $.types.($v.val))
-	    throw WSDL_ERROR, sprintf("cannot resolve type %s%s", exists $v.ns ? sprintf("%s:", $v.ns) : "", $v.val);
+	if (!$.types.($v.val)) {
+            my string $tn = $v.val;
+            if ($v.ns)
+                $tn = $v.ns + ":" + $v.val;
+	    throw WSDL_ERROR, sprintf("cannot resolve type %y; known types: %y", $tn, $.types.keys());
+        }
 
 	return $.types.($v.val);
     }
@@ -1907,18 +1933,22 @@ public class WSDL::WebService inherits WSDL::XSDBase {
     private parseTypes(any $data, any $http_client, any $http_headers) {
 	WSDL::XSDBase::removeNS(\$data);
 
-	my any $sa = $data.schema."^attributes^";
+	my *hash $sa = $data.schema."^attributes^";
 	if ($sa.elementFormDefault == "qualified")
 	    $.usedocns = True;
-	foreach my any $schema in ($data.schema) {
+
+        my XSDLateResolverHelper $unresolved();
+
+	foreach my *hash $schema in ($data.schema) {
+            #printf("DEBUG: schema tn: %y\n", $schema."^attributes^"."targetNamespace");
 	    WSDL::XSDBase::removeNS(\$schema);
 	    #printf("DEBUG: WebService::parseTypes() schema=%N\n", $schema);
 
 	    # process XSD import if present
-	    if (exists $schema.import) {
+	    if ($schema.import) {
 		my any $a = $schema.import."^attributes^";
 		# import file
-		if (strlen($a.schemaLocation)) {
+		if ($a.schemaLocation) {
 		    my any $xsd = WSDLLib::getFileFromURL($a.schemaLocation, "http", $http_client, $http_headers);
 
 		    # parse imported XSD file and include types in our list
@@ -1948,83 +1978,84 @@ public class WSDL::WebService inherits WSDL::XSDBase {
 		}
 	    }
 
-	    my XSDLateResolverHelper $unresolved();
-	    foreach my any $st in ($schema.simpleType) {
+	    foreach my hash $st in ($schema.simpleType) {
 		my XSDSimpleType $t($st, $.ns, $unresolved);
 		$.types.($t.name) = $t;
+                #printf("DEBUG: st: %y\n", $t.name);
 	    }
 
-	    foreach my any $ct in ($schema.complexType) {
+	    foreach my hash $ct in ($schema.complexType) {
 		my XSDComplexType $t($ct, $.ns, $unresolved);
 		$.types.($t.name) = $t;
+                #printf("DEBUG: ct: %y\n", $t.name);
 	    }
 
-	    # resolve types
-	    foreach my any $e in ($unresolved.getList())
-		$e.type = $.resolveType($e.type);
+            # make element map
+            foreach my any $el in ($schema.element) {
+                my any $attr = $el."^attributes^";
+                if (exists $attr.type) {
+                    my any $t = WSDL::XSDBase::doType($attr.type, $.ns);
+                    if (!($t instanceof XSDData)) {
+                        $t = $t.val;
+                        if (!exists $.types.$t)
+                            throw WSDL_ERROR, sprintf("cannot resolve element %n type %n", $el, $t);
+                        #printf("DEBUG: adding element %n type %n\n", $attr.name, $t);
+                        $.element_map.($attr.name) = new WSDL::XSDElement(("^attributes^":("name":$attr.name)), $.types.$t, $unresolved);
+                    }
+                    else {
+                        #printf("DEBUG: adding element %n type %n\n", $attr.name, $t);
+                        $.element_map.($attr.name) = new WSDL::XSDElement(("^attributes^":("name":$attr.name)), $t, $unresolved);
+                    }
+                }
+                else {
+                    #printf("DEBUG: adding element %n\n", $attr.name);
+                    $.element_map.($attr.name) = new WSDL::XSDElement($el, $.ns, $unresolved);
+                }
+            }
+        }
 
-	    foreach my string $t in (keys $.types) {		
-		if ($.types.$t instanceof XSDComplexType) {
-		    #foreach my any $e in (keys $.types.$t."elements")
-		    #    if (!($.types.$t."elements".$e.type instanceof XSDData))
-		    #	    $.types.$t."elements".$e.type = $.resolveType($.types.$t."elements".$e.type);
+        # resolve types
+        foreach my any $e in ($unresolved.getList())
+            $e.type = $.resolveType($e.type);
 
-		    # process restriction info
-		    if (exists $.types.$t.restriction) {
-		    	my any $et = $.types.$t.restriction;
-			if (!exists $.types.$et)
-			    throw WSDL_ERROR, sprintf("complexType %s should be restricted from base type %n, but type %n is not defined", $t, $et, $et);
-			# combine base type and new type
-			$.types.$t.elements = $.types.$et.elements + $.types.$t.elements;
-			printf("extended %s with %s (%n)\n", $t, $et, keys $.types.$t.elements);
-		    }
+        foreach my string $t in ($.types.keyIterator()) {		
+            if ($.types.$t instanceof XSDComplexType) {
+                #foreach my any $e in (keys $.types.$t."elements")
+                #    if (!($.types.$t."elements".$e.type instanceof XSDData))
+                #	    $.types.$t."elements".$e.type = $.resolveType($.types.$t."elements".$e.type);
+                
+                # process restriction info
+                if ($.types.$t.restriction) {
+                    my any $et = $.types.$t.restriction;
+                    if (!exists $.types.$et)
+                        throw WSDL_ERROR, sprintf("complexType %s should be restricted from base type %n, but type %n is not defined", $t, $et, $et);
+                    # combine base type and new type
+                    $.types.$t.elements = $.types.$et.elements + $.types.$t.elements;
+                    #printf("DEBUG: extended %s with %s (%n)\n", $t, $et, keys $.types.$t.elements);
+                }
 
-		    # process extension info
-		    if (exists $.types.$t.extension) {
-			my any $et = $.types.$t.extension;
-			if (!exists $.types.$et)
-			    throw WSDL_ERROR, sprintf("complexType %s should be extended by %n, but type %n is not defined", $t, $et, $et);
-			# combine base type and new type
-			$.types.$t.elements = $.types.$et.elements + $.types.$t.elements;
-			#printf("extended %s with %s (%n)\n", $t, $et, keys $.types.$t.elements);
-		    }
+                # process extension info
+                if ($.types.$t.extension) {
+                    my any $et = $.types.$t.extension;
+                    if (!exists $.types.$et)
+                        throw WSDL_ERROR, sprintf("complexType %s should be extended by %n, but type %n is not defined", $t, $et, $et);
+                    # combine base type and new type
+                    $.types.$t.elements = $.types.$et.elements + $.types.$t.elements;
+                    #printf("DEBUG: extended %s with %s (%n)\n", $t, $et, keys $.types.$t.elements);
+                }
 
-		    # process array info
-		    if (exists $.types.$t.array) {
-			my any $et = $.types.$t.array.val;
-			$.types.$t.array = new XSDArrayType(exists $.types.$et ? $.types.$et : $et);
-		    }
-		}
-	    }
+                # process array info
+                if ($.types.$t.array) {
+                    my any $et = $.types.$t.array.val;
+                    $.types.$t.array = new XSDArrayType(exists $.types.$et ? $.types.$et : $et);
+                }
+            }
+        }
 
-	    # make element map
-	    foreach my any $el in ($schema.element) {
-		my any $attr = $el."^attributes^";
-		if (exists $attr.type) {
-		    my any $t = WSDL::XSDBase::doType($attr.type, $.ns);
-		    if (!($t instanceof XSDData)) {
-			$t = $t.val;
-			if (!exists $.types.$t)
-			    throw WSDL_ERROR, sprintf("cannot resolve element %n type %n", $el, $t);
-			#printf("DEBUG: adding element %n type %n\n", $attr.name, $t);
-			$.element_map.($attr.name) = new WSDL::XSDElement(("^attributes^":("name":$attr.name)), $.types.$t, $unresolved);
-		    }
-		    else {
-			#printf("DEBUG: adding element %n type %n\n", $attr.name, $t);
-			$.element_map.($attr.name) = new WSDL::XSDElement(("^attributes^":("name":$attr.name)), $t, $unresolved);
-		    }
-		}
-		else {
-		    #printf("DEBUG: adding element %n\n", $attr.name);
-		    $.element_map.($attr.name) = new WSDL::XSDElement($el, $.ns, $unresolved);
-		}
-	    }
-
-	    # resolve types
-	    foreach my any $e in ($unresolved.getList())
-		if (!($e.type instanceof XSDData))
-		    $e.type = $.resolveType($e.type);
-	}
+        # resolve types
+        foreach my any $e in ($unresolved.getList())
+            if (!($e.type instanceof XSDData))
+                $e.type = $.resolveType($e.type);
     }
 
     private parseMessage(any $message) {
