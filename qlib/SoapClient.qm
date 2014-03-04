@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file SoapClient.qm SOAP Client module implementation based on the WSDL classes
 
-/*  SoapClient.qm Copyright 2012 David Nichols
+/*  SoapClient.qm Copyright (C) 2012 - 2014 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -35,13 +35,14 @@
 %requires Mime >= 1.1
 
 module SoapClient {
-    version = "0.2.3";
+    version = "0.2.4";
     desc = "SoapClient module";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
 }
 
 /*  Version History
+    * 2014-03-04 v0.2.4: David Nichols <david@qore.org>: fixed URI request path, fixed agent string
     * 2012-05-31 v0.2.3: David Nichols <david@qore.org>: updated to a user module
 */
 
@@ -87,10 +88,10 @@ public namespace SoapClient {
     #! SOAP client class implementation, publically inherits qore's HTTPClient class
     public class SoapClient inherits HTTPClient {
         #! version of the implementation of this class
-        const Version = "0.2.3";
+        const Version = "0.2.4";
 
         #! default HTTP headers
-        const Headers = ("Accept": (MimeTypeSoapXml + "," + MimeTypeXml + "," + MimeTypeXmlApp), "User-Agent": ("Qore Soap Client " + SoapClient::Version));
+        const Headers = ("Accept": (MimeTypeSoapXml + "," + MimeTypeXml + "," + MimeTypeXmlApp), "User-Agent": ("Qore-Soap-Client/" + SoapClient::Version));
 
         #! option keys passed to the HTTPClient constructor
         const HTTPOptions = ( "connect_timeout", "http_version", "max_redirects", "proxy", "timeout" );
@@ -228,7 +229,7 @@ public namespace SoapClient {
         any call(string $operation, any $h, *hash $header) {
             my WSOperation $op;
             my hash $msg = $.getMsg($operation, $h, $header, \$op);
-            my hash $response = $.send($msg.body, "POST", $.url, $.headers + $msg.hdr, True);
+            my hash $response = $.send($msg.body, "POST", NOTHING, $.headers + $msg.hdr, True);
             my hash $xmldata = WSDLLib::parseSOAPMessage($response);	
             return $op.deserializeResponse($xmldata);
         }
@@ -246,7 +247,7 @@ public namespace SoapClient {
             # we have to write the request key after the HTTPClient::post() call
             on_exit $info.request.body = $msg.body;
             $info.request.headers = $.headers + $msg.hdr;
-            $info.response = $.send($msg.body, "POST", $.url, $info.request.headers, True, \$info);
+            $info.response = $.send($msg.body, "POST", NOTHING, $info.request.headers, True, \$info);
             my hash $xmldata = WSDLLib::parseSOAPMessage($info.response);
             #printf("DEBUG ans=%n\n", $info.response);
             return $op.deserializeResponse($xmldata);
@@ -268,7 +269,7 @@ public namespace SoapClient {
             # we have to write the request key after the HTTPClient::post() call
             on_exit $info.request = ("body": $msg.body, "headers": $hdr);
 
-            $info.response = $.send($msg.body, "POST", $.url, $hdr, True, \$info);
+            $info.response = $.send($msg.body, "POST", NOTHING, $hdr, True, \$info);
 
             my hash $xmldata = WSDLLib::parseSOAPMessage($info.response);
             

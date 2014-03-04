@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file SoapHandler.qm SOAP handler module providing the SoapHandler class to be registered as a handler with the Qore HttpServer module
 
-/*  SoapHandler.qm Copyright 2012 David Nichols
+/*  SoapHandler.qm Copyright (C) 2012 - 2014 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -46,6 +46,9 @@ module SoapHandler {
 }
 
 /*  Version History
+    * 2014-03-04 v0.2.5: David Nichols <david@qore.org>: added support for matching
+                         requests with soap action values
+
     * 2014-01-14 v0.2.5: David Nichols <david@qore.org>: added the err_func argument 
     *                    so SOAP response serialization errors can be logged at the source
 
@@ -76,7 +79,7 @@ public namespace SoapHandler {
     #! SoapHandler implementation; to be registered as a request handler in the HttpServer class
     public class SoapHandler inherits public AbstractHttpRequestHandler {
         #! version of the SoapHandler implementation
-        const Version = "0.2.4";
+        const Version = "0.2.5";
 
         #! @cond nodoc
         private {
@@ -86,8 +89,14 @@ public namespace SoapHandler {
             # hash of WebService objects (values) per path (keys)
             hash $.ws;
 
-            # hash: path -> top-level-method-name -> method
+            # path -> top-level-method-name -> method
             hash $.pathmethods;
+
+            # soapaction map: action -> operation
+            hash $.sam;
+
+            # path -> soapaction
+            hash $.psam;
 
             int $.loglevel;
 
@@ -153,8 +162,17 @@ public namespace SoapHandler {
             # remove path/method mappings
             delete $.pathmethods.$path;
 
+            # remove soapaction mappings
+            map delete $.sam.$1, $.psam.$path.keyIterator();
+
+            # remove path soapaction mappings
+            delete $.psam.$path;
+
             # remove method link mappings
             map delete $.methods.$1, $.th.$path.keyIterator();
+
+            # remove path method mapping
+            delete $.th.$path;
         }
 
         #! @cond nodoc
@@ -162,12 +180,29 @@ public namespace SoapHandler {
         final private addMethodInternal(WebService $ws, hash $method) {
             my string $rn = $method.operation.getTopLevelRequestName();
 
+            my *string $sa = $method.operation.soapAction;
+            if ($sa)
+                $method.soap_action = $sa;
+
             $.rwl.writeLock();
             on_exit $.rwl.writeUnlock();
+
+            if ($sa) {
+                if (!$.sam.$sa)
+                    $.sam.$sa = $method;
+                else if ($.sam.$sa.operation != $method.operation)
+                    throw "SOAPACTION-ERROR", sprintf("cannot register soapAction %y for operation %y because it is already registered for operation %y", $sa, $method.operation.name, $.sam.$sa.operation.name);
+            }
+
+            #printf("DEBUG: SoapHandler::addMethodIntern() method: %N\n", $method);
 
             # map top-level element to method
             if ($method.path) {
                 my string $path = $method.path;
+
+                # add path / soapaction mapping for service removal
+                if ($sa && !$.psam.$path.$sa)
+                    $.psam.$path.$sa = True;
 
                 # add link to WebService object
                 if (!$.ws.$path)
@@ -188,7 +223,7 @@ public namespace SoapHandler {
                     $.methods.$rn = $method;
             }
                 
-            #printf("DEBUG: addMethodInternal() %N %N\n", $method.name, $method.path);
+            #printf("DEBUG: SoapHandler::addMethodInternal() %N %N\n", $method.name, $method.path);
         }
 
         private *hash help(hash $cx) {
@@ -247,32 +282,40 @@ public namespace SoapHandler {
         }
 
         # don't reimplement this method; fix/enhance it in the module
-        final private hash callOperation(hash $cx, any $args) {
-            my $element = $cx.element;
+        final private hash callOperation(hash $cx, any $args, *string $soapaction) {
+            my *string $element = $cx.element;
 
             my *hash $method;
             {
                 $.rwl.readLock();
                 on_exit $.rwl.readUnlock();
 
-                if (exists $cx.url.path) {
-                    my $path = $cx.url.path;
-                    # prepend "/" if it's not already there
-                    if ($path !~ /^\//)
-                        $path =~ s/(.*)/\/$1/;
-
-                    $method = $.pathmethods.$path.$element;
-                    #printf("DEBUG: path=%n method exists=%n (%n)\n", $path, exists $method, keys $.pathmethod);
+                # first match with soapaction if possible
+                if ($soapaction && $.sam.$soapaction) {
+                    $method = $.sam.$soapaction;
+                    #printf("DEBUG: request matched with SoapAction %y\n", $soapaction);
                 }
+                else {
+                    if ($cx.url.path) {
+                        my string $path = $cx.url.path;
+                        # prepend "/" if it's not already there
+                        if ($path !~ /^\//)
+                            $path =~ s/(.*)/\/$1/;
 
-                if (!exists $method)
-                    $method = $.methods.$element;
+                        $method = $.pathmethods.$path.$element;
+                        #printf("DEBUG: SoapHandler::callOperation() path: %y method exists: %y (%y)\n", $path, exists $method, keys $.pathmethods);
+                        #printf("DEBUG: SoapHandler::callOperation() cx: %y\n", $cx);
+                    }
 
-                #printf("DEBUG: found element %N method %N\n", $element, $method);
-                if (!exists $method) {
-                    if (!exists $element)
-                        throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $cx);	    
-                    throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot map top-level element %n to a SOAP operation: %s", $element, elements $.methods ? sprintf("currently recognized top-level elements: %n", keys $.methods) : "no SOAP services are currently registered");
+                    if (!$method)
+                        $method = $.methods.$element;
+
+                    #printf("DEBUG: found element %N method %N\n", $element, $method);
+                    if (!$method) {
+                        if (!$element)
+                            throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $cx);	    
+                        throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot map top-level element %n to a SOAP operation: %s", $element, elements $.methods ? sprintf("currently recognized top-level elements: %n", keys $.methods) : "no SOAP services are currently registered");
+                    }
                 }
             }
 
@@ -371,6 +414,12 @@ public namespace SoapHandler {
             #printf("soap handler context=%y hdr=%y body=%y keys ws=%y\n", $cx, $hdr, $body, keys $.ws);
             $cx.http_header = $hdr;
             $cx.http_body = $body;
+
+            my *string $soapaction = ($hdr."content-type" =~ x/;action=(.+)/)[0];
+            if ($soapaction)
+                $hdr."content-type" =~ s/;.+$/;#/;
+            else
+                $soapaction = $hdr.soapaction;
 
             my $args;
             my $reqsoap12; # set to True if soap 1.2 envelope is used in request
@@ -479,7 +528,7 @@ public namespace SoapHandler {
             }
             try {
                 #printf("DEBUG: context: %N\nargs: %N\n", $cx, $args);
-                return ("code": 200) + $.callOperation($cx, $args);
+                return ("code": 200) + $.callOperation($cx, $args, $soapaction);
             }
             catch ($ex) {
                 my string $str = sprintf("exception in %s:%d: %s: %s (2: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);

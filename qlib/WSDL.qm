@@ -864,6 +864,7 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
 public class WSDL::XSDSimpleType inherits WSDL::XSDNamedData {
     public {
         any $.nsinfo;
+        # FIXME: use hash
         list $.enum = ();
         any $.type;
     }
@@ -1057,7 +1058,7 @@ public class WSDL::XSDComplexType inherits WSDL::XSDNamedData {
 	my hash $rh;
 
 	if ($.hash_type == XET_SEQUENCE || $.hash_type == XET_ALL) {
-	    foreach my string $p in (keys $.elements) {
+	    foreach my string $p in ($.elements.keyIterator()) {
 		#printf("DEBUG element=%s=%y\nvalue=%y\n", $p, $.elements.$p, $h.$p);
 		my any $e = $.elements.$p.serialize($h.$p, $omit_type, $omit_ns, $p, $.name);
 		if (exists $e) {
@@ -1580,11 +1581,11 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
 
     hash serialize(any $msginfo, any $mpm, string $name, any $h) {
 	my hash $rh;
-	#printf("DEBUG: message %s: h=%n\n", $.name ,$h);
+	#printf("DEBUG: message %s: h=%y\n", $.name ,$h);
     
 	foreach my string $k in ($.args.keyIterator()) {
-	    if (!$h.$k) {
-                if ($.pmap.$k && !$h.$k)
+	    if (!exists $h.$k) {
+                if ($.pmap.$k && !exists $h.$k)
                     $h.$k = remove $h.($.pmap.$k);
                 else
                     throw SOAP_SERIALIZATION_ERROR, sprintf("missing message argument %y (got %y instead)", $k, $h.keys());
