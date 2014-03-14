@@ -42,6 +42,7 @@ module SoapClient {
 }
 
 /*  Version History
+    * 2014-03-14 v0.2.4: David Nichols <david@qore.org>: added optional logging closures, added SOAP headers to info hash when available
     * 2014-03-04 v0.2.4: David Nichols <david@qore.org>: fixed URI request path, fixed agent string
     * 2012-05-31 v0.2.3: David Nichols <david@qore.org>: updated to a user module
 */
@@ -74,6 +75,8 @@ my any $result = $sc.call("SubmitDocument", $msg);
       - \c "url": to override the URL defined in the WSDL
       - \c "headers": to override any HTTP headers sent in outgoing messages
       - \c "event_queue": to set an I/O event queue on the HTTPClient
+      - \c "log": a @ref closure "closure" or @ref call_reference "call reference" taking a single string argument for informational logging
+      - \c "dbglog": a @ref closure "closure" or @ref call_reference "call reference" taking a single string argument for verbose technical debugging logging
     
     Also the following keys can be set to set HTTP options:
     - \c "connect_timeout"
@@ -100,6 +103,9 @@ public namespace SoapClient {
         private {
             WSDL::WebService $.wsdl;  # web service definition
             string $.portType;   # service name
+
+            *code $.log;
+            *code $.dbglog;
         }
         #! @endcond
 
@@ -124,7 +130,7 @@ public namespace SoapClient {
             if (exists $h.wsdl_file && exists $h.wsdl)
                 throw "SOAP-CLIENT-ERROR", "only one of 'wsdl' or 'wsdl_file' keys can be given; both were passed";
 
-            if (exists $h.event_queue)
+            if ($h.event_queue)
                 $.setEventQueue($h.event_queue);
 
             my any $wsdl;
@@ -194,7 +200,11 @@ public namespace SoapClient {
 
             # set URL
             $.setURL($.url);
-            #printf("DEBUG: set url to %n\n", $.url);
+
+            if ($h.log)
+                $.log = $h.log;
+            if ($h.dbglog)
+                $.dbglog = $h.dbglog;
         }
 
         #! returns a hash representing the serialized SOAP request for a given @ref WSDL::WSOperation "WSOperation"
@@ -229,8 +239,21 @@ public namespace SoapClient {
         any call(string $operation, any $h, *hash $header) {
             my WSOperation $op;
             my hash $msg = $.getMsg($operation, $h, $header, \$op);
-            my hash $response = $.send($msg.body, "POST", NOTHING, $.headers + $msg.hdr, True);
-            my hash $xmldata = WSDLLib::parseSOAPMessage($response);	
+
+            my hash $info.request.headers = $.headers + $msg.hdr;
+            # we have to write the request key after the HTTPClient::post() call
+            on_exit $info.request.body = $msg.body;
+            if ($header)
+                $info.request.soap_headers = $header;
+
+            my date $now = now_us();
+            on_exit {
+                $.log("completed call to %y: %y", $operation, now_us() - $now);
+                $.dbglog("info: %N", $info);
+            }
+
+            $info.response = $.send($msg.body, "POST", NOTHING, $.headers + $msg.hdr, True, \$info);
+            my hash $xmldata = WSDLLib::parseSOAPMessage($info.response);	
             return $op.deserializeResponse($xmldata);
         }
 
@@ -247,6 +270,13 @@ public namespace SoapClient {
             # we have to write the request key after the HTTPClient::post() call
             on_exit $info.request.body = $msg.body;
             $info.request.headers = $.headers + $msg.hdr;
+
+            my date $now = now_us();
+            on_exit {
+                $.log("completed call to %y: %y", $operation, now_us() - $now);
+                $.dbglog("info: %N", $info);
+            }
+
             $info.response = $.send($msg.body, "POST", NOTHING, $info.request.headers, True, \$info);
             my hash $xmldata = WSDLLib::parseSOAPMessage($info.response);
             #printf("DEBUG ans=%n\n", $info.response);
@@ -269,6 +299,12 @@ public namespace SoapClient {
             # we have to write the request key after the HTTPClient::post() call
             on_exit $info.request = ("body": $msg.body, "headers": $hdr);
 
+            my date $now = now_us();
+            on_exit {
+                $.log("completed call to %y: %y", $operation, now_us() - $now);
+                $.dbglog("info: %N", $info);
+            }
+
             $info.response = $.send($msg.body, "POST", NOTHING, $hdr, True, \$info);
 
             my hash $xmldata = WSDLLib::parseSOAPMessage($info.response);
@@ -286,5 +322,16 @@ public namespace SoapClient {
         any methodGate(string $op, any $arg) {
             return $.call($op, $arg);
         }
+       
+        log(string $msg) {
+            if ($.log)
+                call_function($.log, "SoapClient: " + trim(vsprintf($msg, $argv)));
+        }
+
+        dbglog(string $msg) {
+            if ($.dbglog)
+                call_function($.dbglog, "SoapClient: " + trim(vsprintf($msg, $argv)));
+        }
+
     }
 }
