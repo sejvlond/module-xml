@@ -332,6 +332,5 @@ public namespace SoapClient {
             if ($.dbglog)
                 call_function($.dbglog, "SoapClient: " + trim(vsprintf($msg, $argv)));
         }
-
     }
 }
