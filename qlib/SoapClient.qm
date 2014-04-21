@@ -322,6 +322,10 @@ public namespace SoapClient {
         any methodGate(string $op, any $arg) {
             return $.call($op, $arg);
         }
+
+        hash getType(string $type, any $v) {
+            return $.wsdl.getType($type, $v);
+        }
        
         log(string $msg) {
             if ($.log)
