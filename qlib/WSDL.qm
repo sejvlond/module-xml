@@ -466,8 +466,8 @@ public class WSDL::XSDAbstractType inherits WSDL::XSDNamedData {
     constructor(string $name, string $ns) : XSDNamedData($name, $ns) {
     }
 
-    checkExtends(XSDAbstractType $t) {
-        throw SOAP_SERIALIZATION_ERROR, sprintf("explicit type %y given for type %y, however the types are not compatible", $.name, $t.name);
+    checkExtends(XSDAbstractType $t, string $ename) {
+        throw SOAP_SERIALIZATION_ERROR, sprintf("explicit type %y given for element %y, type %y, however the types are not compatible", $.name, $ename, $t.name);
     }
 
     string getNameWithNS() {
@@ -816,32 +816,31 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
     }
 
     any serializeAs(XSDAbstractType $type, any $h, *softbool $omit_type, *softbool $omit_ns, string $key, string $typename) {
-        $type.checkExtends($.type);
-        return ("^attributes^": ("xsi:type": $omit_ns ? $type.getName() : $type.getNameWithNS())) + 
-            $.serializeAsIntern($type, $h, $omit_type, $omit_ns, $key, $.name);
+        $type.checkExtends($.type, $.name);
+        return $.serializeAsIntern($type, $h, $omit_type, $omit_ns, $key, $.name);
     }
 
     private any serializeAsIntern(XSDAbstractType $type, any $h, *softbool $omit_type, *softbool $omit_ns, string $key, string $typename) {
         #printf("DEBUG: XSDElement::serializeAsIntern() name: %y h: %y key: %y typename: %y\n", $.name, $h, $key, $typename);
 
 	if (!exists $h) {
-	    if ($.minOccurs) {
-		if ($.nillable) {
-		    my hash $rh = ("xsi:nil" : "true");
-		    if (!$omit_type)
-			$rh += ("xsi:type" : $type.getNameWithNS());
-		    return ("^attributes^" : $rh);
-		}
-	        else {
-		    if (exists $key && exists $typename)
-			throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value for %s.%s (minOccurs=%d, type %n)", $.name, $typename, $key, $.minOccurs, $type.getName());
-                    else
-			throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value (minOccurs=%d, type %n)", $.name, $.minOccurs, $type.getName());
-		}
-	    }
-	    else
-		return;
+	    if (!$.minOccurs)
+                return;
+
+            if ($.nillable) {
+                my hash $rh = ("xsi:nil" : "true");
+                if (!$omit_type)
+                    $rh += ("xsi:type" : $type.getNameWithNS());
+                return ("^attributes^" : $rh);
+            }
+
+            throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value for %s.%s (minOccurs=%d, type %n)", $.name, $typename, $key, $.minOccurs, $type.getName());
 	}
+
+        my *hash $pf;
+        if ($omit_type && $type != $.type)
+            $pf = ("^attributes^": ("xsi:type": $omit_ns ? $type.getName() : $type.getNameWithNS()));
+
 	if ($h.typeCode() == NT_LIST) {
 	    if ($h.size() == 1)
 		$h = $h[0];
@@ -855,7 +854,7 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
 		
 		my list $l = ();
 		foreach my any $e in ($h) {
-		    $l += $type.serialize($e, $omit_type, $omit_ns);
+		    $l += ($pf + $type.serialize($e, $omit_type, $omit_ns));
 		}
 		return $l;
 	    }
@@ -864,7 +863,7 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
 	    throw SOAP_SERIALIZATION_ERROR, sprintf("only one element passed to element %y of type %y, but minOccurs = %d", $.name, $type.getName(), $.minOccurs);
 
 	#printf("DEBUG: element %y type %s: %y omit_type: %y omit_ns: %y h: %y\n", $.name, $type.className(), $type.name, $omit_type, $omit_ns, $h);
-	return $type.serialize($h, $omit_type, $omit_ns);
+	return ($pf + $type.serialize($h, $omit_type, $omit_ns));
     }
 
     any deserialize(*hash $types, *hash $mrh, any $val) {
@@ -1039,11 +1038,10 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 	    $.parseData($ct, $unresolved);
     }
 
-    checkExtends(XSDAbstractType $t) {
+    checkExtends(XSDAbstractType $t, string $ename) {
         if ($.extension == $t.name)
             return;
-        throw SOAP_SERIALIZATION_ERROR, sprintf("explicit type %y given for type %y, however the types are not compatible%s", $.name, $t.name,
-            $.extension ? sprintf("; %y extends %y", $.name, $.extension) : "");
+        throw SOAP_SERIALIZATION_ERROR, sprintf("explicit type %y given for element %y, type %y, however the types are not compatible%s", $.name, $ename, $t.name, $.extension ? sprintf("; %y extends %y", $.name, $.extension) : "");
     }
 
     private parseData(any $d, XSDLateResolverHelper $unresolved) {
@@ -1101,7 +1099,7 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
     private *hash serializeElement(string $key, any $h, *softbool $omit_type, *softbool $omit_ns) {
         my any $e;
         my any $v = $h.$key;
-        if ($v."^type^" && $v."^type^".typeCode() == NT_OBJECT && $v.hasKey("^val^")) {
+        if ($v."^type^" && $v."^type^" instanceof XSDAbstractType && $v.hasKey("^val^")) {
             #printf("DBG: type: %s: %y val: %y\n", $v."^type^".className(), $v."^type^".name, $v."^val^");
             $e = $.elements.$key.serializeAs($v."^type^", $v."^val^", $omit_type, $omit_ns, $key, $.name);
         }
@@ -1153,20 +1151,21 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 	return $rh;
     }
     
-    *hash deserialize(string $en, *hash $types, *hash $mrh, any $val) {
+    *hash deserialize(string $en, *hash $types, *hash $mrh, any $oval) {
 	if (exists $.array)
-	    return $.array.deserialize($en, $types, $mrh, $val);
+	    return $.array.deserialize($en, $types, $mrh, $oval);
 
-        if (!exists $val) {
+        if (!exists $oval) {
             if (!$.required)
                 return;
         }
 
-	if ($val.typeCode() != NT_HASH)
-	    throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y type %y from qore type %n (expecting hash)", $en, $.getName(), type($val));
+	if ($oval.typeCode() != NT_HASH)
+	    throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y type %y from qore type %n (expecting hash)", $en, $.getName(), type($oval));
 
 	my hash $rh;
 
+        my hash $val = $oval;
 	my any $attr = $val."^attributes^";
 	delete $val."^attributes^";
 
@@ -1176,8 +1175,16 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 	    my (any $ns, any $name) = $tn =~ x/(.*):(.*)/;
 	    if (exists $name)
 		$tn = $name;
-	    if ($tn != $.name)
+	    if ($tn != $.name) {
+                printf("%y: %s\n", $tn, $types.$tn ? $types.$tn.className() : "n/a");
+                # check for compatible extension
+                if ($types.$tn) {
+                    $types.$tn.checkExtends($self, $en);
+                    return $types.$tn.deserialize($en, $types, $mrh, $oval);
+                }
+                
 		throw SOAP_DESERIALIZATION_ERROR, sprintf("expecting ComplexType type %n for element %y, got %n", $.getName(), $en, $tn);
+            }
 	}
 
 	WSDL::XSDBase::removeNS2(\$val);
@@ -1198,7 +1205,7 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 	else { # "choice" - union
 	    my any $kl = keys $val;
 	    if (elements $kl > 1)
-		throw SOAP_DESERIALIZATION_ERROR, sprintf("too many elements supplied for union type %n for element %y (%y)", $.getName(), $en, $kl);
+		throw SOAP_DESERIALIZATION_ERROR, sprintf("too many elements supplied for union type %y for element %y (%y)", $.getName(), $en, $kl);
 	    $kl = $kl[0];
 	    if (!exists $.elements.$kl)
 		throw SOAP_DESERIALIZATION_ERROR, sprintf("element %y is not a valid element for union type %y for element %y", $kl, $.getName(), $en);
