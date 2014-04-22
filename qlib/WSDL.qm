@@ -1496,28 +1496,29 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
 	if ($body.Fault) {
 	    WSDL::XSDBase::removeNS(\$body.Fault);
+            delete $body.Fault.".ns";
 	    if ($.soap12) {
 		WSDL::XSDBase::removeNS(\$body.Fault.Code);
 		WSDL::XSDBase::removeNS(\$body.Fault.Reason);
-		my string $desc = sprintf("The following fault response was received from the server: code=%n", $body.Fault.Code.Value);
+		my string $desc = sprintf("The following fault response was received from the server: code: %y", $body.Fault.Code.Value);
 		my any $sc = $body.Fault.Code.Subcode;
 		while (exists $sc) {
 		    WSDL::XSDBase::removeNS(\$sc);
-		    $desc += sprintf(", subcode=%n", $sc.Value);
+		    $desc += sprintf(", subcode: %y", $sc.Value);
 		    $sc = $sc.Subcode;
 		}
 		foreach my any $rn in ($body.Fault.Reason.Text) {
-		    $desc += sprintf(", text=%n", $rn);
+		    $desc += sprintf(", text: %y", $rn);
 		}
 		
 		throw "SOAP-SERVER-FAULT-RESPONSE", $desc, $body.Fault;
 	    }
 	    else {
-		my string $desc = sprintf("The following fault response was received from the server: code=%n", $body.Fault.faultcode);
+		my string $desc = sprintf("The following fault response was received from the server: code: %y", $body.Fault.faultcode);
 		if (exists $body.Fault.faultstring)
-		    $desc += sprintf(", faultstring=%n", $body.Fault.faultstring);
+		    $desc += sprintf(", faultstring: %y", $body.Fault.faultstring);
 		if (exists $body.Fault.desc)
-		    $desc += sprintf(", desc=%n", $body.Fault.desc);
+		    $desc += sprintf(", desc: %y", $body.Fault.desc);
 		
 		throw "SOAP-SERVER-FAULT-RESPONSE", $desc, $body.Fault;
 	    }
