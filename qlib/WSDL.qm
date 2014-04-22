@@ -1176,7 +1176,7 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 	    if (exists $name)
 		$tn = $name;
 	    if ($tn != $.name) {
-                printf("%y: %s\n", $tn, $types.$tn ? $types.$tn.className() : "n/a");
+                #printf("DEBUG: %y: %s\n", $tn, $types.$tn ? $types.$tn.className() : "n/a");
                 # check for compatible extension
                 if ($types.$tn) {
                     $types.$tn.checkExtends($self, $en);
