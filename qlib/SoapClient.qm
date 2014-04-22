@@ -292,7 +292,7 @@ public namespace SoapClient {
             }
             catch (hash $ex) {
                 # allow fault responses returned with a 500-series status code to be processed as a SOAP fault so that error information is returned in the exception
-                if (ex.err == "HTTP-CLIENT-RECEIVE-ERROR" && ex.arg.status_code >= 500 && ex.arg.status_code < 600 && ex.arg.body =~ /<\?xml.*Fault/)
+                if ($ex.err == "HTTP-CLIENT-RECEIVE-ERROR" && $ex.arg.status_code >= 500 && $ex.arg.status_code < 600 && $ex.arg.body =~ /<\?xml.*Fault/)
                     $info.response = $ex.arg;
                 else
                     rethrow;
