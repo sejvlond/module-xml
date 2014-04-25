@@ -175,9 +175,12 @@ public namespace SoapClient {
                 $.url = $h.url;
             else {
                 my string $port;
+                if (!$.wsdl.services.port)
+                    throw "SOAP-CLIENT-ERROR", sprintf("cannot find any port definitions in WSDL");
+
                 if (elements $.wsdl.services.port > 1) {
                     if (exists $h.binding) {
-                        foreach my string $p in (keys $.wsdl.services.port) {
+                        foreach my string $p in ($.wsdl.services.port.keyIterator()) {
                             #printf("b=%y == %y\n", $.wsdl.services.port.$p.binding.val, $h.binding);
                             if ($.wsdl.services.port.$p.binding.val === $h.binding) {
                                 $port = $p;
@@ -187,15 +190,14 @@ public namespace SoapClient {
                         if (!exists $port)
                             throw "SOAP-CLIENT-ERROR", sprintf("cannot find any port with binding: %y (valid ports: %y)", $h.binding, keys $.wsdl.services.port);
                     }
-                    else if (exists $h.port) {
-                        if (!exists $.wsdl.services.port)
+                    else if ($h.port) {
+                        if (!exists $.wsdl.services.port.($h.port))
                             throw "SOAP-CLIENT-ERROR", sprintf("cannot find any port %y (valid ports: %y)", $h.port, keys $.wsdl.services.port);
                         $port = $h.port;
                     }
-                    else
-                        throw "SOAP-CLIENT-ERROR", sprintf("don't know how to handle more than one port in a WSDL (this WSDL has %n)", keys $.wsdl.services.port);
                 }
-                else
+
+                if (!$port)
                     $port = ($.wsdl.services.port).firstKey();
 
                 $.url = $.wsdl.services.port.$port.address;

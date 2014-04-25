@@ -474,6 +474,10 @@ public class WSDL::XSDAbstractType inherits WSDL::XSDNamedData {
         return $.ns + ":" + $.name;
     }
 
+    bool required() {
+        return True;
+    }
+
     abstract any serialize(any $val, *softbool $omit_type, *softbool $omit_ns);
     abstract any deserialize(string $en, *hash $types, *hash $mrh, any $val);
 }
@@ -808,7 +812,7 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
     }
 
     bool required() {
-        return !$.nillable && $.minOccurs;
+        return !$.nillable && $.minOccurs && (($.type instanceof XSDAbstractType && $.type.required()) | True);
     }
 
     any serialize(any $h, *softbool $omit_type, *softbool $omit_ns, string $key, string $typename) {
@@ -834,6 +838,9 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
                 return ("^attributes^" : $rh);
             }
 
+            if (!$type.required())
+                return;
+            
             throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value for %s.%s (minOccurs=%d, type %n)", $.name, $typename, $key, $.minOccurs, $type.getName());
 	}
 
@@ -1161,7 +1168,7 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
         }
 
 	if ($oval.typeCode() != NT_HASH)
-	    throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y type %y from qore type %n (expecting hash)", $en, $.getName(), type($oval));
+	    throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y type %y from qore type %y (expecting hash)", $en, $.getName(), type($oval));
 
 	my hash $rh;
 
@@ -1278,22 +1285,26 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
     setDocStyle(reference $idocmap) {
 	$.docstyle = True;
 
+        /*
 	if (elements $.input.args > 1)
 	    throw WSDL_ERROR, sprintf("don't know how to handle document-style messages for operation %n that has more than one top-level part (%n)",
 					$.name, keys $.input.args);
+        */
 
-	my any $arg = ($.input.args).firstKey();
-	my any $element = $.input.args.$arg.element.name;
-	$.request_name = $element;
-	$idocmap.$element = $.input.args.$arg.element;
-    }		
+        foreach my string $key in ($.input.args.keyIterator()) {
+            my string $element = $.input.args.$key.element.name;
+            $idocmap.$element = $.input.args.$key.element;
+            if (!$.request_name)
+                $.request_name = $element;
+        }
+    }	
 
     setTopLevelRequestElement(string $name) {
 	$.request_name = $name;
     }
 
     string getTopLevelRequestName() {
-	return exists $.request_name ? $.request_name : $.name;
+	return $.request_name ? $.request_name : $.name;
     }
 
     #! serializes a request to an XML string for the operation
@@ -1311,8 +1322,10 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	# ns1 (( "^attributes^" : 
 	$rh."soapenv:Envelope"."^attributes^" += ( "xmlns:ns1" : $.targetns );
 
-	if ($.iheader && $header)
-	    $rh."soapenv:Envelope"."soapenv:Header" = $.iheader.msg.serializeDocument($.iheader.part, NOTHING, NOTHING, $header, $.usedocns);
+	if ($.iheader && $header) {
+            my hash $hh.($.iheader.part) = $header;
+	    $rh."soapenv:Envelope"."soapenv:Header" = $.iheader.msg.serializeDocument($.iheader.part, NOTHING, NOTHING, $hh, $.usedocns);
+        }
 
 	my MultiPartRelatedMessage $mpm;
 	# do we have mime/multipart input format?
@@ -1450,18 +1463,11 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	#printf("mrh=%N\n", $mrh.mrh);
 	#printf("operation=%N\n", $self); 
 
-	my any $msg;
-	foreach my string $key in ($body.keyIterator()) {
-	    if ($key != "^attributes^") {
-		$msg = $body.$key;
-		break;
-	    }
-	}
-
 	# remove namespace tags from element names
-	WSDL::XSDBase::removeNS2(\$msg);
+	WSDL::XSDBase::removeNS2(\$body);
+        remove $body.".ns";
 
-	return ($mrh, $msg);
+	return ($mrh, $body);
     }
 
     #! parses a hash representing a parsed XML request (parsed with parseXMLAsData()) for the operation and returns the corresponding Qore data structure
@@ -1474,12 +1480,22 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
 	my hash $body = $o.Envelope.Body;
 
-	my (*hash $mrh, any $msg) = $.processMultiRef($body);
+	my (*hash $mrh, hash $msg) = $.processMultiRef($body);
 
 	#my any $ns = $msg.".ns";
-	$msg -= ".ns";
+	$msg -= ("ns", ".ns");
 
-	return $.docstyle ? $.input.deserializeDocument($.types, $mrh, $msg) : $.input.deserialize($.types, $mrh, $msg);
+        if ($.docstyle)
+            return $.input.deserializeDocument($.types, $mrh, $msg);
+
+        my string $mname = $.input_name ? $.input_name : $.name;
+        if (!$msg.$mname)
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("missing input message name %y as top-level element; got elements: %y", $mname, keys $msg);
+        $msg = remove $msg.$mname;
+        XSDBase::removeNS2(\$msg);
+        remove $msg.".ns";
+
+	return $.input.deserialize($.types, $mrh, $msg);
     }
 
     #! parses a hash representing a parsed XML response (parsed with parseXMLAsData()) for the operation and returns the corresponding Qore data structure
@@ -1492,11 +1508,7 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
 	my hash $body = $o.Envelope.Body;
 
-	my (*hash $mrh, any $msg) = $.processMultiRef($body);
-
-	#my any $ns = $msg.".ns";
-        if ($msg.typeCode() == NT_HASH)
-            $msg -= ".ns";
+	my (*hash $mrh, hash $msg) = $.processMultiRef($body);
 
 	# check for Soap Fault, if so raise an exception immediately with the fault info
 	WSDL::XSDBase::removeNS2(\$body);
@@ -1531,7 +1543,17 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	    }
 	}
 
-	return $.docstyle ? $.output.deserializeDocument($.types, $mrh, $msg) : $.output.deserialize($.types, $mrh, $msg);
+        if ($.docstyle)
+            return $.output.deserializeDocument($.types, $mrh, $msg);
+
+        my string $mname = $.input_name ? $.input_name : $.name + "Response";
+        if (!$msg.$mname)
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("missing output message name %y as top-level element; got elements: %y", $mname, keys $msg);
+        $msg = remove $msg.$mname;
+        XSDBase::removeNS2(\$msg);
+        $msg -= (".ns", "ns");
+
+        return $.output.deserialize($.types, $mrh, $msg);
     }
 
     private hash processNSValue(hash $h) {
@@ -1669,20 +1691,28 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
 	#printf("DEBUG: message %s: h=%y\n", $.name ,$h);
     
 	foreach my string $k in ($.args.keyIterator()) {
+            my any $v;
+            if ($h.hasKey($k))
+                $v = remove $h.$k;
+            else if ($.pmap.$k && !exists $h.$k)
+                $v = remove $h.($.pmap.$k);
+            
+            /*
 	    if (!exists $h.$k) {
                 if ($.pmap.$k && !exists $h.$k)
                     $h.$k = remove $h.($.pmap.$k);
                 else
                     throw SOAP_SERIALIZATION_ERROR, sprintf("missing message argument %y (got %y instead)", $k, $h.keys());
             }
+            */
 
 	    my any $hv;
 	    #printf("DEBUG: arg %n with %n\n", $k, $.args.$k);
 	    if ($.args.$k.element)
-		$hv = $.args.$k.element.serialize($h.$k, !$.encoded, NOTHING, $k, $.name);
+		$hv = $.args.$k.element.serialize($v, !$.encoded, NOTHING, $k, $.name);
 	    else
-		$hv = $.args.$k.type.serialize($h.$k, !$.encoded, True);
-	    #printf("DEBUG: arg %s got %n from %n (%n)\n", $k, $hv, $h.$k, exists $.args.$k.element ? $.args.$k.element : $.args.$k.type);
+		$hv = $.args.$k.type.serialize($v, !$.encoded, True);
+	    #printf("DEBUG: arg %s got %n from %n (%n)\n", $k, $hv, $v, exists $.args.$k.element ? $.args.$k.element : $.args.$k.type);
 
 	    #printf("DEBUG: WSMessage::serialize() k=%n args=%n, parts=%n\n", $k, keys $.args, $msginfo.parts);
 	    if ($msginfo.parts.$k) {
@@ -1697,62 +1727,103 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
 	    $rh.$en = $hv;
 	}
 	
+        if ($h.typeCode() == NT_HASH && $h)
+            throw SOAP_SERIALIZATION_ERROR, sprintf("additional keys %y included in %y message hash", $h.keys(), $.name);
+
 	if ($.encoded)
 	    $rh."^attributes^" += 
 	    ( "soapenv:encodingStyle" : SOAP_ENCODING,
 	      "xmlns:soapenc"         : SOAP_ENCODING );
-	
+
 	my hash $rvh.("ns1:" + $name) = $rh;
-	
+
 	return $rvh;
     }
 
     hash serializeDocument(*string $k, any $msginfo, any $mpm, any $h, bool $force_ns) {
-        if (!$k)
-            $k = $.args.firstKey();
+        printf("DBG: WSMessage::serializeDocument");
+	my hash $rh;
+
+        if ($.encoded)
+            $rh."^attributes^" += (
+                "soapenv:encodingStyle": SOAP_ENCODING,
+                "xmlns:soapenc": SOAP_ENCODING,
+            );
+
+        if (!$k && $.args.size() == 1) {
+            my string $key = $.args.firstKey();
+            my any $v = ($h.typeCode() == NT_HASH && $h.hasKey($key)) ? remove $h.$key : remove $h;
+            XSDBase::removeNS2(\$v);
+            my any $th = $.args.$key.element.serialize($v, !$.encoded, !$force_ns, $key, $.name);
+            $rh.("ns1:" + $.args.$key.element.name) = $th;
+        }
+        else {
+            foreach my string $key in ($k ? $k : $.args.keyIterator()) {
+                my any $val = remove $h.$key;
+                if ($val.typeCode() == NT_HASH)
+                    XSDBase::removeNS2(\$val);
+
+                my any $th = $.args.$key.element.serialize($val, !$.encoded, !$force_ns, $key, $.name);
+                $rh.("ns1:" + $.args.$key.element.name) = $th;
+            }
+        }
+
+        if ($h.typeCode() == NT_HASH && $h)
+            throw SOAP_SERIALIZATION_ERROR, sprintf("additional keys %y included in %y message hash", $h.keys(), $.name);
+
 	#printf("DEBUG: message %s: force_ns: %y args: %y h: %y\n", $.name, $force_ns, keys $.args, $h);
     
-	my any $th = $.args.$k.element.serialize($h, !$.encoded, !$force_ns, $k, $.name);
-
-	my hash $rh;
-	if ($.encoded)
-	    $rh."^attributes^" += 
-	    ( "soapenv:encodingStyle" : SOAP_ENCODING,
-	      "xmlns:soapenc"         : SOAP_ENCODING );
-	
-	$rh.("ns1:" + $.args.$k.element.name) = $th;
 	return $rh;
     }
 
-    any deserialize(*hash $types, *hash $mrh, any $val) {
+    any deserialize(*hash $types, *hash $mrh, hash $val) {
+        #printf("DBG WSMessage::deserialize() args: %y pmap: %y val: %y\n", $.args.keys(), $.pmap, $val);
 	my hash $ro;
 
-	#my any $ns = $val.".ns";
-	$val -= ".ns";
-
 	foreach my string $key in ($.args.keyIterator()) {
-	    if (!exists $val.$key)
-		throw SOAP_DESERIALIZATION_ERROR, sprintf("message %n is missing argument %n (%n)", $.name, $key, $val);
+            my any $v = remove $val.$key;
+            if ($v.typeCode() == NT_HASH)
+                XSDBase::removeNS2(\$v);
 
             my string $rk = $key;
             if ($.pmap.$key && !$.args.($.pmap.$key))
                 $rk = $.pmap.$key;
 	    
-	    $ro.$rk = $.args.$key.element 
-		? $.args.$key.element.deserialize($types, $mrh, $.getValue($mrh, $val.$key)) 
-		: $.args.$key.type.deserialize($.name, $types, $mrh, $.getValue($mrh, $val.$key));
+	    $ro.$rk = $.args.$key.element
+		? $.args.$key.element.deserialize($types, $mrh, $.getValue($mrh, $v))
+		: $.args.$key.type.deserialize($.name, $types, $mrh, $.getValue($mrh, $v));
 	}
 
+        if ($val)
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("additional keys %y included in %y message hash", $val.keys(), $.name);
+
 	# if there is only one argument, return it directly
-	if (elements $ro == 1)
-	    return $ro.firstValue();
-	return $ro;
+        return $ro.size() == 1 ? $ro.firstValue() : $ro;
     }
 
     any deserializeDocument(*hash $types, *hash $mrh, any $val) {
-	my *string $k = $.args.firstKey();
+        my any $rh;
 
-	return $.args.$k.element.deserialize($types, $mrh, $val);
+        #printf("DBG WSMessage::deserializeDocument() args: %y val: %y\n", $.args.keys(), $val);
+        if ($.args.size() == 1) {
+            my string $key = $.args.firstKey();
+            my any $v = ($val.typeCode() == NT_HASH && $val.hasKey($key)) ? remove $val.$key : remove $val;
+            XSDBase::removeNS2(\$v);
+            $rh = $.args.firstValue().element.deserialize($types, $mrh, $v);
+        }
+        else {
+            foreach my string $key in ($.args.keyIterator()) {
+                my any $v = remove $val.$key;
+                XSDBase::removeNS2(\$v);
+                $rh.$key = $.args.$key.element.deserialize($types, $mrh, $v);
+            }
+        }
+
+        if ($val)
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("additional keys %y included in %y message hash", $val.keys(), $.name);
+
+        #printf("DBG WSMessage::deserializeDocument() args: %y val: %y\nRH: %y\n", $.args.keys(), $val, $rh);
+        return $rh;
     }
 }
 

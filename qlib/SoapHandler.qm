@@ -439,7 +439,7 @@ public namespace SoapHandler {
                 if (!$path)
                     return (
                         "code": 501,
-                        "desc": "invalid HTTP GET: no path given in URL",
+                        "body": sprintf("invalid HTTP GET: no path given in URL; known services: %y", keys $.ws),
                     ); 
 
                 $.rwl.readLock();
@@ -448,7 +448,7 @@ public namespace SoapHandler {
                 if (!exists $.ws.$path)
                     return (
                         "code": 501,
-                        "desc": sprintf("invalid HTTP GET: no WebService object for path %n", $path),
+                        "body": sprintf("invalid HTTP GET: no WebService object for path %y; known services: %y", $path, keys $.ws),
                     ); 
                 
                 return (
