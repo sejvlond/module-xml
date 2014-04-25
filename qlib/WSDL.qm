@@ -1679,7 +1679,7 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
 	    my any $hv;
 	    #printf("DEBUG: arg %n with %n\n", $k, $.args.$k);
 	    if ($.args.$k.element)
-		$hv = $.args.$k.element.serialize($h.$k, !$.encoded);
+		$hv = $.args.$k.element.serialize($h.$k, !$.encoded, NOTHING, $k, $.name);
 	    else
 		$hv = $.args.$k.type.serialize($h.$k, !$.encoded, True);
 	    #printf("DEBUG: arg %s got %n from %n (%n)\n", $k, $hv, $h.$k, exists $.args.$k.element ? $.args.$k.element : $.args.$k.type);
@@ -1712,7 +1712,7 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
             $k = $.args.firstKey();
 	#printf("DEBUG: message %s: force_ns: %y args: %y h: %y\n", $.name, $force_ns, keys $.args, $h);
     
-	my any $th = $.args.$k.element.serialize($h, !$.encoded, !$force_ns, $k, "<unknown>");
+	my any $th = $.args.$k.element.serialize($h, !$.encoded, !$force_ns, $k, $.name);
 
 	my hash $rh;
 	if ($.encoded)
