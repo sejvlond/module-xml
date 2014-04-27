@@ -1741,7 +1741,6 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
     }
 
     hash serializeDocument(*string $k, any $msginfo, any $mpm, any $h, bool $force_ns) {
-        printf("DBG: WSMessage::serializeDocument");
 	my hash $rh;
 
         if ($.encoded)
