@@ -5,10 +5,13 @@ version 1.3
 * requires Qore 0.8.9+ to build & run
 * added SaxIterator class
 * many WSDL handling/SOAP messaging fixes
-* SoapClient fixes: fixed URI request path, fixed agent string, added optional logging closures, added SOAP headers to info hash when available
+* SoapClient fixes: fixed URI request path, fixed agent string, added optional
+  logging closures, added SOAP headers to info hash when available
 * SoapHandler changes:
   + allow SOAP serialization errors to be logged at the source
   + added support for matching requests by soap action values
+* user modules moved to top-level qore module directory from version-specific                                                                                         
+  module directory since they are valid for multiple versions of qore 
 
 
 ***********
