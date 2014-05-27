@@ -165,7 +165,7 @@ public class WSDL::WSDLLib {
     static string getFile(string $fn, bool $as_string = True) {
         my File $f();
         $f.open($fn);
-        return $as_string ? $f.read(-1) : $h.readBinary(-1);
+        return $as_string ? $f.read(-1) : $f.readBinary(-1);
     }
 
     #! retrieves a file from a URL with HTTP and returns the file's contents as a string
