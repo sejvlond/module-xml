@@ -162,63 +162,62 @@ public class WSDL::WSDLLib {
     #! retrieves a local file and returns the file's contents as a string
     /** called by WSDLLib::getFileFromURL() in case the scheme is "file"
     */
-    static string getFile(string $fn) {
-	my File $f();
-	$f.open2($fn);
-	return $f.read(-1);
+    static string getFile(string $fn, bool $as_string = True) {
+        return $as_string ? ReadOnlyFile::readTextFile($fn) : ReadOnlyFile::readBinaryFile($fn);
     }
 
     #! retrieves a file from a URL with HTTP and returns the file's contents as a string
     /** called by WSDLLib::getFileFromURL() in case the scheme is "http"
     */
-    static string getHTTP(string $url, any $path, any $hc, any $headers) {
-	if (exists $hc) {
-	    if (!($hc instanceof HTTPClient))
-		throw "GET-FILE-FROM-URL-ERROR", sprintf("object is not an HTTPClient: %n", type($hc));
+    static string getHTTP(string $url, *string $path, *HTTPClient $hc, *hash $headers, bool $as_string = True) {
+	if ($hc)
 	    $hc.setURL($url);
-	}
 	else
 	    $hc = new HTTPClient(("url" : $url));
-	return $hc.get(exists $path ? $path : "/", $headers);
+        my string $body = $hc.get($path ? $path : "/", $headers);
+        return $as_string ? $body : binary($body);
     }
 
-    #! retrieves a file from a URL with the FTP protocol and returns the file's contents as binary data
+    #! retrieves a file from a URL with the FTP protocol and returns the file's contents as binary or string data
     /** called by WSDLLib::getFileFromURL() in case the scheme is "ftp"
     */
-    static binary getFTP(string $url, string $path) {
+    static data getFTP(string $url, string $path, bool $as_string = True) {
 	my string $file = basename($path);
-	if (!exists $file)
+	if (!$file)
 	    throw "WSDL-LIB-ERROR", sprintf("missing file name in URL %n", $url);
 	
 	my FtpClient $f($url);
 	$f.connect();
 	
 	my string $dir = dirname($path);
-	if (exists $dir)
+	if ($dir)
 	    $f.cwd($dir);
-	
-	return $f.getAsBinary($file);
+
+	return $as_string ? $f.getAsString($file) : $f.getAsBinary($file);
     }
 
     #! retrieves a file from a URL
-    static any getFileFromURL(string $url, string $def_protocol, any $http_client, any $http_headers) {
-	my hash $u = parse_url($url);
+    static data getFileFromURL(string $url, string $def_protocol = "file", *HTTPClient $http_client, *hash $http_headers, bool $as_string = True) {
+        return WSDLLib::getFileFromURL($url, parse_url($url), $def_protocol, $http_client, $http_headers, $as_string);
+    }
 
+    #! retrieves a file from an already-parsed URL
+    static data getFileFromURL(string $url, hash $u, string $def_protocol = "file", *HTTPClient $http_client, *hash $http_headers, bool $as_string = False) {
 	if (!exists $u.protocol)
-	    $u.protocol = exists $def_protocol ? $def_protocol : "file";
+	    $u.protocol = $def_protocol;
 	
 	switch ($u.protocol) {
 	    case "file":
-		return WSDLLib::getFile($u.host + $u.path);
+		return WSDLLib::getFile($u.host + $u.path, $as_string);
 
 	    case /^http(s)?$/:
-		return WSDLLib::getHTTP($url, $u.path, $http_client, $http_headers);
+		return WSDLLib::getHTTP($url, $u.path, $http_client, $http_headers, $as_string);
 
 	    case /^ftp(s)?$/:
-		return WSDLLib::getFTP($url, $u.path);
+		return WSDLLib::getFTP($url, $u.path, $as_string);
 
 	    default:
-	        throw "WSDL-LIB-ERROR", sprintf("do not know how to retrieve data with protocol %n given in URL %n", $u.protocol, $url);
+	        throw "WSDL-LIB-ERROR", sprintf("do not know how to retrieve data with scheme %y given in URL %n", $u.protocol, $url);
 	}
     }
 
@@ -246,10 +245,6 @@ public class WSDL::WSDLLib {
 
 	    my hash $mpmsg;
 	    my list $l = split("\r\n--" + $bdry, $msg.body);
-
-	    #printf("l=%N\n", $l);
-	    #my File $f(); $f.open2("t.bin", O_CREAT|O_WRONLY|O_TRUNC); $f.write(binary($l[3])); exit();
-	    #my File $f(); $f.open2("t.bin", O_CREAT|O_WRONLY|O_TRUNC); $f.write(binary($msg.body)); exit();
 
 	    for (my int $i = 1; $i < (elements $l - 1); ++$i) {
 		my string $m = $l[$i];
@@ -981,6 +976,9 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 	bool $.anyAttribute = False;
 
         bool $.required = False;
+
+        # any annotated documentation
+        *string $.documentation;
     }
 
     constructor(any $ct, any $nsinfo, XSDLateResolverHelper $unresolved) : XSDAbstractType(\$ct) {
@@ -1053,6 +1051,11 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 
     private parseData(any $d, XSDLateResolverHelper $unresolved) {
 	delete $d.ns;
+        if ($d.annotation) {
+            my *hash $ah = remove $d.annotation;
+            if ($ah.size() == 1 && $ah.firstKey() =~ /documentation$/)
+                $.documentation = trim($ah.firstValue());
+        }
         if (!$d)
             return;
 
@@ -1255,25 +1258,27 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	$.soap12 = $soap12;
 	$.usedocns = $usedocns;
 
-	my any $msghash = $.processNSValue($p.input."^attributes^");
+	my hash $msghash = $.processNSValue($p.input."^attributes^");
 
 	my *WSMessage $msg = $messages.($msghash.message.val);
 	if (!$msg)
-	    throw WSDL_ERROR, sprintf("missing definition for input message %n required by operation %n", $msghash.name.val, $.name);
+	    throw WSDL_ERROR, sprintf("missing definition for input message %y required by operation %y", $msghash.name.val, $.name);
 	$.input = $msg;
+
+        #printf("DBG: WSOperation::constructor() name: %y msghash: %y\n", $.name, $msghash);
         if ($msghash.name)
-            $.input_name = $msghash.name;
+            $.input_name = $msghash.name.val ? $msghash.name.val : $msghash.name;
         
 	if ($p.output) {
 	    $msghash = $.processNSValue($p.output."^attributes^");
 
 	    $msg = $messages.($msghash.message.val);
 	    if (!exists $msg)
-		throw WSDL_ERROR, sprintf("missing definition for output message %n required by operation %n", $msghash.name.val, $.name);
+		throw WSDL_ERROR, sprintf("missing definition for output message %y required by operation %y", $msghash.name.val, $.name);
 
 	    $.output = $msg;
             if ($msghash.name)
-                $.output_name = $msghash.name;
+                $.output_name = $msghash.name.val ? $msghash.name.val : $msghash.name;
 	}
 	
 	my *string $op_ns = $.targetns;
@@ -1284,12 +1289,6 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
     setDocStyle(reference $idocmap) {
 	$.docstyle = True;
-
-        /*
-	if (elements $.input.args > 1)
-	    throw WSDL_ERROR, sprintf("don't know how to handle document-style messages for operation %n that has more than one top-level part (%n)",
-					$.name, keys $.input.args);
-        */
 
         foreach my string $key in ($.input.args.keyIterator()) {
             my string $element = $.input.args.$key.element.name;
@@ -1558,8 +1557,8 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
     private hash processNSValue(hash $h) {
 	foreach my string $k in (keys $h) {
-	    my (any $ns, any $name) = $h.$k =~ x/(\w+):(\w+)/;
-	    if (!exists $name)
+	    my (*string $ns, *string $name) = $h.$k =~ x/(\w+):(\w+)/;
+	    if (!$name)
 		$h.$k.val = $h.$k;
 	    else {
 		$h.$k.ns = $ns;
@@ -1845,7 +1844,7 @@ class WSDL::XSDLateResolverHelper {
 # private helper class to save namespaces in the WebService class, parses the imported definitions, and restores the namespace info on exit
 class WSDL::XSDImportHelper {
     public {
-        any $.ws;
+        WebService $.ws;
         hash $.sp;
     }
 
@@ -1855,6 +1854,8 @@ class WSDL::XSDImportHelper {
 
 	# get old values of namespace attributes
 	$.sp = $ws.("ns", "soap12");
+        if (!$.sp.soap12)
+            $.sp.soap12 = False;
 	$ws -= ("ns", "soap12");
     }
     destructor() {
@@ -1991,11 +1992,13 @@ public class WSDL::WebService inherits WSDL::XSDBase {
         hash $.types;
         bool $.usedocns = False;
         hash $.portType;
+        *code $.try_import;
     }
 
     #! creates the WebService object
     /** @param str the XML string representing the WSDL
 	@param opts an optional hash of options with the following possible keys:
+        - \c try_import a call reference or closure to be passed a string name for XSD imports without any scheme to retrieve the data, must take a string argument (the resource name) and return a string (the resource data)
 	- \c http_client a HTTPClient object for retrieving data from import commands
 	- \c http_headers a hash of optional HTTP header info to use when retrieving data from import commands
     */
@@ -2004,6 +2007,8 @@ public class WSDL::WebService inherits WSDL::XSDBase {
 
 	# save WSDL text
 	$.wsdl = $str;
+
+        $.try_import = $opts.try_import;
 
 	# remove namespace (normally "wsdl:") prefix from keys if present
 	WSDL::XSDBase::removeNS(\$h);
@@ -2110,35 +2115,39 @@ public class WSDL::WebService inherits WSDL::XSDBase {
 
 	    # process XSD import if present
 	    if ($schema.import) {
-		my any $a = $schema.import."^attributes^";
+		my *hash $a = $schema.import."^attributes^";
 		# import file
 		if ($a.schemaLocation) {
-		    my any $xsd = WSDLLib::getFileFromURL($a.schemaLocation, "http", $http_client, $http_headers);
+                    my hash $h = parse_url($a.schemaLocation);
+                    my string $xsd;
+                    if (!$h.protocol && $.try_import)
+                        $xsd = call_function($.try_import, $a.schemaLocation);
+                    else
+                        $xsd = WSDLLib::getFileFromURL($a.schemaLocation, "file", $http_client, $http_headers);
 
 		    # parse imported XSD file and include types in our list
 		    # also saves namespace definitions and restores on exit
 		    my XSDImportHelper $xih($self, $xsd);
 
 		    # parse XML to Qore data structure ignoring XML element order
-		    $xsd = parseXMLAsData($xsd);
+                    my hash $xh = parseXMLAsData($xsd);
 
 		    # parse namespace definitions in schema attributes
-		    my list $kl = keys $xsd;
-		    if (elements $kl != 1)
-			throw WSDL_ERROR, sprintf("expecing a single element indicating an XSD schema in the imported file; got instead: %n", $kl);
+                    if ($xh.size() != 1)
+			throw WSDL_ERROR, sprintf("expecing a single element indicating an XSD schema in the imported file; got instead: %y", $xh.keys());
 
 		    # get schema member name
-		    my any $sk = $kl[0];
+		    my any $sk = $xh.firstKey();
 
 		    # get namespace info in new schema
-		    $.getNSPrefixes($xsd.$sk."^attributes^");
+		    $.getNSPrefixes($xh.$sk."^attributes^");
 		    
 		    # verify that the top-level key indicates an XSD schema definition
-		    my (any $ns, any $mem) = ($sk =~ x/^(\w+):(\w+)$/);
-		    if (exists $ns && !$.ns.xml_schema.$ns)
+		    my (*string $ns, *string $mem) = ($sk =~ x/^(\w+):(\w+)$/);
+		    if ($ns && !$.ns.xml_schema.$ns)
 			throw WSDL_ERROR, sprintf("expecing imported schema definition to be in XSD namespace %n, got %n=%n instead", XSD_NS, $ns, $.ns.map.$ns);
 
-		    $.parseTypes($xsd);
+		    $.parseTypes($xh);
 		}
 	    }
 
