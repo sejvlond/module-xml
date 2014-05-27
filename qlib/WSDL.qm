@@ -164,7 +164,7 @@ public class WSDL::WSDLLib {
     */
     static string getFile(string $fn, bool $as_string = True) {
         my File $f();
-        $f.open($fn);
+        $f.open2($fn);
         return $as_string ? $f.read(-1) : $f.readBinary(-1);
     }
 
