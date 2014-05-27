@@ -977,6 +977,9 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 	bool $.anyAttribute = False;
 
         bool $.required = False;
+
+        # any annotated documentation
+        *string $.documentation;
     }
 
     constructor(any $ct, any $nsinfo, XSDLateResolverHelper $unresolved) : XSDAbstractType(\$ct) {
@@ -1049,6 +1052,11 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 
     private parseData(any $d, XSDLateResolverHelper $unresolved) {
 	delete $d.ns;
+        if ($d.annotation) {
+            my *hash $ah = remove $d.annotation;
+            if ($ah.size() == 1 && $ah.firstKey() =~ /documentation$/)
+                $.documentation = trim($ah.firstValue());
+        }
         if (!$d)
             return;
 
@@ -1251,25 +1259,27 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	$.soap12 = $soap12;
 	$.usedocns = $usedocns;
 
-	my any $msghash = $.processNSValue($p.input."^attributes^");
+	my hash $msghash = $.processNSValue($p.input."^attributes^");
 
 	my *WSMessage $msg = $messages.($msghash.message.val);
 	if (!$msg)
-	    throw WSDL_ERROR, sprintf("missing definition for input message %n required by operation %n", $msghash.name.val, $.name);
+	    throw WSDL_ERROR, sprintf("missing definition for input message %y required by operation %y", $msghash.name.val, $.name);
 	$.input = $msg;
+
+        #printf("DBG: WSOperation::constructor() name: %y msghash: %y\n", $.name, $msghash);
         if ($msghash.name)
-            $.input_name = $msghash.name;
+            $.input_name = $msghash.name.val ? $msghash.name.val : $msghash.name;
         
 	if ($p.output) {
 	    $msghash = $.processNSValue($p.output."^attributes^");
 
 	    $msg = $messages.($msghash.message.val);
 	    if (!exists $msg)
-		throw WSDL_ERROR, sprintf("missing definition for output message %n required by operation %n", $msghash.name.val, $.name);
+		throw WSDL_ERROR, sprintf("missing definition for output message %y required by operation %y", $msghash.name.val, $.name);
 
 	    $.output = $msg;
             if ($msghash.name)
-                $.output_name = $msghash.name;
+                $.output_name = $msghash.name.val ? $msghash.name.val : $msghash.name;
 	}
 	
 	my *string $op_ns = $.targetns;
@@ -1280,12 +1290,6 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
     setDocStyle(reference $idocmap) {
 	$.docstyle = True;
-
-        /*
-	if (elements $.input.args > 1)
-	    throw WSDL_ERROR, sprintf("don't know how to handle document-style messages for operation %n that has more than one top-level part (%n)",
-					$.name, keys $.input.args);
-        */
 
         foreach my string $key in ($.input.args.keyIterator()) {
             my string $element = $.input.args.$key.element.name;
@@ -1554,8 +1558,8 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
     private hash processNSValue(hash $h) {
 	foreach my string $k in (keys $h) {
-	    my (any $ns, any $name) = $h.$k =~ x/(\w+):(\w+)/;
-	    if (!exists $name)
+	    my (*string $ns, *string $name) = $h.$k =~ x/(\w+):(\w+)/;
+	    if (!$name)
 		$h.$k.val = $h.$k;
 	    else {
 		$h.$k.ns = $ns;
@@ -1841,7 +1845,7 @@ class WSDL::XSDLateResolverHelper {
 # private helper class to save namespaces in the WebService class, parses the imported definitions, and restores the namespace info on exit
 class WSDL::XSDImportHelper {
     public {
-        any $.ws;
+        WebService $.ws;
         hash $.sp;
     }
 
@@ -1851,6 +1855,8 @@ class WSDL::XSDImportHelper {
 
 	# get old values of namespace attributes
 	$.sp = $ws.("ns", "soap12");
+        if (!$.sp.soap12)
+            $.sp.soap12 = False;
 	$ws -= ("ns", "soap12");
     }
     destructor() {
