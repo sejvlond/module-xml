@@ -5,6 +5,7 @@ version 1.3
 * requires Qore 0.8.9+ to build & run
 * added SaxIterator class
 * many WSDL handling/SOAP messaging fixes
+* allow for XSD imports without a URI scheme to be imported with custom logic
 * SoapClient fixes: fixed URI request path, fixed agent string, added optional
   logging closures, added SOAP headers to info hash when available
 * SoapHandler changes:
