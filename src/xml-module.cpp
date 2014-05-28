@@ -84,6 +84,7 @@ QoreStringNode *xml_module_init() {
    XNS.addSystemClass(initXmlDocClass(XNS));
    XNS.addSystemClass(initXmlReaderClass(XNS));
    XNS.addSystemClass(initSaxIteratorClass(XNS));
+   XNS.addSystemClass(initFileSaxIteratorClass(XNS));
 
    XNS.addSystemClass(initXmlRpcClientClass(XNS));
 

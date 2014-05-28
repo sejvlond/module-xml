@@ -18,10 +18,11 @@
     @note XML functionality was included in the main %Qore shared library until version 0.8.1, at which time the code was removed to make this module.
 
     Classes provided by this module:
-    - @ref Qore::Xml::SaxIterator "SaxIterator": an iterator class for XML strings.
-    - @ref Qore::Xml::XmlDoc "XmlDoc": for analyzing and manipulating XML documents.
-    - @ref Qore::Xml::XmlNode "XmlNode": gives information about XML data in an XML document.
-    - @ref Qore::Xml::XmlReader "XmlReader": for parsing or iterating through the elements of an XML document.
+    - @ref Qore::Xml::FileSaxIterator "FileSaxIterator": an iterator class for XML strings
+    - @ref Qore::Xml::SaxIterator "SaxIterator": an iterator class for XML strings
+    - @ref Qore::Xml::XmlDoc "XmlDoc": for analyzing and manipulating XML documents
+    - @ref Qore::Xml::XmlNode "XmlNode": gives information about XML data in an XML document
+    - @ref Qore::Xml::XmlReader "XmlReader": for parsing or iterating through the elements of an XML document
 
     Also included with the binary xml module:
     - <a href="../../WSDL/html/index.html">WSDL user module</a>
@@ -151,10 +152,11 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     @anchor xmlclasses
     <b>Classes Providing XML Functionality</b>
     |!Class|!Description
-    |@ref Qore::Xml::SaxIterator "SaxIterator"|An iterator class for XML strings.
-    |@ref Qore::Xml::XmlDoc "XmlDoc"|For analyzing and manipulating XML documents.
-    |@ref Qore::Xml::XmlNode "XmlNode"|Gives information about XML data in an XML document.
-    |@ref Qore::Xml::XmlReader "XmlReader"|For parsing or iterating through the elements of an XML document.
+    |@ref Qore::Xml::FileSaxIterator "FileSaxIterator"|An iterator class for file data
+    |@ref Qore::Xml::SaxIterator "SaxIterator"|An iterator class for XML strings
+    |@ref Qore::Xml::XmlDoc "XmlDoc"|For analyzing and manipulating XML documents
+    |@ref Qore::Xml::XmlNode "XmlNode"|Gives information about XML data in an XML document
+    |@ref Qore::Xml::XmlReader "XmlReader"|For parsing or iterating through the elements of an XML document
 
     @section XMLRPC XML-RPC
 
@@ -245,7 +247,7 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
 
     @subsection xml13 xml Module Version 1.3
     <b>Changes and Bug Fixes in This Release</b>
-    - added the @ref Qore::Xml::SaxIterator "SaxIterator" class    
+    - added the @ref Qore::Xml::SaxIterator "SaxIterator" and @ref Qore::Xml::FileSaxIterator "FileSaxIterator" classes
     - many SOAP messaging and WSDL handling fixes
     - allow for XSD imports without a URI scheme to be imported with custom logic
     - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes: fixed URI request path, fixed agent string, added optional logging closures, added SOAP headers to info hash when available

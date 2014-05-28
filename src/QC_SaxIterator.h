@@ -4,7 +4,7 @@
  
   Qore Programming Language
  
-  Copyright 2003 - 2014 David Nichols
+  Copyright (C) 2003 - 2014 David Nichols
  
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,9 @@
 DLLEXPORT extern qore_classid_t CID_SAXITERATOR;
 DLLLOCAL QoreClass *initSaxIteratorClass(QoreNamespace& ns);
 
+DLLEXPORT extern qore_classid_t CID_FILESAXITERATOR;
+DLLLOCAL QoreClass *initFileSaxIteratorClass(QoreNamespace& ns);
+
 class QoreSaxIterator : public QoreXmlReaderData, public QoreAbstractIteratorBase {
 protected:
    std::string element_name;
@@ -43,6 +46,9 @@ public:
    }
 
    DLLLOCAL QoreSaxIterator(QoreXmlDocData* doc, const char* ename, ExceptionSink* xsink) : QoreXmlReaderData(doc, xsink), element_name(ename), element_depth(-1), val(false) {
+   }
+
+   DLLLOCAL QoreSaxIterator(ExceptionSink* xsink, const char* fn, const char* ename, const char* enc = 0) : QoreXmlReaderData(fn, enc, xsink), element_name(ename), element_depth(-1), val(false) {
    }
 
    DLLLOCAL QoreSaxIterator(const QoreSaxIterator& old, ExceptionSink* xsink) : QoreXmlReaderData(old, xsink), element_name(old.element_name), element_depth(-1), val(false) {

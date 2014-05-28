@@ -4,7 +4,7 @@
  
  Qore Programming Language
  
- Copyright 2003 - 2011 David Nichols
+ Copyright (C) 2003 - 2014 David Nichols
  
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,8 @@
 
 #include "QoreXmlDoc.h"
 
+#include <errno.h>
+
 // FIXME: need to make error reporting consistent and set ExceptionSink for each call, not in constructor and then fix ql_xml.cc and adjust QC_XmlReader.cc
 
 class QoreXmlReader {
@@ -35,6 +37,7 @@ protected:
    xmlTextReader *reader;
    const QoreString *xml;
    ExceptionSink *xs;
+   int fd;
 
    static void qore_xml_error_func(QoreXmlReader *xr, const char *msg, xmlParserSeverities severity, xmlTextReaderLocatorPtr locator) {
       if (severity == XML_PARSER_SEVERITY_VALIDITY_WARNING
@@ -82,22 +85,47 @@ protected:
       //xmlTextReaderSetErrorHandler(reader, (xmlTextReaderErrorFunc)qore_xml_error_func, xsink);
    }
 
+   DLLLOCAL void init(ExceptionSink* xsink, const char* fn, const char* encoding, int options) {
+      xml = 0;
+      fd = open(fn, O_RDONLY);
+      if (fd < 0) {
+         reader = 0;
+         xsink->raiseErrnoException("XML-READER-ERROR", errno, "could not open '%s' for reading", fn);
+         return;
+      }
+      reader = xmlReaderForFd(fd, 0, encoding, options);
+      if (!reader) {
+         close(fd);
+	 xsink->raiseException("XML-READER-ERROR", "could not create XML reader");
+	 return;
+      }
+
+      xmlTextReaderSetErrorHandler(reader, (xmlTextReaderErrorFunc)qore_xml_error_func, this);
+   }
+
    DLLLOCAL int do_int_rv(int rc, ExceptionSink *xsink) {
       if (rc == -1 && !*xsink)
 	 xsink->raiseExceptionArg("PARSE-XML-EXCEPTION", xml ? new QoreStringNode(*xml) : 0, "error parsing XML string");
       return rc;
    }
 
-   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options) : xs(0) {
+   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options) : xs(0), fd(-1) {
       init(n_xml, options, xsink);
    }
 
-   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, xmlDocPtr doc) : xs(0) {
+   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, xmlDocPtr doc) : xs(0), fd(-1) {
       init(doc, xsink);
    }
 
-   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc) : xs(0) {
-      init(xsink, n_xml, options, doc);
+   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc, const char* fn, const char* enc) : xs(0), fd(-1) {
+      if (fn)
+         init(xsink, fn, enc, options);
+      else
+         init(xsink, n_xml, options, doc);
+   }
+
+   DLLLOCAL QoreXmlReader(ExceptionSink* xsink, const char* fn, const char* encoding, int options) : xs(0), fd(-1) {
+      init(xsink, fn, encoding, options);
    }
 
    DLLLOCAL void reset(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc) {
@@ -106,6 +134,16 @@ protected:
          reader = 0;
       }
       init(xsink, n_xml, options, doc);
+   }
+
+   DLLLOCAL void reset(ExceptionSink *xsink, const char* fn, const char* enc, int options) {
+      if (reader) {
+	 xmlFreeTextReader(reader);
+         reader = 0;
+      }
+      if (fd >= 0)
+         close(fd);
+      init(xsink, fn, enc, options);
    }
 
    DLLLOCAL void init(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc) {
@@ -133,6 +171,8 @@ public:
    DLLLOCAL ~QoreXmlReader() {
       if (reader)
 	 xmlFreeTextReader(reader);
+      if (fd >= 0)
+         close(fd);
    }
 
    DLLLOCAL operator bool() const {

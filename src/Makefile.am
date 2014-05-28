@@ -3,7 +3,7 @@ MNAME=xml
 .qpp.cpp:
 	qpp $<
 
-GENERATED_SOURCES = QC_XmlDoc.cpp QC_XmlNode.cpp QC_XmlReader.cpp QC_XmlRpcClient.cpp QC_SaxIterator.cpp ql_xml.cpp
+GENERATED_SOURCES = QC_XmlDoc.cpp QC_XmlNode.cpp QC_XmlReader.cpp QC_XmlRpcClient.cpp QC_SaxIterator.cpp QC_FileSaxIterator.cpp ql_xml.cpp
 CLEANFILES = $(GENERATED_SOURCES)
 
 if COND_SINGLE_COMPILATION_UNIT
