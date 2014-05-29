@@ -19,7 +19,7 @@
  You should have received a copy of the GNU Lesser General Public
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- */
+*/
 
 #ifndef _QORE_QOREXMLREADER_H
 #define _QORE_QOREXMLREADER_H
@@ -34,12 +34,12 @@
 
 class QoreXmlReader {
 protected:
-   xmlTextReader *reader;
-   const QoreString *xml;
-   ExceptionSink *xs;
+   xmlTextReader* reader;
+   const QoreString* xml;
+   ExceptionSink* xs;
    int fd;
 
-   static void qore_xml_error_func(QoreXmlReader *xr, const char *msg, xmlParserSeverities severity, xmlTextReaderLocatorPtr locator) {
+   static void qore_xml_error_func(QoreXmlReader* xr, const char* msg, xmlParserSeverities severity, xmlTextReaderLocatorPtr locator) {
       if (severity == XML_PARSER_SEVERITY_VALIDITY_WARNING
 	  || severity == XML_PARSER_SEVERITY_WARNING) {
 	 printd(1, "XML parser warning: %s", msg);
@@ -49,23 +49,23 @@ protected:
 	 return;
       if (*(xr->xs))
 	 return;
-      QoreStringNode *desc = new QoreStringNode(msg);
+      QoreStringNode* desc = new QoreStringNode(msg);
       desc->chomp();
       xr->xs->raiseException("PARSE-XML-EXCEPTION", desc);
    }
 
-   DLLLOCAL void setExceptionSink(ExceptionSink *xsink) {
+   DLLLOCAL void setExceptionSink(ExceptionSink* xsink) {
       assert((!xsink && xs) || (xsink && !xs));
       xs = xsink;
    }
 
-   DLLLOCAL AbstractQoreNode *getXmlData(const QoreEncoding *data_ccsid, bool as_data, ExceptionSink *xsink, int min_depth = -1);
+   DLLLOCAL AbstractQoreNode* getXmlData(const QoreEncoding* data_ccsid, bool as_data, ExceptionSink* xsink, int min_depth = -1);
 
-   DLLLOCAL void init(const QoreString *n_xml, int options, ExceptionSink *xsink) {
+   DLLLOCAL void init(const QoreString* n_xml, int options, ExceptionSink* xsink) {
       xml = n_xml;
 
       assert(xml->getEncoding() == QCS_UTF8);
-      reader = xmlReaderForDoc((xmlChar *)xml->getBuffer(), 0, 0, options);
+      reader = xmlReaderForDoc((xmlChar*)xml->getBuffer(), 0, 0, options);
       if (!reader) {
 	 xsink->raiseException("XML-READER-ERROR", "could not create XML reader");
 	 return;
@@ -74,7 +74,7 @@ protected:
       xmlTextReaderSetErrorHandler(reader, (xmlTextReaderErrorFunc)qore_xml_error_func, this);
    }
 
-   DLLLOCAL void init(xmlDocPtr doc, ExceptionSink *xsink) {
+   DLLLOCAL void init(xmlDocPtr doc, ExceptionSink* xsink) {
       xml = 0;
       reader = xmlReaderWalker(doc);
       if (!reader) {
@@ -103,21 +103,21 @@ protected:
       xmlTextReaderSetErrorHandler(reader, (xmlTextReaderErrorFunc)qore_xml_error_func, this);
    }
 
-   DLLLOCAL int do_int_rv(int rc, ExceptionSink *xsink) {
+   DLLLOCAL int do_int_rv(int rc, ExceptionSink* xsink) {
       if (rc == -1 && !*xsink)
 	 xsink->raiseExceptionArg("PARSE-XML-EXCEPTION", xml ? new QoreStringNode(*xml) : 0, "error parsing XML string");
       return rc;
    }
 
-   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options) : xs(0), fd(-1) {
+   DLLLOCAL QoreXmlReader(ExceptionSink* xsink, const QoreString* n_xml, int options) : xs(0), fd(-1) {
       init(n_xml, options, xsink);
    }
 
-   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, xmlDocPtr doc) : xs(0), fd(-1) {
+   DLLLOCAL QoreXmlReader(ExceptionSink* xsink, xmlDocPtr doc) : xs(0), fd(-1) {
       init(doc, xsink);
    }
 
-   DLLLOCAL QoreXmlReader(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc, const char* fn, const char* enc) : xs(0), fd(-1) {
+   DLLLOCAL QoreXmlReader(ExceptionSink* xsink, const QoreString* n_xml, int options, xmlDocPtr doc, const char* fn, const char* enc) : xs(0), fd(-1) {
       if (fn)
          init(xsink, fn, enc, options);
       else
@@ -128,7 +128,7 @@ protected:
       init(xsink, fn, encoding, options);
    }
 
-   DLLLOCAL void reset(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc) {
+   DLLLOCAL void reset(ExceptionSink* xsink, const QoreString* n_xml, int options, xmlDocPtr doc) {
       if (reader) {
 	 xmlFreeTextReader(reader);
          reader = 0;
@@ -136,7 +136,7 @@ protected:
       init(xsink, n_xml, options, doc);
    }
 
-   DLLLOCAL void reset(ExceptionSink *xsink, const char* fn, const char* enc, int options) {
+   DLLLOCAL void reset(ExceptionSink* xsink, const char* fn, const char* enc, int options) {
       if (reader) {
 	 xmlFreeTextReader(reader);
          reader = 0;
@@ -146,7 +146,7 @@ protected:
       init(xsink, fn, enc, options);
    }
 
-   DLLLOCAL void init(ExceptionSink *xsink, const QoreString *n_xml, int options, xmlDocPtr doc) {
+   DLLLOCAL void init(ExceptionSink* xsink, const QoreString* n_xml, int options, xmlDocPtr doc) {
       assert(!xs);
       
       if (n_xml) {
@@ -160,11 +160,11 @@ protected:
    }
 
 public:
-   DLLLOCAL QoreXmlReader(const QoreString *n_xml, int options, ExceptionSink *xsink) : xs(xsink) {
+   DLLLOCAL QoreXmlReader(const QoreString* n_xml, int options, ExceptionSink* xsink) : xs(xsink), fd(-1) {
       init(n_xml, options, xsink);
    }
 
-   DLLLOCAL QoreXmlReader(xmlDocPtr doc, ExceptionSink *xsink) : xs(xsink) {
+   DLLLOCAL QoreXmlReader(xmlDocPtr doc, ExceptionSink* xsink) : xs(xsink), fd(-1) {
       init(doc, xsink);
    }
 
@@ -180,7 +180,7 @@ public:
    }
 
    // returns 0=OK, -1=error
-   DLLLOCAL int read(ExceptionSink *xsink) {
+   DLLLOCAL int read(ExceptionSink* xsink) {
       int rc = read();
       if (rc == -1) {
 	 if (!*xsink)
@@ -189,7 +189,7 @@ public:
       return rc;
    }
 
-   DLLLOCAL int read(const char *info, ExceptionSink *xsink) {
+   DLLLOCAL int read(const char* info, ExceptionSink* xsink) {
       int rc = read();
       if (rc == -1) {
 	 if (!*xsink)
@@ -215,7 +215,7 @@ public:
       return rc;
    }
 
-   DLLLOCAL int readSkipWhitespace(ExceptionSink *xsink) {
+   DLLLOCAL int readSkipWhitespace(ExceptionSink* xsink) {
       int rc;
       while (true) {
 	 rc = read(xsink);
@@ -228,7 +228,7 @@ public:
       return rc;
    }
 
-   DLLLOCAL int readSkipWhitespace(const char *info, ExceptionSink *xsink) {
+   DLLLOCAL int readSkipWhitespace(const char* info, ExceptionSink* xsink) {
       int rc;
       while (true) {
 	 rc = read(info, xsink);
@@ -264,11 +264,11 @@ public:
       return xmlTextReaderDepth(reader);
    }
 
-   DLLLOCAL const char *constName() {
+   DLLLOCAL const char* constName() {
       return (const char*)xmlTextReaderConstName(reader);
    }
       
-   DLLLOCAL const char *constValue() {
+   DLLLOCAL const char* constValue() {
       return (const char*)xmlTextReaderConstValue(reader);
    }
 
@@ -308,11 +308,11 @@ public:
       return xmlTextReaderIsValid(reader) < 0;
    }
 
-   DLLLOCAL int moveToNextAttribute(ExceptionSink *xsink) {
+   DLLLOCAL int moveToNextAttribute(ExceptionSink* xsink) {
       return do_int_rv(xmlTextReaderMoveToNextAttribute(reader), xsink);
    }
 
-   DLLLOCAL QoreStringNode *getValue(const QoreEncoding *id, ExceptionSink *xsink) {
+   DLLLOCAL QoreStringNode* getValue(const QoreEncoding* id, ExceptionSink* xsink) {
       if (id == QCS_UTF8)
 	 return new QoreStringNode(constValue(), QCS_UTF8);
       
@@ -335,8 +335,8 @@ public:
       return xmlTextReaderAttributeCount(reader);
    }
 
-   DLLLOCAL const char *baseUri() {
-      return (const char *)xmlTextReaderConstBaseUri(reader);
+   DLLLOCAL const char* baseUri() {
+      return (const char*)xmlTextReaderConstBaseUri(reader);
    }
 
 #ifdef HAVE_XMLTEXTREADERBYTECONSUMED
@@ -345,40 +345,40 @@ public:
    }
 #endif
 
-   DLLLOCAL const char *encoding() {
-      return (const char *)xmlTextReaderConstEncoding(reader);
+   DLLLOCAL const char* encoding() {
+      return (const char*)xmlTextReaderConstEncoding(reader);
    }
 
-   DLLLOCAL const char *localName() {
-      return (const char *)xmlTextReaderConstLocalName(reader);
+   DLLLOCAL const char* localName() {
+      return (const char*)xmlTextReaderConstLocalName(reader);
    }
 
-   DLLLOCAL const char *namespaceUri() {
-      return (const char *)xmlTextReaderConstNamespaceUri(reader);
+   DLLLOCAL const char* namespaceUri() {
+      return (const char*)xmlTextReaderConstNamespaceUri(reader);
    }
 
-   DLLLOCAL const char *prefix() {
-      return (const char *)xmlTextReaderConstPrefix(reader);
+   DLLLOCAL const char* prefix() {
+      return (const char*)xmlTextReaderConstPrefix(reader);
    }
 
-   DLLLOCAL const char *xmlLang() {
-      return (const char *)xmlTextReaderConstXmlLang(reader);
+   DLLLOCAL const char* xmlLang() {
+      return (const char*)xmlTextReaderConstXmlLang(reader);
    }
 
-   DLLLOCAL const char *xmlVersion() {
-      return (const char *)xmlTextReaderConstXmlVersion(reader);
+   DLLLOCAL const char* xmlVersion() {
+      return (const char*)xmlTextReaderConstXmlVersion(reader);
    }
 
-   DLLLOCAL QoreStringNode *getAttribute(const char *attr) {
-      return doString(xmlTextReaderGetAttribute(reader, (xmlChar *)attr));
+   DLLLOCAL QoreStringNode* getAttribute(const char* attr) {
+      return doString(xmlTextReaderGetAttribute(reader, (xmlChar*)attr));
    }
 
-   DLLLOCAL QoreStringNode *getAttributeOffset(int offset) {
+   DLLLOCAL QoreStringNode* getAttributeOffset(int offset) {
       return doString(xmlTextReaderGetAttributeNo(reader, offset));
    }
 
-   DLLLOCAL QoreStringNode *getAttributeNs(const char *lname, const char *ns) {
-      return doString(xmlTextReaderGetAttributeNs(reader, (const xmlChar *)lname, (const xmlChar *)ns));
+   DLLLOCAL QoreStringNode* getAttributeNs(const char* lname, const char* ns) {
+      return doString(xmlTextReaderGetAttributeNs(reader, (const xmlChar*)lname, (const xmlChar*)ns));
    }
 
 #ifdef HAVE_XMLTEXTREADERGETPARSERCOLUMNNUMBER
@@ -393,31 +393,31 @@ public:
    }
 #endif
 
-   DLLLOCAL QoreStringNode *lookupNamespace(const char *prefix) {
-      return doString(xmlTextReaderLookupNamespace(reader, (xmlChar *)prefix));
+   DLLLOCAL QoreStringNode* lookupNamespace(const char* prefix) {
+      return doString(xmlTextReaderLookupNamespace(reader, (xmlChar*)prefix));
    }
 
-   DLLLOCAL int moveToAttribute(const char *attr, ExceptionSink *xsink) {
-      return do_int_rv(xmlTextReaderMoveToAttribute(reader, (xmlChar *)attr), xsink);
+   DLLLOCAL int moveToAttribute(const char* attr, ExceptionSink* xsink) {
+      return do_int_rv(xmlTextReaderMoveToAttribute(reader, (xmlChar*)attr), xsink);
    }
 
-   DLLLOCAL int moveToAttributeOffset(int offset, ExceptionSink *xsink) {
+   DLLLOCAL int moveToAttributeOffset(int offset, ExceptionSink* xsink) {
       return do_int_rv(xmlTextReaderMoveToAttributeNo(reader, offset), xsink);
    }
 
-   DLLLOCAL int moveToAttributeNs(const char *lname, const char *ns, ExceptionSink *xsink) {
-      return do_int_rv(xmlTextReaderMoveToAttributeNs(reader, (const xmlChar *)lname, (const xmlChar *)ns), xsink);
+   DLLLOCAL int moveToAttributeNs(const char* lname, const char* ns, ExceptionSink* xsink) {
+      return do_int_rv(xmlTextReaderMoveToAttributeNs(reader, (const xmlChar*)lname, (const xmlChar*)ns), xsink);
    }
 
-   DLLLOCAL int moveToElement(ExceptionSink *xsink) {
+   DLLLOCAL int moveToElement(ExceptionSink* xsink) {
       return do_int_rv(xmlTextReaderMoveToElement(reader), xsink);
    }
 
-   DLLLOCAL int moveToFirstAttribute(ExceptionSink *xsink) {
+   DLLLOCAL int moveToFirstAttribute(ExceptionSink* xsink) {
       return do_int_rv(xmlTextReaderMoveToFirstAttribute(reader), xsink);
    }
 
-   DLLLOCAL int next(ExceptionSink *xsink) {
+   DLLLOCAL int next(ExceptionSink* xsink) {
       int rc = xmlTextReaderNext(reader);
       if (rc == -1 && !*xsink)
 	 xsink->raiseException("PARSE-XML-EXCEPTION", "error parsing XML string");
@@ -431,29 +431,29 @@ public:
    }
 */
 
-   DLLLOCAL QoreStringNode *getInnerXml() {
+   DLLLOCAL QoreStringNode* getInnerXml() {
       return doString(xmlTextReaderReadInnerXml(reader));
    }
 
-   DLLLOCAL QoreStringNode *getOuterXml() {
+   DLLLOCAL QoreStringNode* getOuterXml() {
       return doString(xmlTextReaderReadOuterXml(reader));
    }
 
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
-   DLLLOCAL void relaxNGValidate(const char *rng, ExceptionSink *xsink) {
+   DLLLOCAL void relaxNGValidate(const char* rng, ExceptionSink* xsink) {
       if (xmlTextReaderRelaxNGValidate(reader, rng))
 	 xsink->raiseException("XMLREADER-RELAXNG-ERROR", "an error occured setting the RelaxNG schema for validation; this function must be called before the first call to XmlReader::read()");
    }
 #endif
 
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
-   DLLLOCAL void schemaValidate(const char *xsd, ExceptionSink *xsink) {
+   DLLLOCAL void schemaValidate(const char* xsd, ExceptionSink* xsink) {
       if (xmlTextReaderSchemaValidate(reader, xsd))
 	 xsink->raiseException("XMLREADER-XSD-ERROR", "an error occured setting the W3C XSD schema for validation; this function must be called before the first call to XmlReader::read()");
    }
 #endif
 
-   DLLLOCAL QoreHashNode *parseXMLData(const QoreEncoding *data_ccsid, bool as_data, ExceptionSink *xsink);
+   DLLLOCAL QoreHashNode* parseXMLData(const QoreEncoding* data_ccsid, bool as_data, ExceptionSink* xsink);
 };
 
 #endif
