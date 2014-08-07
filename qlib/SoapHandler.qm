@@ -394,7 +394,8 @@ public namespace SoapHandler {
             # if there is an output message, then serialize the response
             if ($method.operation.output) {
                 try {
-                    $h += $method.operation.serializeResponse($rv);
+                    my any $header = remove $rv."^header^";
+                    $h += $method.operation.serializeResponse($rv, $header);
                 }
                 catch (hash $ex) {
                     if ($method.err_func)

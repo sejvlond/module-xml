@@ -1383,11 +1383,16 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
         - \c body: XML string in the SOAP request format
         - \c hdr: hash of HTTP headers
     */
-    hash serializeResponse(any $h, *string $enc) {
+    hash serializeResponse(any $h, any $header, *string $enc) {
 	# setup namespaces for SOAP envelope
 	my hash $rh = $.soap12 ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
 
 	$rh."soapenv:Envelope"."^attributes^" += ( "xmlns:ns1" : $.targetns );
+
+	if ($.oheader && $header) {
+            my hash $hh.($.oheader.part) = $header;
+	    $rh."soapenv:Envelope"."soapenv:Header" = $.oheader.msg.serializeDocument($.oheader.part, NOTHING, NOTHING, $hh, $.usedocns);
+        }
 
 	my MultiPartRelatedMessage $mpm;
 	# do we have mime/multipart output format?
