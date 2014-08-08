@@ -521,7 +521,7 @@ public namespace SoapHandler {
                     $.log($cx, "exception parsing SOAP msg: %y", $body);
                     #my string $str = sprintf("exception in %s:%d: %s: %s (1: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
                     return (
-                        "code": 200,
+                        "code": 500,
                         "errlog": sprintf("%s: %s", $ex.err, $ex.desc),
                         "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
                         "hdr": ("Content-Type" : MimeTypeSoapXml),
@@ -535,7 +535,7 @@ public namespace SoapHandler {
             catch ($ex) {
                 my string $str = sprintf("exception in %s:%d: %s: %s (2: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
                 return (
-                    "code": 200,
+                    "code": 500,
                     "errlog": $str,
                     "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
                     "hdr": ("Content-Type" : MimeTypeSoapXml)

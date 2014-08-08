@@ -13,6 +13,7 @@ version 1.3
   + added support for matching requests by soap action values
   + allow "^header^" key in top-level hash response to specify SOAP headers in
     the response message
+  + 500 HTTP response code returned with SOAP faults
 * user modules moved to top-level qore module directory from version-specific
   module directory since they are valid for multiple versions of qore 
 
