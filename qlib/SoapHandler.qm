@@ -394,7 +394,8 @@ public namespace SoapHandler {
             # if there is an output message, then serialize the response
             if ($method.operation.output) {
                 try {
-                    $h += $method.operation.serializeResponse($rv);
+                    my any $header = remove $rv."^header^";
+                    $h += $method.operation.serializeResponse($rv, $header);
                 }
                 catch (hash $ex) {
                     if ($method.err_func)
@@ -423,7 +424,7 @@ public namespace SoapHandler {
                 $soapaction = $hdr.soapaction;
 
             my $args;
-            my $reqsoap12; # set to True if soap 1.2 envelope is used in request
+            my bool $reqsoap12 = False; # set to True if soap 1.2 envelope is used in request
 
             if ($hdr.method == "GET") {
                 my *string $path = $cx.url.path;
@@ -520,7 +521,7 @@ public namespace SoapHandler {
                     $.log($cx, "exception parsing SOAP msg: %y", $body);
                     #my string $str = sprintf("exception in %s:%d: %s: %s (1: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
                     return (
-                        "code": 200,
+                        "code": 500,
                         "errlog": sprintf("%s: %s", $ex.err, $ex.desc),
                         "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
                         "hdr": ("Content-Type" : MimeTypeSoapXml),
@@ -534,7 +535,7 @@ public namespace SoapHandler {
             catch ($ex) {
                 my string $str = sprintf("exception in %s:%d: %s: %s (2: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
                 return (
-                    "code": 200,
+                    "code": 500,
                     "errlog": $str,
                     "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
                     "hdr": ("Content-Type" : MimeTypeSoapXml)
