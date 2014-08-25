@@ -424,7 +424,7 @@ public namespace SoapHandler {
                 $soapaction = $hdr.soapaction;
 
             my $args;
-            my $reqsoap12; # set to True if soap 1.2 envelope is used in request
+            my bool $reqsoap12 = False; # set to True if soap 1.2 envelope is used in request
 
             if ($hdr.method == "GET") {
                 my *string $path = $cx.url.path;
