@@ -229,13 +229,13 @@ public namespace SoapClient {
 
             @throw SOAP-CLIENT-ERROR the operation is not defined in the WSDL
         */
-        hash getMsg(string $operation, any $args, *hash $header, reference $op) {
+        hash getMsg(string $operation, any $args, *hash $header, reference $op, *hash $nsh) {
             if (!exists $.wsdl.portType.$.portType.operations.$operation)
                 throw "SOAP-CLIENT-ERROR", sprintf("operation %n does not exist (operations defined by service %n: %y)", 
                                                    $operation, $.portType, keys $.wsdl.portType.$.portType.operations);
 
             $op = $.wsdl.portType.$.portType.operations.$operation;
-            my hash $msg = $op.serializeRequest($args, $header, $.getEncoding());
+            my hash $msg = $op.serializeRequest($args, $header, $.getEncoding(), $nsh);
             if ($msg.hdr."Content-Type" !~ /charset=/i)
                 $msg.hdr."Content-Type" += ";charset=" + $.getEncoding();
             return $msg;
@@ -248,9 +248,9 @@ public namespace SoapClient {
 
             @return the deserialized result of the SOAP call to the SOAP server
         */
-        any call(string $operation, any $args, *hash $header) {
+        any call(string $operation, any $args, *hash $header, *hash $nsh) {
             my hash $info;
-            return $.makeCallIntern(\$info, $operation, $args, $header);
+            return $.makeCallIntern(\$info, $operation, $args, $header, $nsh);
         }
 
         #! makes a server call with the given operation and arguments and returns the deserialized result
@@ -272,14 +272,14 @@ public namespace SoapClient {
 
             @return the deserialized result of the SOAP call to the SOAP server
         */
-        any call(reference $info, string $operation, any $args, *hash $header) {
-            return $.makeCallIntern(\$info, $operation, $args, $header);
+        any call(reference $info, string $operation, any $args, *hash $header, *hash $nsh) {
+            return $.makeCallIntern(\$info, $operation, $args, $header, $nsh);
         }
 
         #! makes the call to the SOAP server and ensures that SOAP fault responses returned with a 500-series status code are processed as a SOAP fault so that error information is returned in the resulting exception
-        private any makeCallIntern(*reference $info, string $operation, any $args, *hash $header) {
+        private any makeCallIntern(*reference $info, string $operation, any $args, *hash $header, *hash $nsh) {
             my WSOperation $op;
-            my hash $msg = $.getMsg($operation, $args, $header, \$op);
+            my hash $msg = $.getMsg($operation, $args, $header, \$op, $nsh);
             my hash $hdr = $.headers + $msg.hdr;
 
             # we have to write the request key after the HTTPClient::post() call
