@@ -1322,20 +1322,28 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
     /** @param h the request to serialize
 	@param header optional soap header info to serialize if required (ex: authorization info)
         @param enc the optional encoding to use; if this argument is not present, then the default encoding will be used
+
 	@return a hash with keys:
 	- \c body: XML string in the SOAP request format
 	- \c hdr: hash of HTTP headers
 	*/
-    hash serializeRequest(any $h, any $header, *string $enc) {
+    hash serializeRequest(any $h, *hash $header, *string $enc, *hash $nsh) {
 	# setup namespaces for SOAP envelope
 	my hash $rh = $.nsc.isSoap12() ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
 
 	# ns1 (( "^attributes^" : 
-	$rh."soapenv:Envelope"."^attributes^" += $.nsc.getOutputNamespaceHash();
+	$rh."soapenv:Envelope"."^attributes^" += $.nsc.getOutputNamespaceHash($nsh);
 
-	if ($.iheader && $header) {
-            my hash $hh.($.iheader.part) = $header;
-	    $rh."soapenv:Envelope"."soapenv:Header" = $.iheader.msg.serializeDocument($.iheader.part, NOTHING, NOTHING, $hh, $.usedocns);
+        printf("DEBUG header: %y\n", $header);
+
+        if ($header) {
+            if ($.iheader) {
+                my hash $hh.($.iheader.part) = $header;
+                $rh."soapenv:Envelope"."soapenv:Header" = $.iheader.msg.serializeDocument($.iheader.part, NOTHING, NOTHING, $hh, $.usedocns);
+            }
+            else {
+                $rh."soapenv:Envelope"."soapenv:Header" = $header;
+            }
         }
 
 	my MultiPartRelatedMessage $mpm;
@@ -1394,15 +1402,20 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
         - \c body: XML string in the SOAP request format
         - \c hdr: hash of HTTP headers
     */
-    hash serializeResponse(any $h, any $header, *string $enc) {
+    hash serializeResponse(any $h, *hash $header, *string $enc, *hash $nsh) {
 	# setup namespaces for SOAP envelope
 	my hash $rh = $.nsc.isSoap12() ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
 
-	$rh."soapenv:Envelope"."^attributes^" += $.nsc.getOutputNamespaceHash();
+	$rh."soapenv:Envelope"."^attributes^" += $.nsc.getOutputNamespaceHash($nsh);
 
-	if ($.oheader && $header) {
-            my hash $hh.($.oheader.part) = $header;
-	    $rh."soapenv:Envelope"."soapenv:Header" = $.oheader.msg.serializeDocument($.oheader.part, NOTHING, NOTHING, $hh, $.usedocns);
+        if ($header) {
+            if ($.oheader) {
+                my hash $hh.($.oheader.part) = $header;
+                $rh."soapenv:Envelope"."soapenv:Header" = $.oheader.msg.serializeDocument($.oheader.part, NOTHING, NOTHING, $hh, $.usedocns);
+            }
+            else {
+                $rh."soapenv:Envelope"."soapenv:Header" = $header;
+            }
         }
 
 	my MultiPartRelatedMessage $mpm;
@@ -2068,9 +2081,20 @@ public class WSDL::Namespaces {
     }
 
     #! returns a hash of namespace attributes for outgoing SOAP messages
-    *hash getOutputNamespaceHash() {
+    *hash getOutputNamespaceHash(*hash $nsh) {
         my hash $h;
         map $h.("xmlns:" + $1.key) = $1.value, $.ns.pairIterator();
+
+        foreach my string $k in ($nsh.keyIterator()) {
+            my string $xs = "xmlns:" + $k;
+            if ($h.$xs) {
+                if ($h.$xs != $nsh.$k)
+                    throw "WSDL-NAMESPACE-ERROR", sprintf("namespace %y has already been added automatically as %y and therefore cannot be overridden as %y", $k, $h.$xs, $nsh.$k);
+            }
+            else
+                $h.$xs = $nsh.$k;
+        }
+
         return $h;
     }
 
