@@ -1334,7 +1334,7 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	# ns1 (( "^attributes^" : 
 	$rh."soapenv:Envelope"."^attributes^" += $.nsc.getOutputNamespaceHash($nsh);
 
-        printf("DEBUG header: %y\n", $header);
+        #printf("DEBUG header: %y\n", $header);
 
         if ($header) {
             if ($.iheader) {
