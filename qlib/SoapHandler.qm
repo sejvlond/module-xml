@@ -333,9 +333,12 @@ public namespace SoapHandler {
                 $args = $method.operation.deserializeRequest($args);
             }
             catch ($ex) {
-                return ( "errlog" : sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
-                         "body"   : SoapHandler::makeSoapFaultResponse($soap12, $ex.err, $ex.desc),
-                         "hdr"    : ( "Content-Type" : $soap12 ? MimeTypeSoapXml : MimeTypeXml ) );
+                return (
+		    "code": 500,
+		    "errlog": sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
+		    "body": SoapHandler::makeSoapFaultResponse($soap12, $ex.err, $ex.desc),
+		    "hdr": ("Content-Type": $soap12 ? MimeTypeSoapXml : MimeTypeXml),
+		    );
             }
 
             # add context marker, if any
@@ -522,7 +525,7 @@ public namespace SoapHandler {
                     #my string $str = sprintf("exception in %s:%d: %s: %s (1: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
                     return (
                         "code": 500,
-                        "errlog": sprintf("%s: %s", $ex.err, $ex.desc),
+			"errlog": sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
                         "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
                         "hdr": ("Content-Type" : MimeTypeSoapXml),
                         );
@@ -533,7 +536,7 @@ public namespace SoapHandler {
                 return ("code": 200) + $.callOperation($cx, $args, $soapaction);
             }
             catch ($ex) {
-                my string $str = sprintf("exception in %s:%d: %s: %s (2: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
+                my string $str = sprintf("exception in %s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc);
                 return (
                     "code": 500,
                     "errlog": $str,
