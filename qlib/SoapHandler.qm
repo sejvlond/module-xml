@@ -333,9 +333,12 @@ public namespace SoapHandler {
                 $args = $method.operation.deserializeRequest($args);
             }
             catch ($ex) {
-                return ( "errlog" : sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
-                         "body"   : SoapHandler::makeSoapFaultResponse($soap12, $ex.err, $ex.desc),
-                         "hdr"    : ( "Content-Type" : $soap12 ? MimeTypeSoapXml : MimeTypeXml ) );
+                return (
+		    "code": 500,
+		    "errlog": sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
+		    "body": SoapHandler::makeSoapFaultResponse($soap12, $ex.err, $ex.desc),
+		    "hdr": ("Content-Type": $soap12 ? MimeTypeSoapXml : MimeTypeXml),
+		    );
             }
 
             # add context marker, if any
@@ -412,7 +415,7 @@ public namespace SoapHandler {
         # method called by HttpServer
         # don't reimplement this method; fix/enhance it in the module
         final hash handleRequest(hash $cx, hash $hdr, *data $body) {
-            #log(LL_DEBUG_1, "soap handler context=%n hdr=%n body=%n ws=%n", $cx, $hdr, $body, keys $.ws);
+            #log(LL_DEBUG_1, "soap handler context=%y hdr=%y body=%y ws=%y", $cx, $hdr, $body, $.ws.keys());
             #printf("soap handler context=%y hdr=%y body=%y keys ws=%y\n", $cx, $hdr, $body, keys $.ws);
             $cx.http_header = $hdr;
             $cx.http_body = $body;
@@ -522,7 +525,7 @@ public namespace SoapHandler {
                     #my string $str = sprintf("exception in %s:%d: %s: %s (1: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
                     return (
                         "code": 500,
-                        "errlog": sprintf("%s: %s", $ex.err, $ex.desc),
+			"errlog": sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
                         "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
                         "hdr": ("Content-Type" : MimeTypeSoapXml),
                         );
@@ -533,7 +536,7 @@ public namespace SoapHandler {
                 return ("code": 200) + $.callOperation($cx, $args, $soapaction);
             }
             catch ($ex) {
-                my string $str = sprintf("exception in %s:%d: %s: %s (2: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
+                my string $str = sprintf("exception in %s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc);
                 return (
                     "code": 500,
                     "errlog": $str,
