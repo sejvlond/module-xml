@@ -1842,6 +1842,8 @@ public class WSDL::WSMessage inherits WSDL::XSDNamedData {
     any deserializeDocument(*hash $types, *hash $mrh, any $val) {
         my any $rh;
 
+        my *hash $attr = remove $val."^attributes^";
+        
         #printf("DBG WSMessage::deserializeDocument() args: %y val: %y\n", $.args.keys(), $val);
         if ($.args.size() == 1) {
             my string $key = $.args.firstKey();
