@@ -840,7 +840,7 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
     }
 
     private any serializeAsIntern(XSDAbstractType $type, any $h, *softbool $omit_type, *softbool $omit_ns, string $key, string $typename, reference $ons) {
-        #printf("DEBUG: XSDElement::serializeAsIntern() name: %y h: %y key: %y typename: %y\n", $.name, $h, $key, $typename);
+        #printf("DEBUG: XSDElement::serializeAsIntern() name: %y h: %y key: %y typename: %y minOccurs: %y nillable: %y (%y %y)\n", $.name, $h, $key, $typename, $.minOccurs, $.nillable, !exists $h, !$.minOccurs);
         $ons = $type.getOutputNamespacePrefix();
 
 	if (!exists $h) {
@@ -856,7 +856,7 @@ public class WSDL::XSDElement inherits WSDL::XSDNamedData {
 
             if (!$type.required())
                 return;
-            
+
             throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value for %s.%s (minOccurs=%d, type %n)", $.name, $typename, $key, $.minOccurs, $type.getName());
 	}
 
@@ -1129,6 +1129,9 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
         }
         else
             $e = $.elements.$key.serialize($h.$key, $omit_type, $omit_ns, $key, $.name, \$ons);
+
+        if (!exists $e)
+            return;
 
         if ($ons != $.ons && $ons != "xsd") {
             if ($e.typeCode() != NT_HASH)
