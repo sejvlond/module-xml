@@ -283,7 +283,7 @@ public namespace SoapHandler {
         }
 
         # don't reimplement this method; fix/enhance it in the module
-        final private hash callOperation(hash $cx, any $args, *string $soapaction) {
+        final private hash callOperation(hash $cx, any $args, *string $soapaction, bool $reqsoap12) {
             my *string $element = $cx.element;
 
             my *hash $method;
@@ -327,8 +327,6 @@ public namespace SoapHandler {
                 return $h;
             }
 
-            my bool $soap12 = $method.operation.isSoap12();
-
             try {
                 $args = $method.operation.deserializeRequest($args);
             }
@@ -336,8 +334,8 @@ public namespace SoapHandler {
                 return (
 		    "code": 500,
 		    "errlog": sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
-		    "body": SoapHandler::makeSoapFaultResponse($soap12, $ex.err, $ex.desc),
-		    "hdr": ("Content-Type": $soap12 ? MimeTypeSoapXml : MimeTypeXml),
+		    "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
+		    "hdr": ("Content-Type": $reqsoap12 ? MimeTypeSoapXml : MimeTypeXml),
 		    );
             }
 
@@ -398,7 +396,7 @@ public namespace SoapHandler {
             if ($method.operation.output) {
                 try {
                     my any $header = remove $rv."^header^";
-                    $h += $method.operation.serializeResponse($rv, $header);
+                    $h += $method.operation.serializeResponse($rv, $header, NOTHING, NOTHING, $reqsoap12);
                 }
                 catch (hash $ex) {
                     if ($method.err_func)
@@ -505,7 +503,7 @@ public namespace SoapHandler {
 
                     # set soap version in request
                     my $attr = $args.Envelope."^attributes^";
-                    foreach my $k in (keys $attr) {
+                    foreach my $k in ($attr.keyIterator()) {
                         if ($k =~ /:soapenv$/) {
                             if ($attr.$k == SOAP_12_ENV)
                                 $reqsoap12 = True;
@@ -533,7 +531,7 @@ public namespace SoapHandler {
             }
             try {
                 #printf("DEBUG: context: %N\nargs: %N\n", $cx, $args);
-                return ("code": 200) + $.callOperation($cx, $args, $soapaction);
+                return ("code": 200) + $.callOperation($cx, $args, $soapaction, $reqsoap12);
             }
             catch ($ex) {
                 my string $str = sprintf("exception in %s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc);
