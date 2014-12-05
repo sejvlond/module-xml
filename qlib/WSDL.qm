@@ -69,7 +69,7 @@ module WSDL {
     
     @section wsdlintro Introduction to the WSDL Module
 
-    The %WSDL module provides functionality for <a href="http://en.wikipedia.org/wiki/SOAP">SOAP</a>.
+    The %WSDL module provides functionality for <a href="http://en.wikipedia.org/wiki/SOAP">SOAP</a> 1.1 and 1.2.
 
     The main purpose of this module is to provide the infrastructure for developing SOAP client and server services.
 
@@ -97,6 +97,9 @@ public namespace WSDL {
     #! SOAP 1.2 envelope URI
     public const SOAP_12_ENV  = "http://www.w3.org/2003/05/soap-envelope";
 
+    #! SOAP 1.1 namespace URI
+    public const SOAP_11_NS   = "http://schemas.xmlsoap.org/wsdl/soap/";
+
     #! SOAP 1.2 namespace URI
     public const SOAP_12_NS   = "http://schemas.xmlsoap.org/wsdl/soap12/";
 
@@ -111,42 +114,54 @@ public namespace WSDL {
     public const MIME_NS      = "http://schemas.xmlsoap.org/wsdl/mime/";
 
     #! soap 1.1 envelope namespaces
-    public const ENVELOPE_11_NS = 
-	( "soapenv:Envelope" :
-	  ( "^attributes^" : 
-	    ( "xmlns:soapenv" : SOAP_11_ENV,
-	      "xmlns:xsd"     : XSD_NS,
-	      "xmlns:xsi"     : XSI_NS ) ) );
+    public const ENVELOPE_11_NS = (
+        "soapenv:Envelope": (
+            "^attributes^": (
+                "xmlns:soapenv": SOAP_11_ENV,
+                "xmlns:xsd": XSD_NS,
+                "xmlns:xsi": XSI_NS,
+            ),
+        ),
+        );
 
     #! soap 1.2 envelope namespaces
-    public const ENVELOPE_12_NS = 
-	( "soapenv:Envelope" :
-	  ( "^attributes^" : 
-	    ( "xmlns:soapenv" : SOAP_12_ENV,
-	      "xmlns:xsd"     : XSD_NS,
-	      "xmlns:xsi"     : XSI_NS ) ) );
+    public const ENVELOPE_12_NS = (
+        "soapenv:Envelope": (
+            "^attributes^": (
+                "xmlns:soapenv": SOAP_12_ENV,
+	      "xmlns:xsd": XSD_NS,
+	      "xmlns:xsi": XSI_NS,
+            ),
+        ),
+        );
 
     #! soap encoding URI
     public const SOAP_ENCODING = "http://schemas.xmlsoap.org/soap/encoding/";
 
     #! mapping from Qore types to xsd types for xsd type "anyType"
-    public const any_type_map = 
-	( Type::String      : "string",
-	  Type::Int         : "long",
-	  Type::Boolean     : "boolean",
-	  Type::Date        : "dateTime",
-	  Type::Float       : "decimal",
-	  Type::NothingType : "string",
-	  Type::NullType    : "string",
-	  Type::Binary      : "base64Binary" );
-
+    public const any_type_map = (
+        Type::String      : "string",
+        Type::Int         : "long",
+        Type::Boolean     : "boolean",
+        Type::Date        : "dateTime",
+        Type::Float       : "decimal",
+        Type::NothingType : "string",
+        Type::NullType    : "string",
+        Type::Binary      : "base64Binary",
+        );
+    
     # error codes
     const SOAP_SERIALIZATION_ERROR = "SOAP-SERIALIZATION-ERROR";
     const SOAP_DESERIALIZATION_ERROR = "SOAP-DESERIALIZATION-ERROR";
     const WSDL_ERROR = "WSDL-ERROR";
 
-    #! SOAP transport URL
+    #! SOAP HTTP transport URI
     const SOAP_TRANSPORT_HTTP = "http://schemas.xmlsoap.org/soap/http";
+
+    #! known/supported transports
+    public const SOAP_TRANSPORT = (
+        SOAP_TRANSPORT_HTTP: True,
+        );
 
     #! range of "short" values (16 bits)
     public const RANGE_SHORT = (-32768, 32767);
@@ -1332,7 +1347,7 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	*/
     hash serializeRequest(any $h, *hash $header, *string $enc, *hash $nsh) {
 	# setup namespaces for SOAP envelope
-	my hash $rh = $.nsc.isSoap12() ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
+	my hash $rh = $.nsc.hasSoap12() ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
 
 	# ns1 (( "^attributes^" : 
 	$rh."soapenv:Envelope"."^attributes^" += $.nsc.getOutputNamespaceHash($nsh);
@@ -1365,11 +1380,11 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	my string $body = HAVE_LIBRARY_DEBUGGING ? makeFormattedXMLString($rh, $enc) : makeXMLString($rh, $enc);
 
 	if ($mpm) {
-	    $mpm.splicePart($body, sprintf("<%s>", $.in.body.parts), $.nsc.isSoap12() ? MimeTypeSoapXml : MimeTypeXml);
+	    $mpm.splicePart($body, sprintf("<%s>", $.in.body.parts), $.nsc.hasSoap12() ? MimeTypeSoapXml : MimeTypeXml);
 	    
 	    my hash $rv = $mpm.getMsgAndHeaders();
 	    if ($.soapAction) {
-		if ($.nsc.isSoap12())
+		if ($.nsc.hasSoap12())
 		    $rv.hdr."Content-Type" += sprintf(";action=%s", $.soapAction);
 		$rv.hdr += ("SOAPAction" : $.soapAction);
 	    }
@@ -1379,7 +1394,7 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	}
 
 	my string $ct;
-	if ($.nsc.isSoap12()) {
+	if ($.nsc.hasSoap12()) {
 	    $ct = MimeTypeSoapXml;
 	    if ($.soapAction)
 		$ct += sprintf(";action=%s", $.soapAction);
@@ -1400,14 +1415,26 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
     #! serializes a SOAP response to an XML string for the operation
     /** @param h the response to serialize
+        @param header SOAP header hash
         @param enc the optional encoding to use; if this argument is not present, then the default encoding will be used
+        @param nsh namespace hash
+        @param soap12 set to True if the response should use SOAP 1.2 encoding
+
         @return a hash with keys:
         - \c body: XML string in the SOAP request format
         - \c hdr: hash of HTTP headers
     */
-    hash serializeResponse(any $h, *hash $header, *string $enc, *hash $nsh) {
+    hash serializeResponse(any $h, *hash $header, *string $enc, *hash $nsh, *bool $soap12) {
+        if ($soap12) {
+            if (!$.nsc.hasSoap12())
+                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize response for operation %y with SOAP 1.2 encoding; this operation does not support SOAP 1.2", $.name);
+        }
+        else {
+            if (!$.nsc.hasSoap11())
+                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize response for operation %y with SOAP 1.1 encoding; this operation does not support SOAP 1.1", $.name);
+        }
 	# setup namespaces for SOAP envelope
-	my hash $rh = $.nsc.isSoap12() ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
+	my hash $rh = $soap12 ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
 
 	$rh."soapenv:Envelope"."^attributes^" += $.nsc.getOutputNamespaceHash($nsh);
 
@@ -1436,7 +1463,7 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 
 	my string $body = HAVE_LIBRARY_DEBUGGING ? makeFormattedXMLString($rh, $enc) : makeXMLString($rh, $enc);
 
-	my string $ct = $.nsc.isSoap12() ? MimeTypeSoapXml : MimeTypeXml;
+	my string $ct = $soap12 ? MimeTypeSoapXml : MimeTypeXml;
 	if (exists $mpm) {
 	    $mpm.splicePart($body, sprintf("<%s>", $.out.body.parts), $ct);
 	    return $mpm.getMsgAndHeaders();
@@ -1548,7 +1575,7 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
 	if ($body.Fault) {
 	    WSDL::XSDBase::removeNS(\$body.Fault);
             delete $body.Fault.".ns";
-	    if ($.nsc.isSoap12()) {
+	    if ($.nsc.hasSoap12()) {
 		WSDL::XSDBase::removeNS(\$body.Fault.Code);
 		WSDL::XSDBase::removeNS(\$body.Fault.Reason);
 		my string $desc = sprintf("The following fault response was received from the server: code: %y", $body.Fault.Code.Value);
@@ -1605,7 +1632,7 @@ public class WSDL::WSOperation inherits WSDL::XSDNamedData {
     /** @return True if the operation is a SOAP 1.2 operation
     */
     bool isSoap12() {
-	return $.nsc.isSoap12();
+	return $.nsc.hasSoap12();
     }
 
     #! returns the target namespace for the operation
@@ -1898,8 +1925,8 @@ public class WSDL::Binding inherits WSDL::XSDNamedData {
 
 	if (exists $data.binding) {
 	    my *hash $bba = $data.binding."^attributes^";
-	    if (exists $bba.transport && $bba.transport != SOAP_TRANSPORT_HTTP)
-		throw WSDL_ERROR, sprintf("unsupported transport %y in binding %y", $bba.transport, $.name);
+	    if (exists $bba.transport && !SOAP_TRANSPORT.($bba.transport))
+		throw WSDL_ERROR, sprintf("unsupported transport %y in binding %y (known transports: %y)", $bba.transport, $.name, SOAP_TRANSPORT.keys());
 	    if ($bba.style == "document")
 		$.docStyle = True;
 	}
@@ -2022,8 +2049,11 @@ public class WSDL::Namespaces {
         #! integer providing a sequence for output namespace prefixes
         int $.nsn;
 
-        #! if True then using SOAP 1.2
-        bool $.soap12 = False;
+        #! if True then has SOAP 1.1
+        bool $.hassoap11 = False;
+
+        #! if True then has SOAP 1.2
+        bool $.hassoap12 = False;
 
         #! current target namespace
         *string $.target_ns;
@@ -2050,8 +2080,11 @@ public class WSDL::Namespaces {
 	    if ($nsh.$k == XSD_NS)
 		$.xml_schema.$ns = True;
 
+	    if ($nsh.$k == SOAP_11_NS)
+		$.hassoap11 = True;
+
 	    if ($nsh.$k == SOAP_12_NS)
-		$.soap12 = True;
+		$.hassoap12 = True;
 	}
 	# "default" has to be quoted because it's a reserved word
 	if ($nsh.xmlns)
@@ -2144,9 +2177,14 @@ public class WSDL::Namespaces {
         return $.ns;
     }
 
+    #! returns True if using SOAP 1.1, False if not
+    bool hasSoap11() {
+        return $.hassoap11;
+    }
+
     #! returns True if using SOAP 1.2, False if not
-    bool isSoap12() {
-        return $.soap12;
+    bool hasSoap12() {
+        return $.hassoap12;
     }
 
     #! returns True if if the input namespace prefix refers to the XSD namespace URI
@@ -2510,7 +2548,7 @@ public class WSDL::WebService inherits WSDL::XSDBase {
     /** @return True if the WSDL describes a SOAP 1.2 service
     */
     bool isSoap12() {
-	return $.nsc.isSoap12();
+	return $.nsc.hasSoap12();
     }
 
     #! returns the XML string for the WSDL
