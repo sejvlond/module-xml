@@ -71,12 +71,12 @@ const ApiMethods = (
 );
 
 # a logging closure
-my code $log = sub (string $str) {printf("%y: %s\n", now_us(), $str);};
+my code $log = sub (string $fmt) {printf("%y: %s\n", now_us(), vsprintf($fmt, $argv));};
 
 # our bind address
 const Bind = 8888;
 
-my XmlRpcHandler $xmlRpcHandler(new AbstractAuthenticator(), $api);
+my XmlRpcHandler $xmlRpcHandler(new AbstractAuthenticator(), ApiMethods);
 our HttpServer $http($log, $log);
 $http.addListener(Bind);
 $http.setHandler("xmlrpc", "", MimeTypeXmlRpc, $xmlRpcHandler);

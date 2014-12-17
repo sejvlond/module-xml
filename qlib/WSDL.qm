@@ -2062,7 +2062,7 @@ public class WSDL::Namespaces {
         list $.nss = ();
     }
 
-    #! creates the object with the wsdl definitions attribute hash
+    #! creates the object with the WSDL definitions attribute hash
     constructor(hash $nsh, *Namespaces $nsc) {
         $.nsn = $nsc ? $nsc.nsn : 1;
 
@@ -2233,7 +2233,6 @@ public class WSDL::WebService inherits WSDL::XSDBase {
         #! namespace info
         #hash $.ns;
 
-        #bool $.soap12 = False;
         hash $.base_type;
         hash $.services;
         list $.wsdl_services = ();
@@ -2308,29 +2307,6 @@ public class WSDL::WebService inherits WSDL::XSDBase {
 
 	return $.idocmap;
     }
-
-    /*
-    private getNSPrefixes(*hash $a) {
-	#printf("DEBUG: getNSPrefixes() %n\n", $a);
-	foreach my string $k in ($a.keyIterator()) {
-	    my any $ns = ($k =~ x/xmlns:(\w+)/)[0];
-	    
-	    if (!exists $ns)
-		continue;
-	    $.ns.map.$ns = $a.$k;
-
-	    if ($a.$k == XSD_NS)
-		$.ns.xml_schema.$ns = True;
-
-	    if ($a.$k == SOAP_12_NS)
-		$.soap12 = True;
-	}
-	# "default" has to be quoted because it's a reserved word
-	if (exists $a.xmlns)
-	    $.ns."default" = $a.xmlns;
-	$.ns.target = $a.targetNamespace;
-    }
-    */
 
     private XSDBaseType getBaseType(any $t) {
 	if (exists $.base_type.$t)
