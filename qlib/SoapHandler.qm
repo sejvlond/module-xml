@@ -22,7 +22,6 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-
 # make sure we have the required qore version
 %requires qore >= 0.8.10
 
@@ -35,8 +34,8 @@
 # need mime definitions
 %requires Mime >= 1.1
 
-# need definitions from the HttpServer
-%requires HttpServer >= 0.3.3
+# need definitions from the HttpServerUtil
+%requires HttpServerUtil >= 0.3.11
 
 module SoapHandler {
     version = "0.2.5";
@@ -344,11 +343,11 @@ public namespace SoapHandler {
             $cx.function = $method.function;
             $cx.operation = $method.operation;
 
-            if (($method.logopt & HttpServer::LP_LEVELMASK) <= $.loglevel && exists $cx.logfunc) {
+            if (($method.logopt & HttpServerUtil::LP_LEVELMASK) <= $.loglevel && exists $cx.logfunc) {
                 my $msg;
 
                 $msg = sprintf("SOAP call from %s: %s", $cx."peer-info".address_desc, $method.name);
-                if ($method.logopt & HttpServer::LP_LOGPARAMS) {
+                if ($method.logopt & HttpServerUtil::LP_LOGPARAMS) {
                     $msg += sprintf("(");
                     my $i = 0;
                     foreach my $arg in ($args) {

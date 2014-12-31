@@ -31,8 +31,11 @@
 # need mime definitions
 %requires Mime >= 1.0
 
-# need HttpServer definitions
-%requires HttpServer >= 0.3.3
+# need the Util module
+%requires Util
+
+# need HttpServerUtil definitions
+%requires HttpServerUtil >= 0.3.11
 
 module XmlRpcHandler {
     version = "1.1";
@@ -312,7 +315,7 @@ ash), the method definition as passed in the methods argument to this constructo
                     $xmlrpc = parseXMLRPCCall($body);
                 }
                 catch (hash $ex) {
-                    $.log($cx, HttpServer::get_exception_string($ex));
+                    $.log($cx, get_exception_string($ex));
                     $.log($cx, "error parsing XML-RPC string: %s", $body);
                     return (
                         "code": 200,
@@ -336,7 +339,7 @@ ash), the method definition as passed in the methods argument to this constructo
                 # show complete exception trace if system debug option is enabled
                 my string $str = !$.debug
                     ? sprintf("%s: %s", $ex.err, $ex.desc)
-                    : HttpServer::get_exception_string($ex);
+                    : get_exception_string($ex);
 
                 return (
                     "code": 200,
