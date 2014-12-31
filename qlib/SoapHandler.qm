@@ -343,11 +343,11 @@ public namespace SoapHandler {
             $cx.function = $method.function;
             $cx.operation = $method.operation;
 
-            if (($method.logopt & HttpServerUtil::LP_LEVELMASK) <= $.loglevel && exists $cx.logfunc) {
+            if (($method.logopt & HttpServer::LP_LEVELMASK) <= $.loglevel && exists $cx.logfunc) {
                 my $msg;
 
                 $msg = sprintf("SOAP call from %s: %s", $cx."peer-info".address_desc, $method.name);
-                if ($method.logopt & HttpServerUtil::LP_LOGPARAMS) {
+                if ($method.logopt & HttpServer::LP_LOGPARAMS) {
                     $msg += sprintf("(");
                     my $i = 0;
                     foreach my $arg in ($args) {
