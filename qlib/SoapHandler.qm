@@ -322,7 +322,7 @@ public namespace SoapHandler {
             # NOTE: internal methods have no operation definition and can take no parameters
             my hash $h;
             if ($method.internal) {
-                $h.body = callObjectMethod($self, $method.function);
+                $h.body = call_object_method($self, $method.function);
                 return $h;
             }
 
@@ -387,7 +387,7 @@ public namespace SoapHandler {
                 $args = $cx;
 
             if ($method.internal)
-                $rv = callObjectMethodArgs($self, $method.function, $args);
+                $rv = call_object_method_args($self, $method.function, $args);
             else
                 $rv = call_function_args($method.function, $args);
 
