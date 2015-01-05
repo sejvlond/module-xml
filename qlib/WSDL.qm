@@ -23,7 +23,7 @@
 */
 
 # make sure we have the required qore version
-%requires qore >= 0.8.10
+%requires qore >= 0.8.12
 
 # requires XML functionality
 %requires xml
@@ -607,11 +607,11 @@ public class WSDL::XSDBaseType inherits WSDL::XSDAbstractType {
 	        break;
 
 	    case "base64Binary":
-		$val = makeBase64String($val);
+		$val = make_base64_string($val);
 	        break;
 
 	    case "hexBinary":
-		$val = makeHexString($val);
+		$val = make_hex_string($val);
 	        break;
 	}
 
@@ -736,10 +736,10 @@ public class WSDL::XSDBaseType inherits WSDL::XSDAbstractType {
 		return float($val);
 
 	    case "base64Binary":
-		return parseBase64String($val);
+		return parse_base64_string($val);
 
 	    case "hexBinary":
-		return parseHexString($val);
+		return parse_hex_string($val);
 
 	    default: {
 		if ($.name == "anyType")  {
