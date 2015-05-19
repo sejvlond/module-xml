@@ -35,6 +35,8 @@ DLLLOCAL QoreClass *initSaxIteratorClass(QoreNamespace& ns);
 DLLEXPORT extern qore_classid_t CID_FILESAXITERATOR;
 DLLLOCAL QoreClass *initFileSaxIteratorClass(QoreNamespace& ns);
 
+DLLLOCAL extern QoreClass* QC_SAXITERATOR;
+
 class QoreSaxIterator : public QoreXmlReaderData, public QoreAbstractIteratorBase {
 protected:
    std::string element_name;

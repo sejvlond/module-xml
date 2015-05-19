@@ -23,7 +23,10 @@
 #ifndef _QORE_XML_MODULE_H
 #define _QORE_XML_MODULE_H
 
+#ifdef HAVE_CONFIG_H
 #include "../config.h"
+#endif
+
 #include <qore/Qore.h>
 
 #endif
