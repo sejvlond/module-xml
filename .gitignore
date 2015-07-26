@@ -26,10 +26,6 @@ src/.libs/
 src/Makefile
 src/Makefile.in
 src/*.dox.h
-src/QC_FileSaxIterator.cpp
-src/QC_SaxIterator.cpp
-src/QC_XmlDoc.cpp
-src/QC_XmlNode.cpp
-src/QC_XmlReader.cpp
-src/QC_XmlRpcClient.cpp
-src/ql_xml.cpp
+src/qc_*.cpp
+src/ql_*.cpp
+src/QC_*.cpp
