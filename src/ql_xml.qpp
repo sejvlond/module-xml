@@ -7,7 +7,7 @@
 
   Qore Programming Language
 
-  Copyright 2003 - 2012 David Nichols
+  Copyright 2003 - 2015 David Nichols
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@
 #include <memory>
 
 // list of libxml2 element type names
-static const char *xml_element_type_names[] = {
+static const char* xml_element_type_names[] = {
    "XML_ELEMENT_NODE",
    "XML_ATTRIBUTE_NODE",
    "XML_TEXT_NODE",
@@ -59,9 +59,9 @@ static const char *xml_element_type_names[] = {
    "XML_DOCB_DOCUMENT_NODE"
 };
 
-#define XETN_SIZE (sizeof(xml_element_type_names) / sizeof(char *))
+#define XETN_SIZE (sizeof(xml_element_type_names) / sizeof(char*))
 
-static const char *xml_node_type_names[] = {
+static const char* xml_node_type_names[] = {
     "XML_NODE_TYPE_NONE",
     "XML_NODE_TYPE_ELEMENT",
     "XML_NODE_TYPE_ATTRIBUTE",
@@ -81,21 +81,21 @@ static const char *xml_node_type_names[] = {
     "XML_NODE_TYPE_END_ENTITY",
     "XML_NODE_TYPE_XML_DECLARATION",};
 
-#define XNTN_SIZE (sizeof(xml_node_type_names) / sizeof(char *))
+#define XNTN_SIZE (sizeof(xml_node_type_names) / sizeof(char*))
 
-const char *get_xml_element_type_name(int t) {
+const char* get_xml_element_type_name(int t) {
    return (t > 0 && t <= (int)XETN_SIZE) ? xml_element_type_names[t - 1] : 0;
 }
 
-const char *get_xml_node_type_name(int t) {
+const char* get_xml_node_type_name(int t) {
    return (t > 0 && t <= (int)XNTN_SIZE) ? xml_node_type_names[t - 1] : 0;
 }
 
 namespace { // make classes local
    class XmlRpcValue {
    private:
-      AbstractQoreNode *val;
-      AbstractQoreNode **vp;
+      AbstractQoreNode* val;
+      AbstractQoreNode** vp;
 
    public:
       DLLLOCAL XmlRpcValue() : val(0), vp(0) {
@@ -108,83 +108,83 @@ namespace { // make classes local
 	 }
       }
 
-      DLLLOCAL AbstractQoreNode *getValue() {
-	 AbstractQoreNode *rv = val;
+      DLLLOCAL AbstractQoreNode* getValue() {
+	 AbstractQoreNode* rv = val;
 	 val = 0;
 	 return rv;
       }
 
-      DLLLOCAL void set(AbstractQoreNode *v) {
+      DLLLOCAL void set(AbstractQoreNode* v) {
 	 if (vp)
 	    *vp = v;
 	 else
 	    val = v;
       }
 
-      DLLLOCAL void setPtr(AbstractQoreNode **v) {
+      DLLLOCAL void setPtr(AbstractQoreNode** v) {
 	 vp = v;
       }
    };
 
    class xml_node {
    public:
-      AbstractQoreNode **node;
-      xml_node *next;
+      AbstractQoreNode** node;
+      xml_node* next;
       int depth;
       int vcount;
       int cdcount;
 
-      DLLLOCAL xml_node(AbstractQoreNode **n, int d) 
+      DLLLOCAL xml_node(AbstractQoreNode** n, int d)
 	 : node(n), next(0), depth(d), vcount(0), cdcount(0) {
       }
    };
 
    class xml_stack {
    private:
-      xml_node *tail;
-      AbstractQoreNode *val;
-      
+      xml_node* tail;
+      AbstractQoreNode* val;
+
    public:
       DLLLOCAL xml_stack() {
 	 tail = 0;
 	 val = 0;
 	 push(&val, -1);
       }
-      
+
       DLLLOCAL ~xml_stack() {
 	 if (val)
 	    val->deref(0);
 
 	 while (tail) {
 	    //printd(5, "xml_stack::~xml_stack(): deleting=%p (%d), next=%p\n", tail, tail->depth, tail->next);
-	    xml_node *n = tail->next;
-	    delete tail;
-	    tail = n;
-	 }
-      }
-      
-      DLLLOCAL void checkDepth(int depth) {
-	 while (tail && depth && tail->depth >= depth) {
-	    //printd(5, "xml_stack::checkDepth(%d): deleting=%p (%d), new tail=%p\n", depth, tail, tail->depth, tail->next);
-	    xml_node *n = tail->next;
+	    xml_node* n = tail->next;
 	    delete tail;
 	    tail = n;
 	 }
       }
 
-      DLLLOCAL void push(AbstractQoreNode **node, int depth) {
-	 xml_node *sn = new xml_node(node, depth);
+      DLLLOCAL void checkDepth(int depth) {
+	 while (tail && depth && tail->depth >= depth) {
+	    //printd(5, "xml_stack::checkDepth(%d): deleting=%p (%d), new tail=%p\n", depth, tail, tail->depth, tail->next);
+	    xml_node* n = tail->next;
+	    delete tail;
+	    tail = n;
+	 }
+      }
+
+      DLLLOCAL void push(AbstractQoreNode** node, int depth) {
+	 xml_node* sn = new xml_node(node, depth);
 	 sn->next = tail;
 	 tail = sn;
       }
-      DLLLOCAL AbstractQoreNode *getNode() {
+      DLLLOCAL AbstractQoreNode* getNode() {
 	 return *tail->node;
       }
-      DLLLOCAL void setNode(AbstractQoreNode *n) {
+      DLLLOCAL void setNode(AbstractQoreNode* n) {
 	 (*tail->node) = n;
       }
-      DLLLOCAL AbstractQoreNode *getVal() {
-	 AbstractQoreNode *rv = val;
+      DLLLOCAL AbstractQoreNode* getVal() {
+	 AbstractQoreNode* rv = val;
 	 val = 0;
 	 return rv;
       }
@@ -205,8 +205,8 @@ namespace { // make classes local
 
 #if 0
 // does not work well, produces ugly, uninformative output
-static void qore_xml_structured_error_func(ExceptionSink *xsink, xmlErrorPtr error) {
-   QoreStringNode *desc = new QoreStringNode;
+static void qore_xml_structured_error_func(ExceptionSink* xsink, xmlErrorPtr error) {
+   QoreStringNode* desc = new QoreStringNode;
 
    if (error->line)
       desc->sprintf("line %d: ", error->line);
@@ -216,7 +216,7 @@ static void qore_xml_structured_error_func(ExceptionSink *xsink, xmlErrorPtr err
 
    desc->concat(error->message);
    desc->chomp();
-   
+
    if (error->str1)
       desc->sprintf(", %s", error->str1);
 
@@ -231,12 +231,12 @@ static void qore_xml_structured_error_func(ExceptionSink *xsink, xmlErrorPtr err
 #endif
 
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
-static void qore_xml_relaxng_error_func(ExceptionSink *xsink, const char *msg, ...) {
+static void qore_xml_relaxng_error_func(ExceptionSink* xsink, const char* msg, ...) {
    if (*xsink)
       return;
 
    va_list args;
-   QoreStringNode *desc = new QoreStringNode;
+   QoreStringNode* desc = new QoreStringNode;
 
    while (true) {
       va_start(args, msg);
@@ -252,12 +252,12 @@ static void qore_xml_relaxng_error_func(ExceptionSink *xsink, const char *msg, .
 #endif
 
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
-static void qore_xml_schema_error_func(ExceptionSink *xsink, const char *msg, ...) {
+static void qore_xml_schema_error_func(ExceptionSink* xsink, const char* msg, ...) {
    if (*xsink)
       return;
 
    va_list args;
-   QoreStringNode *desc = new QoreStringNode;
+   QoreStringNode* desc = new QoreStringNode;
 
    while (true) {
       va_start(args, msg);
@@ -273,7 +273,7 @@ static void qore_xml_schema_error_func(ExceptionSink *xsink, const char *msg, ..
 #endif
 
 #if defined(HAVE_XMLTEXTREADERRELAXNGSETSCHEMA) || defined(HAVE_XMLTEXTREADERSETSCHEMA)
-static void qore_xml_schema_warning_func(ExceptionSink *xsink, const char *msg, ...) {
+static void qore_xml_schema_warning_func(ExceptionSink* xsink, const char* msg, ...) {
 #ifdef DEBUG
    va_list args;
    QoreString buf;
@@ -293,31 +293,31 @@ static void qore_xml_schema_warning_func(ExceptionSink *xsink, const char *msg, 
 
 class QoreXmlRpcReader : public QoreXmlReader {
 public:
-   DLLLOCAL QoreXmlRpcReader(const QoreString *n_xml, int options, ExceptionSink *xsink) : QoreXmlReader(n_xml, options, xsink) {
+   DLLLOCAL QoreXmlRpcReader(const QoreString* n_xml, int options, ExceptionSink* xsink) : QoreXmlReader(n_xml, options, xsink) {
    }
 
-   DLLLOCAL int readXmlRpc(ExceptionSink *xsink) {
+   DLLLOCAL int readXmlRpc(ExceptionSink* xsink) {
       return readSkipWhitespace(xsink) != 1;
    }
 
-   DLLLOCAL int readXmlRpc(const char *info, ExceptionSink *xsink) {
+   DLLLOCAL int readXmlRpc(const char* info, ExceptionSink* xsink) {
       return readSkipWhitespace(info, xsink) != 1;
    }
 
-   DLLLOCAL int readXmlRpcNode(ExceptionSink *xsink) {
+   DLLLOCAL int readXmlRpcNode(ExceptionSink* xsink) {
       int nt = nodeTypeSkipWhitespace();
       if (nt == -1 && !*xsink)
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string");
       return nt;
    }
 
-   DLLLOCAL int checkXmlRpcMemberName(const char *member, ExceptionSink *xsink, bool close = false) {
-      const char *name = (const char *)xmlTextReaderConstName(reader);
+   DLLLOCAL int checkXmlRpcMemberName(const char* member, ExceptionSink* xsink, bool close = false) {
+      const char* name = (const char*)xmlTextReaderConstName(reader);
       if (!name) {
 	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting %selement '%s', got NOTHING", close ? "closing " : "", member);
 	 return -1;
       }
-	 
+
       if (strcmp(name, member)) {
 	 xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", xml ? new QoreStringNode(*xml) : 0, "expecting %selement '%s', got '%s'", close ? "closing " : "", member, name);
 	 return -1;
@@ -325,27 +325,27 @@ public:
       return 0;
    }
 
-   DLLLOCAL int getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, ExceptionSink *xsink);
-   DLLLOCAL int getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, ExceptionSink *xsink);
-   DLLLOCAL int getString(XmlRpcValue *v, const QoreEncoding *data_ccsid, ExceptionSink *xsink);
-   DLLLOCAL int getBoolean(XmlRpcValue *v, ExceptionSink *xsink);
-   DLLLOCAL int getInt(XmlRpcValue *v, ExceptionSink *xsink);
-   DLLLOCAL int getDouble(XmlRpcValue *v, ExceptionSink *xsink);
-   DLLLOCAL int getDate(XmlRpcValue *v, ExceptionSink *xsink);
-   DLLLOCAL int getBase64(XmlRpcValue *v, ExceptionSink *xsink);
-   DLLLOCAL int getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsid, bool read_next, ExceptionSink *xsink);
-   DLLLOCAL int getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, ExceptionSink *xsink);
+   DLLLOCAL int getArray(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
+   DLLLOCAL int getStruct(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
+   DLLLOCAL int getString(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
+   DLLLOCAL int getBoolean(XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getInt(XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getDouble(XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getDate(XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getBase64(XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getValueData(XmlRpcValue *v, const QoreEncoding* data_ccsid, bool read_next, ExceptionSink* xsink);
+   DLLLOCAL int getParams(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
 };
 
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
-QoreXmlSchemaContext::QoreXmlSchemaContext(const char *xsd, int size, ExceptionSink *xsink) : schema(0) {
+QoreXmlSchemaContext::QoreXmlSchemaContext(const char* xsd, int size, ExceptionSink* xsink) : schema(0) {
    xmlSchemaParserCtxtPtr scp = xmlSchemaNewMemParserCtxt(xsd, size);
    if (!scp)
       return;
-   
+
    //xmlSchemaSetParserStructuredErrors(scp, (xmlStructuredErrorFunc)qore_xml_structured_error_func, xsink);
-   
-   xmlSchemaSetParserErrors(scp, (xmlSchemaValidityErrorFunc)qore_xml_schema_error_func, 
+
+   xmlSchemaSetParserErrors(scp, (xmlSchemaValidityErrorFunc)qore_xml_schema_error_func,
 			    (xmlSchemaValidityErrorFunc)qore_xml_schema_warning_func , xsink);
    schema = xmlSchemaParse(scp);
    xmlSchemaFreeParserCtxt(scp);
@@ -353,30 +353,34 @@ QoreXmlSchemaContext::QoreXmlSchemaContext(const char *xsd, int size, ExceptionS
 #endif
 
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
-QoreXmlRelaxNGContext::QoreXmlRelaxNGContext(const char *rng, int size, ExceptionSink *xsink) : schema(0) {
+QoreXmlRelaxNGContext::QoreXmlRelaxNGContext(const char* rng, int size, ExceptionSink* xsink) : schema(0) {
    xmlRelaxNGParserCtxtPtr rcp = xmlRelaxNGNewMemParserCtxt(rng, size);
    if (!rcp)
       return;
-   
-   xmlRelaxNGSetParserErrors(rcp, (xmlRelaxNGValidityErrorFunc)qore_xml_relaxng_error_func, 
+
+   xmlRelaxNGSetParserErrors(rcp, (xmlRelaxNGValidityErrorFunc)qore_xml_relaxng_error_func,
 			     (xmlRelaxNGValidityErrorFunc)qore_xml_schema_warning_func, xsink);
-   
+
    schema = xmlRelaxNGParse(rcp);
    xmlRelaxNGFreeParserCtxt(rcp);
 }
 #endif
 
-static int concatSimpleValue(QoreString &str, const AbstractQoreNode *n, ExceptionSink *xsink) {
-   //printd(5, "concatSimpleValue() n=%p (%s) %s\n", n, n->getTypeName(), n->getType() == NT_STRING ? ((QoreStringNode *)n)->getBuffer() : "unknown");
-   switch (n ? n->getType() : 0) {
+static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const AbstractQoreNode* n, int format = XGF_NONE) {
+   //printd(5, "concat_simple_value() n=%p (%s) %s\n", n, n->getTypeName(), n->getType() == NT_STRING ? ((QoreStringNode*)n)->getBuffer() : "unknown");
+   if (!n)
+      return 0;
+
+   qore_type_t t = n->getType();
+   switch (t) {
       case NT_INT: {
-	 const QoreBigIntNode *b = reinterpret_cast<const QoreBigIntNode *>(n);
+	 const QoreBigIntNode* b = reinterpret_cast<const QoreBigIntNode*>(n);
 	 str.sprintf("%lld", b->val);
 	 return 0;
       }
 
       case NT_FLOAT: {
-	 str.sprintf("%.9g", reinterpret_cast<const QoreFloatNode *>(n)->f);
+	 str.sprintf("%.9g", reinterpret_cast<const QoreFloatNode*>(n)->f);
 	 return 0;
       }
 
@@ -388,26 +392,55 @@ static int concatSimpleValue(QoreString &str, const AbstractQoreNode *n, Excepti
 #endif
 
       case NT_BOOLEAN: {
-	 str.sprintf("%d", reinterpret_cast<const QoreBoolNode *>(n)->getValue());
+	 str.sprintf("%d", reinterpret_cast<const QoreBoolNode*>(n)->getValue());
 	 return 0;
       }
 
       case NT_DATE: {
-	 const DateTimeNode *date = reinterpret_cast<const DateTimeNode *>(n);
+	 const DateTimeNode* date = reinterpret_cast<const DateTimeNode*>(n);
 	 str.concat(date);
 	 return 0;
       }
    }
 
-   QoreStringValueHelper temp(n);
-   str.concatAndHTMLEncode(*temp, xsink);
-   return *xsink ? -1 : 0;   
+   if ((format & XGF_USE_CHAR_REF) && t == NT_STRING) {
+      // first convert to UTF-8
+      QoreStringValueHelper temp(n, QCS_UTF8, xsink);
+      if (*xsink)
+         return -1;
+      // intermediate string
+      QoreString istr(QCS_USASCII);
+
+      const char* buf = temp->getBuffer();
+      const char* end = temp->getBuffer() + temp->size();
+      while (buf < end) {
+         if (!(*buf & 0x80)) {
+            istr.concat(*buf);
+            ++buf;
+            continue;
+         }
+
+         unsigned len;
+         int uc = temp->getUnicodePointFromBytePos(buf - temp->getBuffer(), len, xsink);
+         if (*xsink)
+            return -1;
+         istr.sprintf("#x%X;", uc);
+         buf += len;
+      }
+      str.concatAndHTMLEncode(&istr, xsink);
+   }
+   else {
+      QoreStringValueHelper temp(n);
+      str.concatAndHTMLEncode(*temp, xsink);
+   }
+
+   return *xsink ? -1 : 0;
 }
 
-static int concatSimpleCDataValue(QoreString &str, const AbstractQoreNode *n, ExceptionSink *xsink) {
-   //printd(5, "concatSimpleValue() n=%p (%s) %s\n", n, n->getTypeName(), n->getType() == NT_STRING ? ((QoreStringNode *)n)->getBuffer() : "unknown");
+static int concat_simple_cdata_value(QoreString &str, const AbstractQoreNode* n, ExceptionSink* xsink) {
+   //printd(5, "concat_simple_value() n=%p (%s) %s\n", n, n->getTypeName(), n->getType() == NT_STRING ? ((QoreStringNode*)n)->getBuffer() : "unknown");
    if (n && n->getType() == NT_STRING) {
-      const QoreStringNode *qsn = reinterpret_cast<const QoreStringNode *>(n);
+      const QoreStringNode* qsn = reinterpret_cast<const QoreStringNode*>(n);
       if (strstr(qsn->getBuffer(), "]]>")) {
 	 xsink->raiseException("MAKE-XML-ERROR", "CDATA text contains illegal ']]>' sequence");
 	 return -1;
@@ -416,20 +449,20 @@ static int concatSimpleCDataValue(QoreString &str, const AbstractQoreNode *n, Ex
       return *xsink ? -1 : 0;
    }
 
-   return concatSimpleValue(str, n, xsink);
+   return concat_simple_value(xsink, str, n);
 }
 
-static int makeXMLString(QoreString &str, const QoreHashNode &h, int indent, int format, ExceptionSink *xsink);
+static int make_xml_string(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int format = XGF_NONE);
 
-QoreStringNode *makeXMLString(const QoreEncoding *enc, const QoreHashNode &h, bool format, ExceptionSink *xsink) {
+QoreStringNode* make_xml_string(ExceptionSink* xsink, const QoreEncoding* enc, const QoreHashNode &h, int format = XGF_NONE) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(enc));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", enc->getCode());
    if (format) str->concat('\n');
-   return makeXMLString(*(*str), h, 0, format, xsink) ? 0 : str.release();
+   return make_xml_string(xsink, *(*str), h, 0, format) ? 0 : str.release();
 }
 
-static void addXMLElement(const char *key, QoreString &str, const AbstractQoreNode *n, int indent, int format, ExceptionSink *xsink) {
-   //QORE_TRACE("addXMLElement()");
+static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &str, const AbstractQoreNode* n, int indent, int format = XGF_NONE) {
+   //QORE_TRACE("add_xml_element()");
 
    if (is_nothing(n)) {
       str.concat('<');
@@ -441,19 +474,19 @@ static void addXMLElement(const char *key, QoreString &str, const AbstractQoreNo
    qore_type_t ntype = n->getType();
 
    if (ntype == NT_LIST) {
-      const QoreListNode *l = reinterpret_cast<const QoreListNode *>(n);
+      const QoreListNode* l = reinterpret_cast<const QoreListNode*>(n);
       // iterate through the list
       int ls = l->size();
       if (ls) {
 	 for (int j = 0; j < ls; j++) {
-	    const AbstractQoreNode *v = l->retrieve_entry(j);
+	    const AbstractQoreNode* v = l->retrieve_entry(j);
 	    // indent all but first entry if necessary
-	    if (j && format) {
+	    if (j && (format & XGF_ADD_FORMATTING)) {
 	       str.concat('\n');
 	       str.addch(' ', indent);
 	    }
-	    
-	    addXMLElement(key, str, v, indent, format, xsink);
+
+	    add_xml_element(xsink, key, str, v, indent, format);
 	 }
       }
       else {    // close node
@@ -469,12 +502,12 @@ static void addXMLElement(const char *key, QoreString &str, const AbstractQoreNo
    str.concat(key);
 
    if (ntype == NT_HASH) {
-      const QoreHashNode *h = reinterpret_cast<const QoreHashNode *>(n);
+      const QoreHashNode* h = reinterpret_cast<const QoreHashNode*>(n);
       // inc = ignore node counter, see if special keys exists and increment counter even if they have no value
       qore_size_t inc = 0;
       int vn = 0;
       bool exists;
-      const AbstractQoreNode *value = h->getKeyValueExistence("^value^", exists);
+      const AbstractQoreNode* value = h->getKeyValueExistence("^value^", exists);
       if (!exists)
 	 value = 0;
       else {
@@ -495,25 +528,25 @@ static void addXMLElement(const char *key, QoreString &str, const AbstractQoreNo
 	    vn++;
 	 }
       }
-      
-      const AbstractQoreNode *attrib = h->getKeyValueExistence("^attributes^", exists);
+
+      const AbstractQoreNode* attrib = h->getKeyValueExistence("^attributes^", exists);
       if (!exists)
 	 attrib = 0;
       else
 	 inc++;
-      
+
       // add attributes for objects
       if (attrib && attrib->getType() == NT_HASH) {
-	 const QoreHashNode *ah = reinterpret_cast<const QoreHashNode *>(attrib);
+	 const QoreHashNode* ah = reinterpret_cast<const QoreHashNode*>(attrib);
 	 // add attributes to node
 	 ConstHashIterator hi(ah);
 	 while (hi.next()) {
-	    const char *tkey = hi.getKey();
+	    const char* tkey = hi.getKey();
 	    str.sprintf(" %s=\"", tkey);
-	    const AbstractQoreNode *v = hi.getValue();
+	    const AbstractQoreNode* v = hi.getValue();
 	    if (v) {
-	       if (v->getType() == NT_STRING) 
-		  str.concatAndHTMLEncode(reinterpret_cast<const QoreStringNode *>(v), xsink);
+	       if (v->getType() == NT_STRING)
+		  str.concatAndHTMLEncode(reinterpret_cast<const QoreStringNode*>(v), xsink);
 	       else { // convert to string and add
 		  QoreStringValueHelper temp(v);
 		  str.concat(*temp, xsink);
@@ -522,29 +555,29 @@ static void addXMLElement(const char *key, QoreString &str, const AbstractQoreNo
 	    str.concat('\"');
 	 }
       }
-      
+
       //printd(5, "inc=%d vn=%d\n", inc, vn);
-      
+
       // if there are no more elements, close node immediately
       if (h->size() == inc) {
 	 str.concat("/>");
 	 return;
       }
-      
+
       // close node
       str.concat('>');
 
       if (!is_nothing(value) && h->size() == (inc + 1)) {
-	 if (concatSimpleValue(str, value, xsink))
+	 if (concat_simple_value(xsink, str, value, format))
 	    return;
       }
-      else { // add additional elements and formatting only if the additional elements exist 
-	 if (format && !vn)
+      else { // add additional elements and formatting only if the additional elements exist
+	 if ((format & XGF_ADD_FORMATTING) && !vn)
 	    str.concat('\n');
-	 
-	 makeXMLString(str, *h, indent + 2, !vn ? format : 0, xsink);
+
+	 make_xml_string(xsink, str, *h, indent + 2, !vn ? format : (format & ~XGF_ADD_FORMATTING));
 	 // indent closing entry
-	 if (format && !vn) {
+	 if ((format & XGF_ADD_FORMATTING) && !vn) {
 	    str.concat('\n');
 	    str.addch(' ', indent);
 	 }
@@ -553,7 +586,7 @@ static void addXMLElement(const char *key, QoreString &str, const AbstractQoreNo
    else {
       // close node
       str.concat('>');
-      
+
       if (ntype == NT_OBJECT) {
 	 const QoreObject *o = reinterpret_cast<const QoreObject *>(n);
 	 // get snapshot of data
@@ -561,24 +594,24 @@ static void addXMLElement(const char *key, QoreString &str, const AbstractQoreNo
 	 if (!*xsink) {
 	    if (format)
 	       str.concat('\n');
-	    makeXMLString(str, *(*h), indent + 2, format, xsink);
+	    make_xml_string(xsink, str, *(*h), indent + 2, format);
 	    // indent closing entry
-	    if (format)
+	    if (format & XGF_ADD_FORMATTING)
 	       str.addch(' ', indent);
 	 }
       }
-      else 
-	 concatSimpleValue(str, n, xsink);
+      else
+	 concat_simple_value(xsink, str, n, format);
    }
-   
+
    // close node
    str.concat("</");
    str.concat(key);
    str.concat('>');
 }
 
-static int makeXMLString(QoreString &str, const QoreHashNode &h, int indent, int format, ExceptionSink *xsink) {
-   QORE_TRACE("makeXMLString()");
+static int make_xml_string(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int format) {
+   QORE_TRACE("make_xml_string()");
 
    ConstHashIterator hi(h);
    bool done = false;
@@ -586,25 +619,25 @@ static int makeXMLString(QoreString &str, const QoreHashNode &h, int indent, int
       std::auto_ptr<QoreString> keyStr(hi.getKeyString());
       // convert string if needed
       if (keyStr->getEncoding() != str.getEncoding()) {
-	 QoreString *ns = keyStr->convertEncoding(str.getEncoding(), xsink);
+	 QoreString* ns = keyStr->convertEncoding(str.getEncoding(), xsink);
 	 if (xsink->isEvent())
 	    return -1;
 	 keyStr.reset(ns);
       }
 
-      const char *key = keyStr->getBuffer();
+      const char* key = keyStr->getBuffer();
       if (!strcmp(key, "^attributes^"))
 	 continue;
 
       if (!strncmp(key, "^value", 6)) {
-	 if (concatSimpleValue(str, hi.getValue(), xsink))
+	 if (concat_simple_value(xsink, str, hi.getValue(), format))
 	    return -1;
 	 continue;
       }
 
       if (!strncmp(key, "^cdata", 5)) {
 	 str.concat("<![CDATA[");
-	 if (concatSimpleCDataValue(str, hi.getValue(), xsink))
+	 if (concat_simple_cdata_value(str, hi.getValue(), xsink))
 	    return -1;
 	 str.concat("]]>");
 	 continue;
@@ -630,8 +663,8 @@ static int makeXMLString(QoreString &str, const QoreHashNode &h, int indent, int
 	    str.concat('\n');
          str.addch(' ', indent);
       }
-      //printd(5, "makeXMLString() level %d adding member %s\n", indent / 2, node->getBuffer());
-      addXMLElement(key, str, hi.getValue(), indent, format, xsink);
+      //printd(5, "make_xml_string() level %d adding member %s\n", indent / 2, node->getBuffer());
+      add_xml_element(xsink, key, str, hi.getValue(), indent, format);
       done = true;
    }
 
@@ -639,13 +672,13 @@ static int makeXMLString(QoreString &str, const QoreHashNode &h, int indent, int
 }
 
 // returns top-level key name
-static bool hash_ok(const QoreHashNode *h) {
+static bool hash_ok(const QoreHashNode* h) {
    int count = 0;
 
    ConstHashIterator hi(h);
 
    while (hi.next()) {
-      const char *k = hi.getKey();
+      const char* k = hi.getKey();
       if (!k[0] || k[0] == '^')
 	 continue;
 
@@ -656,7 +689,7 @@ static bool hash_ok(const QoreHashNode *h) {
    return count == 1;
 }
 
-static AbstractQoreNode *makeXMLStringIntern(const QoreStringNode *pstr, const QoreHashNode *pobj, const QoreEncoding *ccs, bool format, ExceptionSink *xsink) {
+static AbstractQoreNode* make_xml_string_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int format = XGF_NONE) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(ccs));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", ccs->getCode());
 
@@ -664,21 +697,21 @@ static AbstractQoreNode *makeXMLStringIntern(const QoreStringNode *pstr, const Q
       TempEncodingHelper key(pstr, QCS_UTF8, xsink);
       if (!key)
 	 return 0;
-      addXMLElement(key->getBuffer(), *(*str), pobj, 0, format, xsink);
+      add_xml_element(xsink, key->getBuffer(), *(*str), pobj, 0, format);
    }
    else
-      makeXMLString(*(*str), *pobj, 0, format, xsink);
+      make_xml_string(xsink, *(*str), *pobj, 0, format);
 
-   //printd(5, "f_makeXMLString() returning %s\n", str->getBuffer());
+   //printd(5, "make_xml_string_intern() returning %s\n", str->getBuffer());
 
    return str.release();
 }
 
-static void addXMLRPCValue(QoreString *str, const AbstractQoreNode *n, int indent, const QoreEncoding *ccs, int format, ExceptionSink *xsink);
+static void addXMLRPCValue(QoreString* str, const AbstractQoreNode* n, int indent, const QoreEncoding* ccs, int format, ExceptionSink* xsink);
 
 #define EMPTY_KEY_STRING "!!empty-hash-key!!"
 
-static void addXMLRPCValueInternHash(QoreString *str, const QoreHashNode *h, int indent, const QoreEncoding *ccs, int format, ExceptionSink *xsink) {
+static void addXMLRPCValueInternHash(QoreString* str, const QoreHashNode* h, int indent, const QoreEncoding* ccs, int format, ExceptionSink* xsink) {
    str->concat("<struct>");
    if (format) str->concat('\n');
    ConstHashIterator hi(h);
@@ -690,9 +723,9 @@ static void addXMLRPCValueInternHash(QoreString *str, const QoreHashNode *h, int
 
       // convert string if needed
       if (member->getEncoding() != ccs) {
-	 QoreString *ns = member->convertEncoding(ccs, xsink);
+	 QoreString* ns = member->convertEncoding(ccs, xsink);
 	 if (xsink->isEvent()) {
-	    return;	    
+	    return;
 	 }
 	 //printd(5, "addXMLRPCValueInternHashInternal() converted %s->%s, \"%s\"->\"%s\"\n", member->getEncoding()->getCode(), ccs->getCode(), member->getBuffer(), ns->getBuffer());
 	 member.reset(ns);
@@ -714,7 +747,7 @@ static void addXMLRPCValueInternHash(QoreString *str, const QoreHashNode *h, int
 
       str->concat("</name>");
       if (format) str->concat('\n');
-      const AbstractQoreNode *val = hi.getValue();
+      const AbstractQoreNode* val = hi.getValue();
       addXMLRPCValue(str, val, indent + 4, ccs, format, xsink);
       // indent
       if (format)
@@ -729,15 +762,15 @@ static void addXMLRPCValueInternHash(QoreString *str, const QoreHashNode *h, int
    //if (format) str->concat('\n');
 }
 
-static void addXMLRPCValueIntern(QoreString *str, const AbstractQoreNode *n, int indent, const QoreEncoding *ccs, int format, ExceptionSink *xsink) {
+static void addXMLRPCValueIntern(QoreString* str, const AbstractQoreNode* n, int indent, const QoreEncoding* ccs, int format, ExceptionSink* xsink) {
    assert(n);
    qore_type_t ntype = n->getType();
 
    if (ntype == NT_BOOLEAN)
-      str->sprintf("<boolean>%d</boolean>", reinterpret_cast<const QoreBoolNode *>(n)->getValue());
+      str->sprintf("<boolean>%d</boolean>", reinterpret_cast<const QoreBoolNode*>(n)->getValue());
 
    else if (ntype == NT_INT) {
-      int64 val = reinterpret_cast<const QoreBigIntNode *>(n)->val;
+      int64 val = reinterpret_cast<const QoreBigIntNode*>(n)->val;
       if (val >= -2147483647 && val <= 2147483647)
 	 str->sprintf("<i4>%lld</i4>", val);
       else
@@ -746,12 +779,12 @@ static void addXMLRPCValueIntern(QoreString *str, const AbstractQoreNode *n, int
 
    else if (ntype == NT_STRING) {
       str->concat("<string>");
-      str->concatAndHTMLEncode(reinterpret_cast<const QoreStringNode *>(n), xsink);
+      str->concatAndHTMLEncode(reinterpret_cast<const QoreStringNode*>(n), xsink);
       str->concat("</string>");
    }
 
    else if (ntype == NT_FLOAT)
-      str->sprintf("<double>%.20g</double>", reinterpret_cast<const QoreFloatNode *>(n)->f);
+      str->sprintf("<double>%.20g</double>", reinterpret_cast<const QoreFloatNode*>(n)->f);
 
 #ifdef _QORE_HAS_NUMBER_TYPE
    else if (ntype == NT_NUMBER) {
@@ -760,10 +793,10 @@ static void addXMLRPCValueIntern(QoreString *str, const AbstractQoreNode *n, int
       str->concat("</double>");
    }
 #endif
-	
+
    else if (ntype == NT_DATE) {
       str->concat("<dateTime.iso8601>");
-      str->concatISO8601DateTime(reinterpret_cast<const DateTimeNode *>(n));
+      str->concatISO8601DateTime(reinterpret_cast<const DateTimeNode*>(n));
       str->concat("</dateTime.iso8601>");
    }
 
@@ -774,7 +807,7 @@ static void addXMLRPCValueIntern(QoreString *str, const AbstractQoreNode *n, int
 	 // indent
          str->addch(' ', indent + 4);
       }
-      str->concatBase64(reinterpret_cast<const BinaryNode *>(n));
+      str->concatBase64(reinterpret_cast<const BinaryNode*>(n));
       if (format) {
 	 str->concat('\n');
 	 // indent
@@ -784,10 +817,10 @@ static void addXMLRPCValueIntern(QoreString *str, const AbstractQoreNode *n, int
    }
 
    else if (ntype == NT_HASH)
-      addXMLRPCValueInternHash(str, reinterpret_cast<const QoreHashNode *>(n), indent + 2, ccs, format, xsink);
+      addXMLRPCValueInternHash(str, reinterpret_cast<const QoreHashNode*>(n), indent + 2, ccs, format, xsink);
 
    else if (ntype == NT_LIST) {
-      const QoreListNode *l = reinterpret_cast<const QoreListNode *>(n);
+      const QoreListNode* l = reinterpret_cast<const QoreListNode*>(n);
       str->concat("<array>");
       if (format) {
 	 str->concat('\n');
@@ -825,14 +858,14 @@ static void addXMLRPCValueIntern(QoreString *str, const AbstractQoreNode *n, int
    }
 }
 
-static void addXMLRPCValue(QoreString *str, const AbstractQoreNode *n, int indent, const QoreEncoding *ccs, int format, ExceptionSink *xsink) {
+static void addXMLRPCValue(QoreString* str, const AbstractQoreNode* n, int indent, const QoreEncoding* ccs, int format, ExceptionSink* xsink) {
    QORE_TRACE("addXMLRPCValue()");
 
    // add value node
    // indent
    if (format)
       str->addch(' ', indent);
-   
+
    if (!is_nothing(n) && !is_null(n)) {
       str->concat("<value>");
       if (format) {
@@ -840,19 +873,19 @@ static void addXMLRPCValue(QoreString *str, const AbstractQoreNode *n, int inden
 	 // indent
          str->addch(' ', indent + 2);
       }
-      
+
       addXMLRPCValueIntern(str, n, indent, ccs, format, xsink);
 
       // close value node
       str->concat("</value>");
    }
    else
-      str->concat("<value/>"); 
+      str->concat("<value/>");
    if (format) str->concat('\n');
 
 }
 
-QoreStringNode *makeXMLRPCCallString(const QoreEncoding *ccs, int offset, const QoreListNode *params, ExceptionSink *xsink) {
+QoreStringNode* makeXMLRPCCallString(const QoreEncoding* ccs, int offset, const QoreListNode* params, ExceptionSink* xsink) {
    HARD_QORE_PARAM(p0, const QoreStringNode, params, offset);
 
    QoreStringNodeHolder str(new QoreStringNode(ccs));
@@ -863,12 +896,12 @@ QoreStringNode *makeXMLRPCCallString(const QoreEncoding *ccs, int offset, const 
 
    str->concat("</methodName>");
 
-   const AbstractQoreNode *p;
+   const AbstractQoreNode* p;
 
    // now process all params
    int ls = num_params(params);
    if (ls) {
-      str->concat("<params>"); 
+      str->concat("<params>");
 
       for (int i = offset + 1; i < ls; i++) {
 	 p = get_param(params, i);
@@ -887,7 +920,7 @@ QoreStringNode *makeXMLRPCCallString(const QoreEncoding *ccs, int offset, const 
    return str.release();
 }
 
-QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, const QoreListNode *params, ExceptionSink *xsink) {
+QoreStringNode* makeXMLRPCCallStringArgs(const QoreEncoding* ccs, int offset, const QoreListNode* params, ExceptionSink* xsink) {
    QORE_TRACE("makeXMLRPCCallStringArgs()");
 
    HARD_QORE_PARAM(p0, const QoreStringNode, params, offset);
@@ -898,16 +931,16 @@ QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, co
    if (*xsink)
       return 0;
 
-   str->concat("</methodName><params>"); 
+   str->concat("</methodName><params>");
 
-   const AbstractQoreNode *p1;
-   const QoreListNode *l;
-   if ((p1 = get_param(params, offset + 1)) && (l = dynamic_cast<const QoreListNode *>(p1)) && l->size()) {
+   const AbstractQoreNode* p1;
+   const QoreListNode* l;
+   if ((p1 = get_param(params, offset + 1)) && (l = dynamic_cast<const QoreListNode*>(p1)) && l->size()) {
 
       // now process all params
       int ls = l->size();
       for (int i = 0; i < ls; i++) {
-	 const AbstractQoreNode *p = l->retrieve_entry(i);
+	 const AbstractQoreNode* p = l->retrieve_entry(i);
 	 str->concat("<param>");
 	 addXMLRPCValue(*str, p, 0, ccs, 0, xsink);
 	 if (*xsink)
@@ -917,7 +950,7 @@ QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, co
       }
    }
    else if (p1 && p1->getType() != NT_LIST) {
-      str->concat("<param>"); 
+      str->concat("<param>");
       addXMLRPCValue(*str, p1, 0, ccs, 0, xsink);
       if (*xsink)
 	 return 0;
@@ -930,7 +963,7 @@ QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, co
 }
 
 // returns true if the key names are equal, ignoring any possible "^" suffix in k2
-static bool keys_are_equal(const char *k1, const char *k2, bool &get_value) {
+static bool keys_are_equal(const char* k1, const char* k2, bool &get_value) {
    while (true) {
       if (!(*k1)) {
 	 if (!(*k2))
@@ -949,7 +982,7 @@ static bool keys_are_equal(const char *k1, const char *k2, bool &get_value) {
    return false;
 }
 
-AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool as_data, ExceptionSink *xsink, int min_depth) {
+AbstractQoreNode* QoreXmlReader::getXmlData(const QoreEncoding* data_ccsid, bool as_data, ExceptionSink* xsink, int min_depth) {
    xml_stack xstack;
 
    QORE_TRACE("getXMLData()");
@@ -958,7 +991,7 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
    while (rc == 1) {
       int nt = nodeTypeSkipWhitespace();
       // get node name
-      const char *name = constName();
+      const char* name = constName();
       if (!name)
 	 name = "--";
 
@@ -969,15 +1002,15 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 	 int depth = QoreXmlReader::depth();
 	 xstack.checkDepth(depth);
 
-	 AbstractQoreNode *n = xstack.getNode();
+	 AbstractQoreNode* n = xstack.getNode();
 	 // if there is no node pointer, then make a hash
 	 if (!n) {
-	    QoreHashNode *h = new QoreHashNode;
+	    QoreHashNode* h = new QoreHashNode;
 	    xstack.setNode(h);
 	    xstack.push(h->getKeyValuePtr(name), depth);
 	 }
 	 else { // node ptr already exists
-	    QoreHashNode *h = n->getType() == NT_HASH ? reinterpret_cast<QoreHashNode *>(n) : 0;
+	    QoreHashNode* h = n->getType() == NT_HASH ? reinterpret_cast<QoreHashNode*>(n) : 0;
 	    if (!h) {
 	       h = new QoreHashNode;
 	       xstack.setNode(h);
@@ -987,7 +1020,7 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 	    }
 	    else {
 	       // see if key already exists
-	       AbstractQoreNode *v;
+	       AbstractQoreNode* v;
 	       bool exists;
 	       v = h->getKeyValueExistence(name, exists);
 
@@ -995,10 +1028,10 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 		  xstack.push(h->getKeyValuePtr(name), depth);
 	       else {
 		  if (as_data) {
-		     QoreListNode *vl = get_node_type(v) == NT_LIST ? reinterpret_cast<QoreListNode *>(v) : 0;
+		     QoreListNode* vl = get_node_type(v) == NT_LIST ? reinterpret_cast<QoreListNode*>(v) : 0;
 		     // if it's not a list, then make into a list with current value as first entry
 		     if (!vl) {
-			AbstractQoreNode **vp = h->getKeyValuePtr(name);
+			AbstractQoreNode** vp = h->getKeyValuePtr(name);
 			vl = new QoreListNode;
 			vl->push(v);
 			(*vp) = vl;
@@ -1007,17 +1040,17 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 		  }
 		  else {
 		     // see if last key was the same, if so make a list if it's not
-		     const char *lk = h->getLastKey();
+		     const char* lk = h->getLastKey();
 		     bool get_value = false;
 		     if (keys_are_equal(name, lk, get_value)) {
-			// get actual key value if there was a suffix 
+			// get actual key value if there was a suffix
 			if (get_value)
 			   v = h->getKeyValue(lk);
-			
-			QoreListNode *vl = get_node_type(v) == NT_LIST ? reinterpret_cast<QoreListNode *>(v) : 0;
+
+			QoreListNode* vl = get_node_type(v) == NT_LIST ? reinterpret_cast<QoreListNode*>(v) : 0;
 			// if it's not a list, then make into a list with current value as first entry
 			if (!vl) {
-			   AbstractQoreNode **vp = h->getKeyValuePtr(lk);
+			   AbstractQoreNode** vp = h->getKeyValuePtr(lk);
 			   vl = new QoreListNode;
 			   vl->push(v);
 			   (*vp) = vl;
@@ -1044,8 +1077,8 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 	 if (hasAttributes()) {
 	    ReferenceHolder<QoreHashNode> h(new QoreHashNode(), xsink);
 	    while (moveToNextAttribute(xsink) == 1) {
-	       const char *aname = constName();
-	       QoreStringNode *value = getValue(data_ccsid, xsink);
+	       const char* aname = constName();
+	       QoreStringNode* value = getValue(data_ccsid, xsink);
 	       if (!value)
 		  return 0;
 	       h->setKeyValue(aname, value, xsink);
@@ -1054,7 +1087,7 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 	       return 0;
 
 	    // make new new a hash and assign "^attributes^" key
-	    QoreHashNode *nv = new QoreHashNode;
+	    QoreHashNode* nv = new QoreHashNode;
 	    nv->setKeyValue("^attributes^", h.release(), xsink);
 	    xstack.setNode(nv);
 	 }
@@ -1064,15 +1097,15 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 	 int depth = QoreXmlReader::depth();
 	 xstack.checkDepth(depth);
 
-	 const char *str = constValue();
+	 const char* str = constValue();
 	 if (str) {
-	    QoreStringNode *val = getValue(data_ccsid, xsink);
+	    QoreStringNode* val = getValue(data_ccsid, xsink);
 	    if (!val)
 	       return 0;
 
-	    AbstractQoreNode *n = xstack.getNode();
+	    AbstractQoreNode* n = xstack.getNode();
 	    if (n) {
-	       QoreHashNode *h = n->getType() == NT_HASH ? reinterpret_cast<QoreHashNode *>(n) : 0;
+	       QoreHashNode* h = n->getType() == NT_HASH ? reinterpret_cast<QoreHashNode*>(n) : 0;
 	       if (h) {
 		  if (!xstack.getValueCount())
 		     h->setKeyValue("^value^", val, xsink);
@@ -1080,7 +1113,7 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 		     QoreString kstr;
 		     kstr.sprintf("^value%d^", xstack.getValueCount());
 		     h->setKeyValue(kstr.getBuffer(), val, xsink);
-		  }		  
+		  }
 	       }
 	       else { // convert value to hash and save value node
 		  h = new QoreHashNode;
@@ -1102,25 +1135,25 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
 	 int depth = QoreXmlReader::depth();
 	 xstack.checkDepth(depth);
 
-	 const char *str = constValue();
+	 const char* str = constValue();
 	 if (str) {
-	    QoreStringNode *val = getValue(data_ccsid, xsink);
+	    QoreStringNode* val = getValue(data_ccsid, xsink);
 	    if (!val)
 	       return 0;
 
-	    AbstractQoreNode *n = xstack.getNode();
+	    AbstractQoreNode* n = xstack.getNode();
 	    if (n && n->getType() == NT_HASH) {
-	       QoreHashNode *h = reinterpret_cast<QoreHashNode *>(n);
+	       QoreHashNode* h = reinterpret_cast<QoreHashNode*>(n);
 	       if (!xstack.getCDataCount())
 		  h->setKeyValue("^cdata^", val, xsink);
 	       else {
 		  QoreString kstr;
 		  kstr.sprintf("^cdata%d^", xstack.getCDataCount());
 		  h->setKeyValue(kstr.getBuffer(), val, xsink);
-	       }		  
+	       }
 	    }
 	    else { // convert value to hash and save value node
-	       QoreHashNode *h = new QoreHashNode;
+	       QoreHashNode* h = new QoreHashNode;
 	       xstack.setNode(h);
 	       if (n) {
 		  h->setKeyValue("^value^", n, 0);
@@ -1142,91 +1175,91 @@ AbstractQoreNode *QoreXmlReader::getXmlData(const QoreEncoding *data_ccsid, bool
    return rc ? 0 : xstack.getVal();
 }
 
-int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
    int nt;
 
-   QoreHashNode *h = new QoreHashNode;
+   QoreHashNode* h = new QoreHashNode;
    v->set(h);
 
    int member_depth = depth();
    while (true) {
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
-      
+
       if (nt == XML_READER_TYPE_END_ELEMENT)
 	 break;
-      
+
       if (nt != XML_READER_TYPE_ELEMENT) {
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting 'member' element (got type %d)", nt);
 	 return -1;
       }
-      
+
       // check for 'member' element
       if (checkXmlRpcMemberName("member", xsink))
 	 return -1;
-      
+
       // get member name
       if (readXmlRpc(xsink))
 	 return -1;
-      
+
       if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_ELEMENT) {
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting struct 'name'");
 	 return -1;
       }
-      
+
       // check for 'name' element
       if (checkXmlRpcMemberName("name", xsink))
 	 return -1;
-      
+
       if (readXmlRpc(xsink))
 	 return -1;
-      
+
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
-      
+
       if (nt != XML_READER_TYPE_TEXT) {
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "empty member name in hash");
 	 return -1;
       }
-      
-      const char *member_name = constValue();
+
+      const char* member_name = constValue();
       if (!member_name) {
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "empty member name in struct");
 	 return -1;
       }
-      
+
       QoreString member(member_name);
       //printd(5, "QoreXmlRpcReader::getStruct() DEBUG: got member name '%s'\n", member_name);
-      
+
       if (readXmlRpc(xsink))
 	 return -1;
-      
+
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
       if (nt != XML_READER_TYPE_END_ELEMENT) {
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting name close element");
 	 return -1;
       }
-      
+
       // get value
       if (readXmlRpc(xsink))
 	 return -1;
-      
+
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
       if (nt != XML_READER_TYPE_ELEMENT) {
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting struct 'value' for key '%s'", member.getBuffer());
 	 return -1;
       }
-      
+
       if (checkXmlRpcMemberName("value", xsink))
 	 return -1;
-      
+
       if (readXmlRpc(xsink))
 	 break;
-      
+
       v->setPtr(h->getKeyValuePtr(member.getBuffer()));
-      
+
       // if if was not an empty value element
       if (member_depth < depth()) {
 	 // check for close value tag
@@ -1234,23 +1267,23 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	    return -1;
 	 if (nt != XML_READER_TYPE_END_ELEMENT) {
 	    //printd(5, "QoreXmlRpcReader::getStruct() struct member='%s', parsing value node\n", member.getBuffer());
-	   
+
 	    if (getValueData(v, data_ccsid, true, xsink))
 	       return -1;
 
 	    //printd(5, "QoreXmlRpcReader::getStruct() struct member='%s', finished parsing value node\n", member.getBuffer());
-	    
+
 	    if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
-	       //printd(5, "EXCEPTION close /value: %d: %s\n", nt, (char *)constName());
+	       //printd(5, "EXCEPTION close /value: %d: %s\n", nt, (char*)constName());
 	       xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting value close element");
 	       return -1;
 	    }
-	    //printd(5, "QoreXmlRpcReader::getStruct() close /value: %s\n", (char *)constName());
+	    //printd(5, "QoreXmlRpcReader::getStruct() close /value: %s\n", (char*)constName());
 	 }
 	 if (readXmlRpc(xsink))
 	    return -1;
       }
-      
+
       if ((nt = readXmlRpcNode(xsink)) == -1)
 	 return -1;
       if (nt != XML_READER_TYPE_END_ELEMENT) {
@@ -1258,7 +1291,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting member close element");
 	 return -1;
       }
-      //printd(5, "QoreXmlRpcReader::getStruct() close /member: %s\n", (char *)constName());
+      //printd(5, "QoreXmlRpcReader::getStruct() close /member: %s\n", (char*)constName());
 
       if (readXmlRpc(xsink))
 	 return -1;
@@ -1266,11 +1299,11 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
    return 0;
 }
 
-int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
    int nt;
    int index = 0;
 
-   QoreListNode *l = new QoreListNode();
+   QoreListNode* l = new QoreListNode();
    v->set(l);
 
    int array_depth = depth();
@@ -1281,36 +1314,36 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	 return -1;
 
       //printd(5, "getParams() nt=%d name=%s\n", nt, constName());
-      
+
       // if higher-level "params" element closed, then return
       if (nt == XML_READER_TYPE_END_ELEMENT)
 	 return 0;
-      
+
       if (nt != XML_READER_TYPE_ELEMENT) {
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string, expecting 'param' open element");
 	 return -1;
       }
-      
+
       if (checkXmlRpcMemberName("param", xsink))
 	 return -1;
-      
+
       v->setPtr(l->get_entry_ptr(index++));
 
       // get next value tag or param close tag
       if (readXmlRpc(xsink))
 	 return -1;
-      
+
       int value_depth = depth();
       // if param was not an empty node
       if (value_depth > array_depth) {
 	 if ((nt = readXmlRpcNode(xsink)) == -1)
 	    return -1;
-	 
+
 	 // if we got a "value" element
 	 if (nt == XML_READER_TYPE_ELEMENT) {
 	    if (checkXmlRpcMemberName("value", xsink))
 	       return -1;
-      	    
+
 	    if (readXmlRpc(xsink))
 	       return -1;
 
@@ -1320,12 +1353,12 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	    if (value_depth <= depth()) {
 	       if ((nt = readXmlRpcNode(xsink)) == -1)
 		  return -1;
-	       
+
 	       // if ! </value>
 	       if (nt != XML_READER_TYPE_END_ELEMENT) {
 		  if (getValueData(v, data_ccsid, true, xsink))
 		     return -1;
-		  
+
 		  // position on </value> close tag
 		  if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
 		     xsink->raiseException("PARSE-XMLRPC-ERROR", "extra data in params, expecting value close tag");
@@ -1344,7 +1377,7 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
 	    if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
 	       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra data in params, expecting param close tag (got node type %s instead)", get_xml_node_type_name(nt));
 	       return -1;
-	    }	    
+	    }
 
 	    if (checkXmlRpcMemberName("param", xsink, true))
 	       return -1;
@@ -1361,7 +1394,7 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
    return 0;
 }
 
-int QoreXmlRpcReader::getString(XmlRpcValue *v, const QoreEncoding *data_ccsid, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getString(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
@@ -1379,19 +1412,19 @@ int QoreXmlRpcReader::getString(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
       return -1;
    }
 
-   QoreStringNode *qstr = getValue(data_ccsid, xsink);
+   QoreStringNode* qstr = getValue(data_ccsid, xsink);
    if (!qstr)
       return -1;
 
    //printd(5, "** got string '%s'\n", str);
    v->set(qstr);
-   
+
    if (readXmlRpc(xsink))
       return -1;
-   
+
    if ((nt = readXmlRpcNode(xsink)) == -1)
       return -1;
-   
+
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       printd(5, "getString() unexpected node type %d (expecting end element %s)\n", nt, constName());
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in string (%d)", nt);
@@ -1401,14 +1434,14 @@ int QoreXmlRpcReader::getString(XmlRpcValue *v, const QoreEncoding *data_ccsid, 
    return 0;
 }
 
-int QoreXmlRpcReader::getBoolean(XmlRpcValue *v, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getBoolean(XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
       return -1;
 
    if (nt == XML_READER_TYPE_TEXT) {
-      const char *str = constValue();
+      const char* str = constValue();
       if (str) {
 	 //printd(5, "** got boolean '%s'\n", str);
 	 v->set(strtoll(str, 0, 10) ? boolean_true() : boolean_false());
@@ -1422,7 +1455,7 @@ int QoreXmlRpcReader::getBoolean(XmlRpcValue *v, ExceptionSink *xsink) {
    }
    else
       v->set(boolean_false());
-   
+
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in boolean (%d)", nt);
       return -1;
@@ -1430,14 +1463,14 @@ int QoreXmlRpcReader::getBoolean(XmlRpcValue *v, ExceptionSink *xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getInt(XmlRpcValue *v, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getInt(XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
       return -1;
 
    if (nt == XML_READER_TYPE_TEXT) {
-      const char *str = constValue();
+      const char* str = constValue();
       if (str) {
 	 //printd(5, "** got int '%s'\n", str);
 	 // note that we can parse 64-bit integers here, which is not conformant to the standard
@@ -1452,7 +1485,7 @@ int QoreXmlRpcReader::getInt(XmlRpcValue *v, ExceptionSink *xsink) {
    }
    else
       v->set(new QoreBigIntNode());
-   
+
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in int (%d)", nt);
       return -1;
@@ -1460,14 +1493,14 @@ int QoreXmlRpcReader::getInt(XmlRpcValue *v, ExceptionSink *xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getDouble(XmlRpcValue *v, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getDouble(XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
       return -1;
 
    if (nt == XML_READER_TYPE_TEXT) {
-      const char *str = constValue();
+      const char* str = constValue();
       if (str) {
 	 //printd(5, "** got float '%s'\n", str);
 	 v->set(new QoreFloatNode(strtod(str, 0)));
@@ -1482,7 +1515,7 @@ int QoreXmlRpcReader::getDouble(XmlRpcValue *v, ExceptionSink *xsink) {
    }
    else
       v->set(zero_float());
-   
+
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in float (%d)", nt);
       return -1;
@@ -1490,14 +1523,14 @@ int QoreXmlRpcReader::getDouble(XmlRpcValue *v, ExceptionSink *xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
       return -1;
 
    if (nt == XML_READER_TYPE_TEXT) {
-      const char *str = constValue();
+      const char* str = constValue();
       //printd(5, "QoreXmlRpcReader::getDate() str=%p (%s)\n", str, str ? str : "(null)");
       if (str)
 	 v->set(new DateTimeNode(str));
@@ -1511,7 +1544,7 @@ int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink *xsink) {
    }
    else
       v->set(zero_date());
-   
+
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in date (%d)", nt);
       return -1;
@@ -1519,17 +1552,17 @@ int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink *xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getBase64(XmlRpcValue *v, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getBase64(XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
       return -1;
 
    if (nt == XML_READER_TYPE_TEXT) {
-      const char *str = constValue();
+      const char* str = constValue();
       if (str) {
 	 //printd(5, "** got base64 '%s'\n", str);
-	 BinaryNode *b = parseBase64(str, strlen(str), xsink);
+	 BinaryNode* b = parseBase64(str, strlen(str), xsink);
 	 if (!b)
 	    return -1;
 
@@ -1545,7 +1578,7 @@ int QoreXmlRpcReader::getBase64(XmlRpcValue *v, ExceptionSink *xsink) {
    }
    else
       v->set(new BinaryNode());
-   
+
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in base64 (%d)", nt);
       return -1;
@@ -1553,7 +1586,7 @@ int QoreXmlRpcReader::getBase64(XmlRpcValue *v, ExceptionSink *xsink) {
    return 0;
 }
 
-static int doEmptyValue(XmlRpcValue *v, const char *name, int depth, ExceptionSink *xsink) {
+static int doEmptyValue(XmlRpcValue *v, const char* name, int depth, ExceptionSink* xsink) {
    if (!strcmp(name, "string"))
       v->set(null_string());
    else if (!strcmp(name, "i4") || !strcmp(name, "int") || !strcmp(name, "ex:i1") || !strcmp(name, "ex:i2") || !strcmp(name, "ex:i8"))
@@ -1579,11 +1612,11 @@ static int doEmptyValue(XmlRpcValue *v, const char *name, int depth, ExceptionSi
    return 0;
 }
 
-QoreHashNode *QoreXmlReader::parseXMLData(const QoreEncoding *data_ccsid, bool as_data, ExceptionSink *xsink) {
+QoreHashNode* QoreXmlReader::parseXMLData(const QoreEncoding* data_ccsid, bool as_data, ExceptionSink* xsink) {
    if (read(xsink) != 1)
       return 0;
 
-   AbstractQoreNode *rv = getXmlData(data_ccsid, as_data, xsink, depth());
+   AbstractQoreNode* rv = getXmlData(data_ccsid, as_data, xsink, depth());
 
    if (!rv) {
       if (!*xsink)
@@ -1592,14 +1625,14 @@ QoreHashNode *QoreXmlReader::parseXMLData(const QoreEncoding *data_ccsid, bool a
    }
    assert(rv->getType() == NT_HASH);
 
-   return reinterpret_cast<QoreHashNode *>(rv);
+   return reinterpret_cast<QoreHashNode*>(rv);
 }
 
-int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
    int nt;
    int index = 0;
 
-   QoreListNode *l = new QoreListNode;
+   QoreListNode* l = new QoreListNode;
    v->set(l);
 
    int array_depth = depth();
@@ -1607,20 +1640,20 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
    // expecting data open element
    if ((nt = readXmlRpcNode(xsink)) == -1)
       return -1;
-      
+
    // if higher-level element closed, then return
    if (nt == XML_READER_TYPE_END_ELEMENT)
       return 0;
-      
+
    if (nt != XML_READER_TYPE_ELEMENT) {
       xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", new QoreStringNode(*xml), "error parsing XML string, expecting data open element");
       return -1;
    }
-      
+
    if (checkXmlRpcMemberName("data", xsink))
       return -1;
 
-   //printd(5, "getArray() level=%d before str=%s\n", depth(), (char *)constName());
+   //printd(5, "getArray() level=%d before str=%s\n", depth(), (char*)constName());
 
    // get next value tag or data close tag
    if (readXmlRpc(xsink))
@@ -1633,21 +1666,21 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
       while (true) {
 	 if ((nt = readXmlRpcNode(xsink)) == -1)
 	    return -1;
-	 
+
 	 if (nt == XML_READER_TYPE_END_ELEMENT)
 	    break;
-	 
+
 	 // get "value" element
 	 if (nt != XML_READER_TYPE_ELEMENT) {
 	    xsink->raiseExceptionArg("PARSE-XMLRPC-ERROR", new QoreStringNode(*xml), "extra data in array, expecting value element");
 	    return -1;
 	 }
-	 
+
 	 if (checkXmlRpcMemberName("value", xsink))
 	    return -1;
-	 
+
 	 v->setPtr(l->get_entry_ptr(index++));
-	 
+
 	 if (readXmlRpc(xsink))
 	    return -1;
 
@@ -1686,7 +1719,7 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
       return -1;
 
    //printd(5, "vd=%d ad=%d\n", value_depth, array_depth);
-   
+
    // check for array close tag
    if ((nt = nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT) {
       if (nt == XML_READER_TYPE_ELEMENT)
@@ -1698,20 +1731,20 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding *data_ccsid, E
    return 0;
 }
 
-int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsid, bool read_next, ExceptionSink *xsink) {
+int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding* data_ccsid, bool read_next, ExceptionSink* xsink) {
    int nt = nodeTypeSkipWhitespace();
    if (nt == -1) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string");
       return -1;
    }
-   
+
    //printd(5, "QoreXmlRpcReader::getValueData() DEBUG nt=%d read_next=%d\n", nt, read_next);
 
    if (nt == XML_READER_TYPE_ELEMENT) {
       int depth = QoreXmlReader::depth();
-      
+
       // get xmlrpc type name
-      const char *name = constName();
+      const char* name = constName();
       if (!name) {
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "expecting type name, got NOTHING at level %d", depth);
 	 return -1;
@@ -1729,7 +1762,7 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
       }
 
       //printd(5, "QoreXmlRpcReader::getValueData() old depth: %d new depth: %d element='%s' nt=%d\n", depth, QoreXmlReader::depth(), name, nodeType());
-      
+
       // if this was an empty element, assign an empty value
       if (depth == QoreXmlReader::depth()) {
 	 int rc = doEmptyValue(v, name, depth, xsink);
@@ -1775,13 +1808,13 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
 	 xsink->raiseException("PARSE-XMLRPC-ERROR", "unknown XML-RPC type '%s' at level %d", name, depth);
 	 return -1;
       }
-      
+
       //printd(5, "getValueData() finished parsing type '%s' element depth=%d\n", name, depth);
       if (xsink->isEvent())
 	 return -1;
    }
    else if (nt == XML_READER_TYPE_TEXT) { // without type defaults to string
-      QoreStringNode *qstr = getValue(data_ccsid, xsink);
+      QoreStringNode* qstr = getValue(data_ccsid, xsink);
       if (!qstr)
 	 return -1;
       v->set(qstr);
@@ -1795,15 +1828,14 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding *data_ccsi
 }
 
 // NOTE: the libxml2 library requires all input to be in UTF-8 encoding
-// syntax: parseXML(xml string [, output encoding])
-static AbstractQoreNode *parseXMLIntern(bool as_data, const QoreListNode *params, ExceptionSink *xsink) {
+static AbstractQoreNode* parse_xml_intern(bool as_data, const QoreListNode* params, ExceptionSink* xsink) {
    HARD_QORE_PARAM(p0, const QoreStringNode, params, 0);
 
-   const QoreEncoding *ccsid = get_encoding_param(params, 1);
+   const QoreEncoding* ccsid = get_encoding_param(params, 1);
 
    //printd(5, "parseXMLintern(%d, %s)\n", as_data, p0->getBuffer());
 
-   // convert to UTF-8 
+   // convert to UTF-8
    TempEncodingHelper str(p0, QCS_UTF8, xsink);
    if (!str)
       return 0;
@@ -1815,17 +1847,17 @@ static AbstractQoreNode *parseXMLIntern(bool as_data, const QoreListNode *params
    return reader.parseXMLData(ccsid, as_data, xsink);
 }
 
-static AbstractQoreNode *makeFormattedXMLRPCFaultResponseString(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
+static AbstractQoreNode* makeFormattedXMLRPCFaultResponseString(bool with_enc, const QoreListNode* params, ExceptionSink* xsink) {
    QORE_TRACE("makeFormattedXMLRPCFaultResponseString()");
 
    int offset = with_enc ? 1 : 0;
-   const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : 0;
+   const QoreEncoding* ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : 0;
 
    int code = (int)HARD_QORE_INT(params, offset);
 
    HARD_QORE_PARAM(p1, const QoreStringNode, params, offset + 1);
    if (!ccs) ccs = p1->getEncoding();
-   //printd(5, "ccsid=%016x (%s) (%s) code=%d\n", ccsid, ccsid->getCode(), ((QoreStringNode *)p1)->getBuffer(), code);
+   //printd(5, "ccsid=%016x (%s) (%s) code=%d\n", ccsid, ccsid->getCode(), ((QoreStringNode*)p1)->getBuffer(), code);
 
    // for speed, the XML is created directly here
    QoreStringNodeHolder str(new QoreStringNode(ccs));
@@ -1841,11 +1873,11 @@ static AbstractQoreNode *makeFormattedXMLRPCFaultResponseString(bool with_enc, c
 }
 
 // makeXMLRPCResponseString(params, ...)
-static AbstractQoreNode *makeXMLRPCResponseString(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
+static AbstractQoreNode* makeXMLRPCResponseString(bool with_enc, const QoreListNode* params, ExceptionSink* xsink) {
    QORE_TRACE("makeXMLRPCResponseString()");
 
    unsigned offset = with_enc ? 1 : 0;
-   const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
+   const QoreEncoding* ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
 
    if (num_params(params) == offset)
       return 0;
@@ -1853,7 +1885,7 @@ static AbstractQoreNode *makeXMLRPCResponseString(bool with_enc, const QoreListN
    QoreStringNodeHolder str(new QoreStringNode(ccs));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?><methodResponse><params>", ccs->getCode());
 
-   const AbstractQoreNode *p;
+   const AbstractQoreNode* p;
 
    // now loop through the params
    int ls = num_params(params);
@@ -1872,14 +1904,14 @@ static AbstractQoreNode *makeXMLRPCResponseString(bool with_enc, const QoreListN
    return str.release();
 }
 
-static AbstractQoreNode *makeFormattedXMLRPCCallStringArgs(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
+static AbstractQoreNode* makeFormattedXMLRPCCallStringArgs(bool with_enc, const QoreListNode* params, ExceptionSink* xsink) {
    QORE_TRACE("makeFormattedXMLRPCCallStringArgs");
 
    int offset = with_enc ? 1 : 0;
-   const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
+   const QoreEncoding* ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
 
    HARD_QORE_PARAM(p0, const QoreStringNode, params, offset);
-   const AbstractQoreNode *p1;
+   const AbstractQoreNode* p1;
 
    QoreStringNodeHolder str(new QoreStringNode(ccs));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>\n<methodCall>\n  <methodName>", ccs->getCode());
@@ -1890,12 +1922,12 @@ static AbstractQoreNode *makeFormattedXMLRPCCallStringArgs(bool with_enc, const 
    str->concat("</methodName>\n  <params>\n");
 
    if ((p1 = get_param(params, offset + 1))) {
-      const QoreListNode *l = dynamic_cast<const QoreListNode *>(p1);
+      const QoreListNode* l = dynamic_cast<const QoreListNode*>(p1);
       if (l) {
 	 // now process all params
 	 int ls = l->size();
 	 for (int i = 0; i < ls; i++) {
-	    const AbstractQoreNode *p = l->retrieve_entry(i);
+	    const AbstractQoreNode* p = l->retrieve_entry(i);
 	    str->concat("    <param>\n");
 	    addXMLRPCValue(*str, p, 6, ccs, 1, xsink);
 	    if (*xsink)
@@ -1918,11 +1950,11 @@ static AbstractQoreNode *makeFormattedXMLRPCCallStringArgs(bool with_enc, const 
    return str.release();
 }
 
-static AbstractQoreNode *makeFormattedXMLRPCCallString(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
+static AbstractQoreNode* makeFormattedXMLRPCCallString(bool with_enc, const QoreListNode* params, ExceptionSink* xsink) {
    QORE_TRACE("makeFormattedXMLRPCCallString");
 
    int offset = with_enc ? 1 : 0;
-   const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
+   const QoreEncoding* ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
 
    HARD_QORE_PARAM(p0, const QoreStringNode, params, offset);
 
@@ -1937,7 +1969,7 @@ static AbstractQoreNode *makeFormattedXMLRPCCallString(bool with_enc, const Qore
    // now loop through the params
    int ls = num_params(params);
    for (int i = offset + 1; i < ls; i++) {
-      const AbstractQoreNode *p = get_param(params, offset + i);
+      const AbstractQoreNode* p = get_param(params, offset + i);
       str->concat("    <param>\n");
       addXMLRPCValue(*str, p, 6, ccs, 1, xsink);
       if (*xsink)
@@ -1951,11 +1983,11 @@ static AbstractQoreNode *makeFormattedXMLRPCCallString(bool with_enc, const Qore
 }
 
 // makeFormattedXMLRPCResponseString(params, ...)
-static AbstractQoreNode *makeFormattedXMLRPCResponseString(bool with_enc, const QoreListNode *params, ExceptionSink *xsink) {
+static AbstractQoreNode* makeFormattedXMLRPCResponseString(bool with_enc, const QoreListNode* params, ExceptionSink* xsink) {
    QORE_TRACE("makeFormattedXMLRPCResponseString");
 
    int offset = with_enc ? 1 : 0;
-   const QoreEncoding *ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
+   const QoreEncoding* ccs = with_enc ? get_hard_qore_encoding_param(params, 0) : QCS_DEFAULT;
 
    int ls = num_params(params);
    if (ls == offset)
@@ -1964,7 +1996,7 @@ static AbstractQoreNode *makeFormattedXMLRPCResponseString(bool with_enc, const 
    QoreStringNodeHolder str(new QoreStringNode(ccs));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>\n<methodResponse>\n  <params>\n", ccs->getCode());
 
-   const AbstractQoreNode *p;
+   const AbstractQoreNode* p;
 
    // now loop through the params
    for (int i = offset; i < ls; i++) {
@@ -1982,33 +2014,33 @@ static AbstractQoreNode *makeFormattedXMLRPCResponseString(bool with_enc, const 
    return str.release();
 }
 
-static AbstractQoreNode *qore_xml_exception(const char *ex, const char *info, ExceptionSink *xsink) {
+static AbstractQoreNode* qore_xml_exception(const char* ex, const char* info, ExceptionSink* xsink) {
    if (!*xsink)
       xsink->raiseException(ex, "error parsing XML string: %s", info);
    return 0;
 }
 
-static AbstractQoreNode *qore_xml_exception(const char *ex, ExceptionSink *xsink) {
+static AbstractQoreNode* qore_xml_exception(const char* ex, ExceptionSink* xsink) {
    if (!*xsink)
       xsink->raiseException(ex, "error parsing XML string");
    return 0;
 }
 
-static QoreHashNode *qore_xml_hash_exception(const char *ex, const char *info, ExceptionSink *xsink, const QoreString *xml = 0) {
+static QoreHashNode* qore_xml_hash_exception(const char* ex, const char* info, ExceptionSink* xsink, const QoreString* xml = 0) {
    if (!*xsink)
       xsink->raiseExceptionArg(ex, xml ? new QoreStringNode(*xml) : 0, "error parsing XML string: %s", info);
    return 0;
 }
 
 /*
-static QoreHashNode *qore_xml_hash_exception(const char *ex, ExceptionSink *xsink, const QoreString *xml = 0) {
+static QoreHashNode* qore_xml_hash_exception(const char* ex, ExceptionSink* xsink, const QoreString* xml = 0) {
    if (!*xsink)
       xsink->raiseExceptionArg(ex, xml ? new QoreStringNode(*xml) : 0, "error parsing XML string");
    return 0;
 }
 */
 
-QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccsid, ExceptionSink *xsink) {
+QoreHashNode* parseXMLRPCResponse(const QoreString* msg, const QoreEncoding* ccsid, ExceptionSink* xsink) {
    //printd(5, "parseXMLRPCResponse() %s\n", msg->getBuffer());
 
    TempEncodingHelper str(msg, QCS_UTF8, xsink);
@@ -2037,7 +2069,7 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
    if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_ELEMENT)
        return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'params' or 'fault' element", xsink, *str);
 
-   const char *name = reader.constName();
+   const char* name = reader.constName();
    if (!name) {
       xsink->raiseExceptionArg("PARSE-XMLRPC-RESPONSE-ERROR", new QoreStringNode(*str), "missing 'params' or 'fault' element tag");
       return 0;
@@ -2062,10 +2094,10 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
 	 if (nt != XML_READER_TYPE_END_ELEMENT) {
 	    if (nt != XML_READER_TYPE_ELEMENT)
 	       return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'param' element", xsink, *str);
-	       
+
 	    if (reader.checkXmlRpcMemberName("param", xsink))
 	       return 0;
-	       
+
 	    // get "value" element
 	    if (reader.readXmlRpc("expecting 'value' element", xsink))
 	       return 0;
@@ -2075,18 +2107,18 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
 	    if (params_depth < depth) {
 	       if ((nt = reader.readXmlRpcNode(xsink)) == -1)
 		  return 0;
-	    
+
 	       if (nt != XML_READER_TYPE_END_ELEMENT) {
 		  if (nt != XML_READER_TYPE_ELEMENT)
 		     return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'value' element", xsink, *str);
-	       
+
 		  if (reader.checkXmlRpcMemberName("value", xsink))
 		     return 0;
-	       		  
+
 		  // position at next element
 		  if (reader.readXmlRpc("expecting XML-RPC value element", xsink))
 		     return 0;
-		  
+
 		  // if value was not an empty element
 		  if (depth < reader.depth()) {
 		     if (reader.getValueData(&v, ccsid, true, xsink))
@@ -2133,7 +2165,7 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
       // get "value" element
       if (reader.readXmlRpc("expecting 'value' element", xsink))
 	 return 0;
-      
+
       if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_ELEMENT)
 	 return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting fault 'value' element", xsink, *str);
 
@@ -2143,17 +2175,17 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
       // position at next element
       if (reader.readXmlRpc("expecting XML-RPC value element", xsink))
 	 return 0;
-      
+
       // get fault structure
       if (reader.getValueData(&v, ccsid, true, xsink))
 	 return 0;
 
       if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT)
 	 return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'value' end element", xsink, *str);
-      
+
       if (reader.readSkipWhitespace("expecting 'fault' end element", xsink) == -1)
 	 return 0;
-      
+
       if ((nt = reader.nodeType()) != XML_READER_TYPE_END_ELEMENT)
 	 return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'fault' end element", xsink, *str);
 
@@ -2163,13 +2195,13 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
    }
    else {
       xsink->raiseException("PARSE-XMLRPC-RESPONSE-ERROR", "unexpected element '%s', expecting 'params' or 'fault'", name, *str);
-      return 0;      
+      return 0;
    }
 
    if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_END_ELEMENT)
       return qore_xml_hash_exception("PARSE-XMLRPC-RESPONSE-ERROR", "expecting 'methodResponse' end element", xsink, *str);
 
-   QoreHashNode *h = new QoreHashNode;
+   QoreHashNode* h = new QoreHashNode;
    if (fault)
       h->setKeyValue("fault", v.getValue(), 0);
    else
@@ -2179,16 +2211,16 @@ QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccs
 
 // NOTE: the libxml2 library requires all input to be in UTF-8 encoding
 // syntax: parseXML(xml_string, xsd_string [, output encoding])
-static AbstractQoreNode *parseXMLWithSchemaIntern(bool as_data, const QoreListNode *params, ExceptionSink *xsink) {
+static AbstractQoreNode* parseXMLWithSchemaIntern(bool as_data, const QoreListNode* params, ExceptionSink* xsink) {
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
    HARD_QORE_PARAM(p0, const QoreStringNode, params, 0);
    HARD_QORE_PARAM(p1, const QoreStringNode, params, 1);
 
-   const QoreEncoding *ccsid = get_encoding_param(params, 2);
+   const QoreEncoding* ccsid = get_encoding_param(params, 2);
 
    printd(5, "parseXMLWithSchema() xml=%s\n xsd=%s\n", p0->getBuffer(), p1->getBuffer());
 
-   // convert to UTF-8 
+   // convert to UTF-8
    TempEncodingHelper str(p0, QCS_UTF8, xsink);
    if (!str)
       return 0;
@@ -2211,7 +2243,7 @@ static AbstractQoreNode *parseXMLWithSchemaIntern(bool as_data, const QoreListNo
    int rc = reader.setSchema(schema.getSchema());
    if (rc < 0) {
       if (!*xsink)
-	 xsink->raiseException("XSD-VALIDATION-ERROR", "XML schema passed as second argument to parseXMLWithSchema() could not be validated");      
+	 xsink->raiseException("XSD-VALIDATION-ERROR", "XML schema passed as second argument to parseXMLWithSchema() could not be validated");
       return 0;
    }
 
@@ -2224,16 +2256,16 @@ static AbstractQoreNode *parseXMLWithSchemaIntern(bool as_data, const QoreListNo
 
 // NOTE: the libxml2 library requires all input to be in UTF-8 encoding
 // syntax: parseXMLWithRelaxNGIntern(xml_string, xsd_string [, output encoding])
-static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListNode *params, ExceptionSink *xsink) {
+static AbstractQoreNode* parseXMLWithRelaxNGIntern(bool as_data, const QoreListNode* params, ExceptionSink* xsink) {
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
    HARD_QORE_PARAM(p0, const QoreStringNode, params, 0);
    HARD_QORE_PARAM(p1, const QoreStringNode, params, 1);
 
-   const QoreEncoding *ccsid = get_encoding_param(params, 2);
+   const QoreEncoding* ccsid = get_encoding_param(params, 2);
 
    printd(5, "parseXMLWithRelaxNG() xml=%s\n xsd=%s\n", p0->getBuffer(), p1->getBuffer());
 
-   // convert to UTF-8 
+   // convert to UTF-8
    TempEncodingHelper str(p0, QCS_UTF8, xsink);
    if (!str)
       return 0;
@@ -2256,7 +2288,7 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
    int rc = reader.setRelaxNG(schema.getSchema());
    if (rc < 0) {
       if (!*xsink)
-	 xsink->raiseException("RELAXNG-VALIDATION-ERROR", "RelaxNG schema passed as second argument to parseXMLWithRelaxNG() could not be validated");      
+	 xsink->raiseException("RELAXNG-VALIDATION-ERROR", "RelaxNG schema passed as second argument to parseXMLWithRelaxNG() could not be validated");
       return 0;
    }
 
@@ -2279,6 +2311,23 @@ static AbstractQoreNode *parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
 #define XML_CONST_HAVE_XMLTEXTREADERRELAXNGSETSCHEMA 0
 #endif
 
+/** @defgroup xml_generation_constants XML Generation Constants
+    The constants in this group can be combined with @ref bitwise_or_operator "binary or" to affect the output of generated XML
+ */
+//@{
+//! no flags; standard XML generation without whitespace formatting and characters without unicode character references
+const XGF_NONE = XGF_NONE;
+
+//! use unicode character references instead of native characters for non-ascii character when generating XML
+/** note that character references are not applied to CDATA when serializing XML (keys that begin with \c "^cdata"
+    are serialized as cdata).
+ */
+const XGF_USE_CHAR_REF = XGF_USE_CHAR_REF;
+
+//! use whitespace formatting including line breaks to make generated XML more readable
+const XGF_ADD_FORMATTING = XGF_ADD_FORMATTING;
+//@}
+
 /** @defgroup xml_option_constants XML Module Option Constants
  */
 //@{
@@ -2297,6 +2346,56 @@ const HAVE_PARSEXMLWITHSCHEMA = {HAVE_PARSEXMLWITHSCHEMA}bool(XML_CONST_HAVE_XML
 namespace Qore::Xml;
 
 //! serializes a hash into an XML string without whitespace formatting but with an XML header
+/** @par Example:
+    @code my string $xml = make_xml_string("key", $hash); @endcode
+
+    @param key top-level key
+    @param h the rest of the data to serialize under the top-level key
+    @param format optional formatting flags; see @ref xml_generation_constants for more information
+    @param encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+
+    @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
+
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
+
+    @see @ref serialization
+
+    @since xml 1.3 as a replacement for deprecated camel-case makeXMLString() and makeFormattedXMLString()
+ */
+string make_xml_string(string key, hash h, *int format, *string encoding) [flags=RET_VALUE_ONLY] {
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   return make_xml_string_intern(xsink, key, h, qe, format);
+}
+
+//! serializes a hash into an XML string without whitespace formatting but with an XML header
+/** @par Example:
+    @code my string $xml = make_xml_string($hash); @endcode
+
+    @param h a hash of data to serialize: the hash must have one top-level key and no more or an exception will be raised
+    @param format optional formatting flags; see @ref xml_generation_constants for more information
+    @param encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+
+    @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
+
+    @throw MAKE-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
+
+    @see @ref serialization
+
+    @since xml 1.3 as a replacement for deprecated camel-case makeXMLString() and makeFormattedXMLString()
+ */
+string make_xml_string(hash h, *int format, *string encoding) [flags=RET_VALUE_ONLY] {
+   if (!hash_ok(h)) {
+      xsink->raiseException("MAKE-XML-STRING-PARAMETER-EXCEPTION",
+			    "this variant of make_xml_string() expects a hash with a single key for the top-level XML element name");
+      return 0;
+   }
+
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   return make_xml_string_intern(xsink, 0, h, qe, format);
+}
+
+//! serializes a hash into an XML string without whitespace formatting but with an XML header
 /** @param key top-level key
     @param h the rest of the data to serialize under the top-level key
     @param encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
@@ -2305,13 +2404,13 @@ namespace Qore::Xml;
 
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
 
-    @par Example:
-    @code my string $xml = makeXMLString("key", $hash); @endcode
     @see @ref serialization
+
+    @deprecated use get_xml_string(); camel-case function names were deprecated in xml 1.3
  */
-string makeXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY] {
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
-   return makeXMLStringIntern(key, h, qe, false, xsink);
+string makeXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   return make_xml_string_intern(xsink, key, h, qe);
 }
 
 //! serializes a hash into an XML string without whitespace formatting but with an XML header
@@ -2323,20 +2422,19 @@ string makeXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY
     @throw MAKE-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
 
-    @par Example:
-    @code my string $xml = makeXMLString($hash); @endcode
-
     @see @ref serialization
+
+    @deprecated use get_xml_string(); camel-case function names were deprecated in xml 1.3
  */
-string makeXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY] {   
+string makeXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
    if (!hash_ok(h)) {
       xsink->raiseException("MAKE-XML-STRING-PARAMETER-EXCEPTION",
 			    "this variant of makeXMLString() expects a hash with a single key for the top-level XML element name");
       return 0;
    }
 
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
-   return makeXMLStringIntern(0, h, qe, false, xsink);
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   return make_xml_string_intern(xsink, 0, h, qe);
 }
 
 //! serializes a hash into an XML string with whitespace formatting and with an XML header
@@ -2348,15 +2446,14 @@ string makeXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY] {
 
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
 
-    @par Example:
-    @code my string $xml = makeFormattedXMLString("key", $hash); @endcode
-
     @see @ref serialization
-*/
-string makeFormattedXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY] {
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
-   return makeXMLStringIntern(key, h, qe, true, xsink);
+    @deprecated use make_xml_string(); camel-case function names were deprecated in xml 1.3
+*/
+string makeFormattedXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+
+   return make_xml_string_intern(xsink, key, h, qe);
 }
 
 //! serializes a hash into an XML string with whitespace formatting and with an XML header
@@ -2368,20 +2465,45 @@ string makeFormattedXMLString(string key, hash h, *string encoding) [flags=RET_V
     @throw MAKE-FORMATTED-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
 
-    @par Example:
-    @code my string $xml = makeFormattedXMLString($hash); @endcode
-
     @see @ref serialization
+
+    @deprecated use make_xml_string(); camel-case function names were deprecated in xml 1.3
  */
-string makeFormattedXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY] {
+string makeFormattedXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
    if (!hash_ok(h)) {
       xsink->raiseException("MAKE-FORMATTED-XML-STRING-PARAMETER-EXCEPTION",
 			    "this variant of makeFormattedXMLString() expects a hash with a single key for the top-level XML element name");
       return 0;
    }
 
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
-   return makeXMLStringIntern(0, h, qe, true, xsink);
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   return make_xml_string_intern(xsink, 0, h, qe, XGF_ADD_FORMATTING);
+}
+
+//! serializes a hash into an XML string without whitespace formatting and without an XML header
+/** @par Example:
+    @code my string $xml = make_xml_fragment($hash); @endcode
+
+    @param h a hash of data to serialize: the hash can have any number of keys
+    @param format optional formatting flags; see @ref xml_generation_constants for more information
+    @param encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
+
+    @return an XML string corresponding to the input data, without whitespace formatting and without an XML header
+
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
+
+    @see @ref serialization
+
+    @since xml 1.3 as a replacement for deprecated camel-case makeXMLFragment()
+ */
+string make_xml_fragment(hash h, *int format, *string encoding) [flags=RET_VALUE_ONLY] {
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+
+   SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
+   if (make_xml_string(xsink, *(*str), *h, 0, format))
+      return 0;
+
+   return str.release();
 }
 
 //! serializes a hash into an XML string without whitespace formatting and without an XML header
@@ -2392,18 +2514,17 @@ string makeFormattedXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY] {
 
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
 
-    @par Example:
-    @code my string $xml = makeXMLFragment($hash); @endcode
-
     @see @ref serialization
+
+    @deprecated use make_xml_fragment(); camel-case function names were deprecated in xml 1.3
  */
-string makeXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY] {
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+string makeXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
-   if (makeXMLString(*(*str), *h, 0, 0, xsink))
+   if (make_xml_string(xsink, *(*str), *h, 0))
       return 0;
-   
+
    return str.release();
 }
 
@@ -2421,18 +2542,17 @@ nothing makeXMLFragment() [flags=RUNTIME_NOOP] {
 
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
 
-    @par Example:
-    @code my string $xml = makeFormattedXMLFragment($hash); @endcode
-
     @see @ref serialization
+
+    @deprecated use make_xml_fragment(); camel-case function names were deprecated in xml 1.3
  */
-string makeFormattedXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY] {
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+string makeFormattedXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
-   if (makeXMLString(*(*str), *h, 0, 1, xsink))
+   if (make_xml_string(xsink, *(*str), *h, 0, XGF_ADD_FORMATTING))
       return 0;
-   
+
    return str.release();
 }
 
@@ -2444,7 +2564,7 @@ nothing makeFormattedXMLFragment() [flags=RUNTIME_NOOP] {
 
 //! Parses an XML string and returns a %Qore hash structure
 /** If duplicate, out-of-order XML elements are found in the input string, they are deserialized to %Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the %Qore hash as in the input XML string.
-    
+
     This function should only be used when it is important to maintain the XML element order in the resulting %Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.   In all other cases, parseXMLAsData() should be used instead.
 
     @param xml the XML string to parse
@@ -2462,7 +2582,7 @@ nothing makeFormattedXMLFragment() [flags=RUNTIME_NOOP] {
     - @ref serialization
 */
 hash parseXML(string[doc] xml, *string[doc] encoding) [flags=RET_VALUE_ONLY] {
-   return parseXMLIntern(false, args, xsink);
+   return parse_xml_intern(false, args, xsink);
 }
 
 //! This is a variant that is basically a noop, included for backwards-compatibility for functions that ignored type errors in the calling parameters
@@ -2493,7 +2613,7 @@ nothing parseXML() [flags=RUNTIME_NOOP] {
     - @ref serialization
 */
 hash parseXMLAsData(string[doc] xml, *string[doc] encoding) [flags=RET_VALUE_ONLY] {
-   return parseXMLIntern(true, args, xsink);
+   return parse_xml_intern(true, args, xsink);
 }
 
 //! This is a variant that is basically a noop, included for backwards-compatibility for functions that ignored type errors in the calling parameters
@@ -2701,7 +2821,7 @@ string makeXMLRPCCallStringArgsWithEncoding(string encoding, string[doc] method,
     @see @ref XMLRPC
 */
 string makeXMLRPCFaultResponseString(softint code, string msg) [flags=CONSTANT] {
-   const QoreEncoding *ccsid = msg->getEncoding();
+   const QoreEncoding* ccsid = msg->getEncoding();
 
    // for speed, the XML is created directly here
    QoreStringNode* str = new QoreStringNode(ccsid);
@@ -2728,7 +2848,7 @@ string makeXMLRPCFaultResponseString(softint code, string msg) [flags=CONSTANT] 
     @see @ref XMLRPC
 */
 string makeXMLRPCFaultResponseStringWithEncoding(string encoding, softint code, string msg) [flags=RET_VALUE_ONLY] {
-   const QoreEncoding *qe = QEM.findCreate(encoding);
+   const QoreEncoding* qe = QEM.findCreate(encoding);
 
    // for speed, the XML is created directly here
    QoreStringNodeHolder rv(new QoreStringNode(qe));
@@ -2779,7 +2899,7 @@ string makeFormattedXMLRPCFaultResponseStringWithEncoding(string[doc] encoding, 
 
 //! Serializes the arguments into an XML string formatted for an XML-RPC response without whitespace formatting
 /** Any top-level arguments to the function will be serialized as the top-level params of the response message
-    @return a string in XML-RPC response format; the encoding of the resulting string will always be the default encoding 
+    @return a string in XML-RPC response format; the encoding of the resulting string will always be the default encoding
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @par Example:
     @code my string $response = makeXMLRPCResponseString($answer); @endcode
@@ -2822,7 +2942,7 @@ string makeXMLRPCResponseStringWithEncoding(string[doc] encoding, ...) [flags=RE
    if (is_nothing(value))
        return 0;
 
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    QoreStringNodeHolder rv(new QoreStringNode(qe));
    addXMLRPCValueIntern(*rv, value, 0, qe, 0, xsink);
@@ -2904,7 +3024,7 @@ string makeFormattedXMLRPCCallStringWithEncoding(string[doc] encoding, string[do
 //! Serializes the arguments into an XML string formatted for an XML-RPC response with whitespace formatting
 /** @param ... any top-level arguments to the function will be serialized as the top-level params of the response message
 
-    @return a string in XML-RPC response format with whitespace formatting; the encoding of the resulting string will always be the default encoding 
+    @return a string in XML-RPC response format with whitespace formatting; the encoding of the resulting string will always be the default encoding
     @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
 
     @par Example:
@@ -2950,7 +3070,7 @@ string makeFormattedXMLRPCResponseStringWithEncoding(string[doc] encoding, ...) 
    if (!value)
       return 0;
 
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    QoreStringNodeHolder str(new QoreStringNode(qe));
    addXMLRPCValue(*str, value, 0, qe, 1, xsink);
@@ -2971,7 +3091,7 @@ string makeFormattedXMLRPCResponseStringWithEncoding(string[doc] encoding, ...) 
     @see @ref XMLRPC
  */
 any parseXMLRPCValue(string xml, *string encoding) [flags=RET_VALUE_ONLY] {
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    TempEncodingHelper str(xml, QCS_UTF8, xsink);
    if (!str)
@@ -3011,10 +3131,10 @@ nothing parseXMLRPCValue() [flags=RUNTIME_NOOP] {
     @par Example:
     @code my hash $h = parseXMLRPCCall($xml); @endcode
 
-    @see @ref XMLRPC    
+    @see @ref XMLRPC
  */
 hash parseXMLRPCCall(string xml, *string encoding) [flags=RET_VALUE_ONLY] {
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    //printd(5, "parseXMLRPCCall() c=%d str=%s\n", p0->getBuffer()[0], p0->getBuffer());
 
@@ -3054,7 +3174,7 @@ hash parseXMLRPCCall(string xml, *string encoding) [flags=RET_VALUE_ONLY] {
    if ((nt = reader.nodeTypeSkipWhitespace()) != XML_READER_TYPE_TEXT)
       return qore_xml_exception("PARSE-XMLRPC-CALL-ERROR", "expecting method name", xsink);
 
-   const char *method_name = reader.constValue();
+   const char* method_name = reader.constValue();
    if (!method_name)
       return qore_xml_exception("PARSE-XMLRPC-CALL-ERROR", "expecting method name", xsink);
 
@@ -3086,16 +3206,16 @@ hash parseXMLRPCCall(string xml, *string encoding) [flags=RET_VALUE_ONLY] {
       // get 'param' element or close params
       if (reader.readXmlRpc("expecting param element", xsink))
 	 return 0;
-      
+
       if ((nt = reader.readXmlRpcNode(xsink)) == -1)
 	 return qore_xml_exception("PARSE-XMLRPC-CALL-ERROR", xsink);
-      
+
       XmlRpcValue v;
       if (reader.depth()) {
 	 if (nt != XML_READER_TYPE_END_ELEMENT) {
 	    if (nt != XML_READER_TYPE_ELEMENT)
 	       return qore_xml_exception("PARSE-XMLRPC-CALL-ERROR", "expecting 'params' element", xsink);
-	    
+
 	    if (reader.getParams(&v, qe, xsink))
 	       return 0;
 	 }
@@ -3141,7 +3261,7 @@ nothing parseXMLRPCCall() [flags=RUNTIME_NOOP] {
     @see @ref XMLRPC
  */
 hash parseXMLRPCResponse(string xml, *string encoding) [flags=RET_VALUE_ONLY] {
-   const QoreEncoding *qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
+   const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
    return parseXMLRPCResponse(xml, qe, xsink);
 }
 

@@ -1,9 +1,10 @@
+/* -*- mode: c++; indent-tabs-mode: nil -*- */
 /*
   qore-xml-module.h
 
   Qore Programming Language
 
-  Copyright (C) 2006 - 2010 Qore Technologies
+  Copyright (C) 2006 - 2015 Qore Technologies
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -28,5 +29,13 @@
 #endif
 
 #include <qore/Qore.h>
+
+// XML generation flags
+// no flags
+#define XGF_NONE             0
+// use unicode character references instead of non-ascii characters
+#define XGF_USE_CHAR_REF     (1 << 0)
+// add whitespace formatting
+#define XGF_ADD_FORMATTING   (1 << 1)
 
 #endif

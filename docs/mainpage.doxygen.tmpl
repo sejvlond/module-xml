@@ -31,7 +31,7 @@
     - <a href="../../XmlRpcHandler/html/index.html">XmlRpcHandler user module</a>
 
     @section optionconstants Module Option Constants
-    
+
     The following constants give information about the availability of XML functionality (dependent on libxml2 features at compile time):
 
     <b>XML Option Constants</b>
@@ -69,7 +69,7 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     For example:
 
     @code
-$h = ("record": ("^attributes^": ("type": "customer") , 
+$h = ("record": ("^attributes^": ("type": "customer") ,
 	         "name": ("first": "Fred", "last": "Smith")));
 printf("%s\n", makeFormattedXMLString($h));@endcode
 
@@ -87,7 +87,7 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     If instead we wanted to have text instead of child data under the "record" node, we must set the \c "^value^" key of the hash along with the \c "^attributes^" key as follows:
 
     @code
-$h = ("record": ("^attributes^": ("type": "customer"), 
+$h = ("record": ("^attributes^": ("type": "customer"),
 	         "^value^": "NO-RECORD"));
 printf("%s\n", makeFormattedXMLString($h)); @endcode
 
@@ -121,12 +121,12 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     It's not possible to use a list, because text is required in between. As described earlier, the \c "^value^" hash key can be used to serialize text in an XML string. In this case, we need to have several text nodes and several code nodes in a mixed-up order to give us the XML string we want. Because qore hases have unique keys (we can't use the same key twice in the same hash), we resort to a key naming trick that allows us to virtually duplicate our key names and therefore arrive at the XML string we want. We do this by appending a \c '^' character to the end of the key name and then some unique text. When serializing hash keys, any text after (and including) the \c '^' character is ignored. For the special key name \c "^value^", we do not need to duplicate the final \c '^' character. Instead we just add unique text to ensure that our hash can contain all the data we want and that it will be serialized in the right order to the XML string as follows:
 
     @code
-$h = ("para": ("^value^": "Keywords: ", 
-               "code" : "this", 
-               "^value^1" : ", ", 
-               "code^1" : "that", 
-               "^value^2" : ", and ", 
-               "code^2" : "the_other", 
+$h = ("para": ("^value^": "Keywords: ",
+               "code" : "this",
+               "^value^1" : ", ",
+               "code^1" : "that",
+               "^value^2" : ", and ",
+               "code^2" : "the_other",
                "^value^3" : "."));
 printf("%s\n", makeFormattedXMLString($h));@endcode
 
@@ -139,9 +139,9 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     <b>Functions For XML Serialization and Deserialization</b>
     |!Function Name|!Description
     |makeFormattedXMLFragment()|Serializes a hash into an XML string with formatting without an XML header.
-    |makeFormattedXMLString()|Serializes a hash into an XML string with formatting and an XML header.
+    |make_formatted_xml_string()()|Serializes a hash into an XML string with formatting and an XML header.
     |makeXMLFragment()|Serializes a hash into an XML string without an XML header or formatting.
-    |makeXMLString()|Serializes a hash into a complete XML string with an XML header and without formatting.
+    |make_xml_string()|Serializes a hash into a complete XML string with an XML header and without formatting.
     |parseXMLAsData()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and returns a %Qore hash structure.
     |parseXMLAsDataWithRelaxNG()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against a RelaxNG schema string and returns a %Qore hash structure.
     |parseXMLAsDataWithSchema()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against an XSD schema string and returns a %Qore hash structure.
@@ -176,7 +176,7 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     |\c list|\c array|direct conversion
     |\c hash|\c struct|direct conversion
     |all others|n/a|All other types will cause an \c XML-RPC-SERIALIZATION-ERROR to be raised.
-	 
+
     <b>Classes Providing XML-RPC Functionality</b>
     |!Class|!Description
     |Qore::Xml::XmlRpcClient|For communicating with XML-RPC servers
@@ -228,19 +228,19 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     This tag is equal to @ref NOOP, except that \c RUNTIME_NOOP is also enforced at runtime.
 
     @subsection RET_VALUE_ONLY RET_VALUE_ONLY
-	
+
     This flag indicates that the function or method has no side effects; it only returns a value, for example.
 
     This tag is identical to @ref CONSTANT except that functions or methods tagged with \c RET_VALUE_ONLY could throw exceptions.
 
     @subsection CONSTANT CONSTANT
-	
+
     This flag indicates that the function or method has no side effects and does not throw any exceptions.
 
     This tag is identical to @ref RET_VALUE_ONLY except that functions or methods tagged with \c CONSTANT do not throw exceptions.
 
     @subsection DEPRECATED DEPRECATED
-	
+
     Code with this flag is deprecated and may be removed in a future version of this module; if a variant with this flag is resolved at parse time, a \c "deprecated" warning is raised (assuming this warning is enabled).
 
     @section xmlreleasenotes Release Notes
@@ -257,6 +257,9 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
       - allow \c "^header^" key in top-level hash response to specify SOAP headers in the response message
       - 500 HTTP response code returned with SOAP faults
     - user modules moved to top-level qore module directory from version-specific module directory since they are valid for multiple versions of qore
+    - implemented the following non-camel-case functions as replacements for old camel-case functions (the following camel-case function names are now deprecated):
+      - make_xml_string(): replaced makeXMLString() and makeFormattedXMLString()
+      - make_xml_fragment(): replaced makeXMLFragment() and makeFormattedXMLFragment()
 
     @subsection xml12 xml Module Version 1.2
     <b>Changes and Bug Fixes in This Release</b>
