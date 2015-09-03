@@ -40,6 +40,7 @@ docs/SoapClient/
 docs/SoapHandler/
 docs/WSDL/
 docs/XmlRpcHandler/
+docs/*.doxygen
 docs/qlib/Doxyfile.*
 docs/qlib/*.dox.h
 docs/*.doxygen
