@@ -1,4 +1,4 @@
-#!/usr/bin/env qore 
+#!/usr/bin/env qore
 # -*- mode: qore; indent-tabs-mode: nil -*-
 
 # require the xml module
@@ -13,6 +13,9 @@
 # require types to be declared
 %require-types
 
+# test deprecated functions as well
+%disable-warning deprecated
+
 # make sure we have the right version of qore
 %requires qore >= 0.8.1
 
@@ -25,12 +28,12 @@ sub usage() {
   -h,--help         shows this help text
   -t,--threads=ARG  runs tests in ARG threads
   -v,--verbose=ARG  sets verbosity level to ARG
-", 
+",
 	   get_script_name());
     exit(1);
 }
 
-const opts = 
+const opts =
     ( "verbose" : "verbose,v:i+",
       "help"    : "help,h",
       "threads" : "threads,t=i" );
@@ -82,27 +85,40 @@ const xsd = '<?xml version="1.0" encoding="utf-8"?>
 </xsd:schema>
 ';
 
+const Hash = (
+    "test": 1,
+    "gee": "philly",
+    "marguile": 1.0392,
+    "list": (1, 2, 3, ("four": 4), 5),
+    "hash": ("howdy": 123, "partner": 456),
+    "list^1": "test",
+    "bool": True,
+    "time": now(),
+    "bool^1": False,
+    #"emptyhash": hash(),
+    #"emptylist": (),
+    "key": "this & that",
+    );
+
 sub xml_tests() {
-    my hash $o = ( "test" : 1, 
-		   "gee" : "philly", 
-		   "marguile" : 1.0392,
-		   "list" : (1, 2, 3, ( "four" : 4 ), 5),
-		   "hash" : ( "howdy" : 123, "partner" : 456 ),
-		   "list^1" : "test",
-		   "bool" : True,
-		   "time" : now(),
-		   "bool^1" : False,
-                   #"emptyhash": hash(),
-                   #"emptylist": list(),
-		   "key"  : "this & that" );
-    my hash $mo = ( "o" : $o );
+    my hash $o = Hash;
+    my hash $mo = ("o": $o);
+    my string $str = make_xml("o", $o);
+    test_value($mo.o == parse_xml($str, XPF_PRESERVE_ORDER).o, True, "first parse_xml()");
+    $str = make_xml("o", $o, XGF_ADD_FORMATTING);
+    test_value($mo == parse_xml($str, XPF_PRESERVE_ORDER), True, "second parse_xml()");
+}
+
+sub deprecated_xml_tests() {
+    my hash $o = Hash;
+    my hash $mo = ("o": $o);
     my string $str = makeXMLString("o", $o);
-    test_value($mo == parseXML($str), True, "first parseXML()");
+    test_value($mo.o == parseXML($str).o, True, "first parseXML()");
     $str = makeFormattedXMLString("o", $o);
     test_value($mo == parseXML($str), True, "second parseXML()");
     my list $params = (1, True, "string", NOTHING, $o + ("emptylist": (), "emptyhash": hash()));
     $str = makeFormattedXMLRPCCallStringArgs("test.method", $params);
-    my hash $result = ( "methodName" : "test.method", "params" : $params );    
+    my hash $result = ( "methodName" : "test.method", "params" : $params );
     test_value(parseXMLRPCCall($str), $result, "makeXMLRPCCallStringArgs() and parseXMLRPCCall()");
     $str = makeFormattedXMLRPCCallStringArgs("test.method", $params);
 
@@ -160,18 +176,19 @@ sub do_tests() {
 	for (my int $i = 0; $i < $o.iters; $i++) {
 	    if ($o.verbose)
 		printf("TID %d: iteration %d\n", gettid(), $i);
-	    xml_tests();
+            xml_tests();
+	    deprecated_xml_tests();
 	}
     }
     catch () {
 	++$errors;
-	rethrow;	
+	rethrow;
     }
 }
 
 sub main() {
     parse_command_line();
-    printf("QORE v%s XML Module v%s Test Script (%d thread%s, %d iteration%s per thread)\n", 
+    printf("QORE v%s XML Module v%s Test Script (%d thread%s, %d iteration%s per thread)\n",
            Qore::VersionString, getModuleHash().xml.version,
 	   $o.threads, $o.threads == 1 ? "" : "s", $o.iters, $o.iters == 1 ? "" : "s");
 
@@ -185,7 +202,7 @@ sub main() {
 
     my int $ntests = elements $thash;
     printf("%d error%s encountered in %d test%s.\n",
-	   $errors, $errors == 1 ? "" : "s", 
+	   $errors, $errors == 1 ? "" : "s",
 	   $ntests, $ntests == 1 ? "" : "s");
 }
 

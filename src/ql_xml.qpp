@@ -403,7 +403,7 @@ static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const Abst
       }
    }
 
-   if ((format & XGF_USE_CHAR_REF) && t == NT_STRING) {
+   if ((format & XGF_USE_CHAR_REFS) && t == NT_STRING) {
       // first convert to UTF-8
       QoreStringValueHelper temp(n, QCS_UTF8, xsink);
       if (*xsink)
@@ -424,7 +424,7 @@ static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const Abst
          int uc = temp->getUnicodePointFromBytePos(buf - temp->getBuffer(), len, xsink);
          if (*xsink)
             return -1;
-         istr.sprintf("#x%X;", uc);
+         istr.sprintf("&#x%X;", uc);
          buf += len;
       }
       str.concatAndHTMLEncode(&istr, xsink);
@@ -452,13 +452,13 @@ static int concat_simple_cdata_value(QoreString &str, const AbstractQoreNode* n,
    return concat_simple_value(xsink, str, n);
 }
 
-static int make_xml_string(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int format = XGF_NONE);
+static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int format = XGF_NONE);
 
-QoreStringNode* make_xml_string(ExceptionSink* xsink, const QoreEncoding* enc, const QoreHashNode &h, int format = XGF_NONE) {
+QoreStringNode* make_xml(ExceptionSink* xsink, const QoreEncoding* enc, const QoreHashNode &h, int format) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(enc));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", enc->getCode());
    if (format) str->concat('\n');
-   return make_xml_string(xsink, *(*str), h, 0, format) ? 0 : str.release();
+   return make_xml(xsink, *(*str), h, 0, format) ? 0 : str.release();
 }
 
 static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &str, const AbstractQoreNode* n, int indent, int format = XGF_NONE) {
@@ -575,7 +575,7 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
 	 if ((format & XGF_ADD_FORMATTING) && !vn)
 	    str.concat('\n');
 
-	 make_xml_string(xsink, str, *h, indent + 2, !vn ? format : (format & ~XGF_ADD_FORMATTING));
+	 make_xml(xsink, str, *h, indent + 2, !vn ? format : (format & ~XGF_ADD_FORMATTING));
 	 // indent closing entry
 	 if ((format & XGF_ADD_FORMATTING) && !vn) {
 	    str.concat('\n');
@@ -594,7 +594,7 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
 	 if (!*xsink) {
 	    if (format)
 	       str.concat('\n');
-	    make_xml_string(xsink, str, *(*h), indent + 2, format);
+	    make_xml(xsink, str, *(*h), indent + 2, format);
 	    // indent closing entry
 	    if (format & XGF_ADD_FORMATTING)
 	       str.addch(' ', indent);
@@ -610,8 +610,8 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
    str.concat('>');
 }
 
-static int make_xml_string(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int format) {
-   QORE_TRACE("make_xml_string()");
+static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int format) {
+   QORE_TRACE("make_xml()");
 
    ConstHashIterator hi(h);
    bool done = false;
@@ -663,7 +663,7 @@ static int make_xml_string(ExceptionSink* xsink, QoreString &str, const QoreHash
 	    str.concat('\n');
          str.addch(' ', indent);
       }
-      //printd(5, "make_xml_string() level %d adding member %s\n", indent / 2, node->getBuffer());
+      //printd(5, "make_xml() level %d adding member %s\n", indent / 2, node->getBuffer());
       add_xml_element(xsink, key, str, hi.getValue(), indent, format);
       done = true;
    }
@@ -689,7 +689,7 @@ static bool hash_ok(const QoreHashNode* h) {
    return count == 1;
 }
 
-static AbstractQoreNode* make_xml_string_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int format = XGF_NONE) {
+static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int format = XGF_NONE) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(ccs));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", ccs->getCode());
 
@@ -700,9 +700,9 @@ static AbstractQoreNode* make_xml_string_intern(ExceptionSink* xsink, const Qore
       add_xml_element(xsink, key->getBuffer(), *(*str), pobj, 0, format);
    }
    else
-      make_xml_string(xsink, *(*str), *pobj, 0, format);
+      make_xml(xsink, *(*str), *pobj, 0, format);
 
-   //printd(5, "make_xml_string_intern() returning %s\n", str->getBuffer());
+   //printd(5, "make_xml_intern() returning %s\n", str->getBuffer());
 
    return str.release();
 }
@@ -982,7 +982,7 @@ static bool keys_are_equal(const char* k1, const char* k2, bool &get_value) {
    return false;
 }
 
-AbstractQoreNode* QoreXmlReader::getXmlData(const QoreEncoding* data_ccsid, bool as_data, ExceptionSink* xsink, int min_depth) {
+AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEncoding* data_ccsid, int pflags, int min_depth) {
    xml_stack xstack;
 
    QORE_TRACE("getXMLData()");
@@ -1027,7 +1027,7 @@ AbstractQoreNode* QoreXmlReader::getXmlData(const QoreEncoding* data_ccsid, bool
 	       if (!exists)
 		  xstack.push(h->getKeyValuePtr(name), depth);
 	       else {
-		  if (as_data) {
+		  if (!(pflags & XPF_PRESERVE_ORDER)) {
 		     QoreListNode* vl = get_node_type(v) == NT_LIST ? reinterpret_cast<QoreListNode*>(v) : 0;
 		     // if it's not a list, then make into a list with current value as first entry
 		     if (!vl) {
@@ -1612,11 +1612,11 @@ static int doEmptyValue(XmlRpcValue *v, const char* name, int depth, ExceptionSi
    return 0;
 }
 
-QoreHashNode* QoreXmlReader::parseXMLData(const QoreEncoding* data_ccsid, bool as_data, ExceptionSink* xsink) {
+QoreHashNode* QoreXmlReader::parseXmlData(const QoreEncoding* data_ccsid, int pflags, ExceptionSink* xsink) {
    if (read(xsink) != 1)
       return 0;
 
-   AbstractQoreNode* rv = getXmlData(data_ccsid, as_data, xsink, depth());
+   AbstractQoreNode* rv = getXmlData(xsink, data_ccsid, pflags, depth());
 
    if (!rv) {
       if (!*xsink)
@@ -1828,7 +1828,7 @@ int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding* data_ccsi
 }
 
 // NOTE: the libxml2 library requires all input to be in UTF-8 encoding
-static AbstractQoreNode* parse_xml_intern(bool as_data, const QoreListNode* params, ExceptionSink* xsink) {
+static AbstractQoreNode* parse_xml_intern(int pflags, const QoreListNode* params, ExceptionSink* xsink) {
    HARD_QORE_PARAM(p0, const QoreStringNode, params, 0);
 
    const QoreEncoding* ccsid = get_encoding_param(params, 1);
@@ -1844,7 +1844,7 @@ static AbstractQoreNode* parse_xml_intern(bool as_data, const QoreListNode* para
    if (!reader)
       return 0;
 
-   return reader.parseXMLData(ccsid, as_data, xsink);
+   return reader.parseXmlData(ccsid, pflags, xsink);
 }
 
 static AbstractQoreNode* makeFormattedXMLRPCFaultResponseString(bool with_enc, const QoreListNode* params, ExceptionSink* xsink) {
@@ -2247,7 +2247,7 @@ static AbstractQoreNode* parseXMLWithSchemaIntern(bool as_data, const QoreListNo
       return 0;
    }
 
-   return reader.parseXMLData(ccsid, as_data, xsink);
+   return reader.parseXmlData(ccsid, as_data, xsink);
 #else
    xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the xml module did not support the xmlTextReaderSetSchema() function, therefore parseXMLWithSchema() and parseXMLAsDataWithSchema() are not available; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHSCHEMA to check if this function is implemented before calling");
    return 0;
@@ -2292,7 +2292,7 @@ static AbstractQoreNode* parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
       return 0;
    }
 
-   return reader.parseXMLData(ccsid, as_data, xsink);
+   return reader.parseXmlData(ccsid, as_data, xsink);
 #else
    xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the xml module did not support the xmlTextReaderSetRelaxNG() function, therefore parseXMLWithRelaxNG() and parseXMLAsDataWithRelaxNG() are not available; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHRELAXNG to check if this function is implemented before calling");
    return 0;
@@ -2322,10 +2322,30 @@ const XGF_NONE = XGF_NONE;
 /** note that character references are not applied to CDATA when serializing XML (keys that begin with \c "^cdata"
     are serialized as cdata).
  */
-const XGF_USE_CHAR_REF = XGF_USE_CHAR_REF;
+const XGF_USE_CHAR_REFS = XGF_USE_CHAR_REFS;
 
 //! use whitespace formatting including line breaks to make generated XML more readable
 const XGF_ADD_FORMATTING = XGF_ADD_FORMATTING;
+//@}
+
+/** @defgroup xml_parsing_constants XML Parsing Constants
+    The constants in this group can be combined with @ref bitwise_or_operator "binary or" to affect the output of parsed XML
+ */
+//@{
+//! no flags; standard XML parsing without character reference conversion
+const XPF_NONE = XPF_NONE;
+
+//! decode unicode character references to their native characters when parsing XML
+const XPF_DECODE_CHAR_REFS = XPF_DECODE_CHAR_REFS;
+
+//! decode XML as data; do not try to preserve element order by re-writing hash keys
+/** If this option is given and duplicate, out-of-order XML elements are found in the input string, they are deserialized to %Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the %Qore hash as in the input XML string.
+
+    In this case, if the data structure is reserialized with make_xml(), an XML string corresponding to the original input should be generated.
+
+    This option should only be used when it is important to maintain the XML element order in the resulting %Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.
+ */
+const XPF_PRESERVE_ORDER = XPF_PRESERVE_ORDER;
 //@}
 
 /** @defgroup xml_option_constants XML Module Option Constants
@@ -2347,7 +2367,7 @@ namespace Qore::Xml;
 
 //! serializes a hash into an XML string without whitespace formatting but with an XML header
 /** @par Example:
-    @code my string $xml = make_xml_string("key", $hash); @endcode
+    @code my string $xml = make_xml("key", $hash); @endcode
 
     @param key top-level key
     @param h the rest of the data to serialize under the top-level key
@@ -2362,14 +2382,14 @@ namespace Qore::Xml;
 
     @since xml 1.3 as a replacement for deprecated camel-case makeXMLString() and makeFormattedXMLString()
  */
-string make_xml_string(string key, hash h, *int format, *string encoding) [flags=RET_VALUE_ONLY] {
+string make_xml(string key, hash h, *int format, *string encoding) [flags=RET_VALUE_ONLY] {
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
-   return make_xml_string_intern(xsink, key, h, qe, format);
+   return make_xml_intern(xsink, key, h, qe, format);
 }
 
 //! serializes a hash into an XML string without whitespace formatting but with an XML header
 /** @par Example:
-    @code my string $xml = make_xml_string($hash); @endcode
+    @code my string $xml = make_xml($hash); @endcode
 
     @param h a hash of data to serialize: the hash must have one top-level key and no more or an exception will be raised
     @param format optional formatting flags; see @ref xml_generation_constants for more information
@@ -2384,15 +2404,15 @@ string make_xml_string(string key, hash h, *int format, *string encoding) [flags
 
     @since xml 1.3 as a replacement for deprecated camel-case makeXMLString() and makeFormattedXMLString()
  */
-string make_xml_string(hash h, *int format, *string encoding) [flags=RET_VALUE_ONLY] {
+string make_xml(hash h, *int format, *string encoding) [flags=RET_VALUE_ONLY] {
    if (!hash_ok(h)) {
       xsink->raiseException("MAKE-XML-STRING-PARAMETER-EXCEPTION",
-			    "this variant of make_xml_string() expects a hash with a single key for the top-level XML element name");
+			    "this variant of make_xml() expects a hash with a single key for the top-level XML element name");
       return 0;
    }
 
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
-   return make_xml_string_intern(xsink, 0, h, qe, format);
+   return make_xml_intern(xsink, 0, h, qe, format);
 }
 
 //! serializes a hash into an XML string without whitespace formatting but with an XML header
@@ -2410,7 +2430,7 @@ string make_xml_string(hash h, *int format, *string encoding) [flags=RET_VALUE_O
  */
 string makeXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
-   return make_xml_string_intern(xsink, key, h, qe);
+   return make_xml_intern(xsink, key, h, qe);
 }
 
 //! serializes a hash into an XML string without whitespace formatting but with an XML header
@@ -2424,7 +2444,7 @@ string makeXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY
 
     @see @ref serialization
 
-    @deprecated use get_xml_string(); camel-case function names were deprecated in xml 1.3
+    @deprecated use make_xml(); camel-case function names were deprecated in xml 1.3
  */
 string makeXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
    if (!hash_ok(h)) {
@@ -2434,7 +2454,7 @@ string makeXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED]
    }
 
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
-   return make_xml_string_intern(xsink, 0, h, qe);
+   return make_xml_intern(xsink, 0, h, qe);
 }
 
 //! serializes a hash into an XML string with whitespace formatting and with an XML header
@@ -2448,12 +2468,12 @@ string makeXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED]
 
     @see @ref serialization
 
-    @deprecated use make_xml_string(); camel-case function names were deprecated in xml 1.3
+    @deprecated use make_xml(); camel-case function names were deprecated in xml 1.3
 */
 string makeFormattedXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
-   return make_xml_string_intern(xsink, key, h, qe);
+   return make_xml_intern(xsink, key, h, qe);
 }
 
 //! serializes a hash into an XML string with whitespace formatting and with an XML header
@@ -2467,7 +2487,7 @@ string makeFormattedXMLString(string key, hash h, *string encoding) [flags=RET_V
 
     @see @ref serialization
 
-    @deprecated use make_xml_string(); camel-case function names were deprecated in xml 1.3
+    @deprecated use make_xml(); camel-case function names were deprecated in xml 1.3
  */
 string makeFormattedXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
    if (!hash_ok(h)) {
@@ -2477,7 +2497,7 @@ string makeFormattedXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DE
    }
 
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
-   return make_xml_string_intern(xsink, 0, h, qe, XGF_ADD_FORMATTING);
+   return make_xml_intern(xsink, 0, h, qe, XGF_ADD_FORMATTING);
 }
 
 //! serializes a hash into an XML string without whitespace formatting and without an XML header
@@ -2500,7 +2520,7 @@ string make_xml_fragment(hash h, *int format, *string encoding) [flags=RET_VALUE
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
-   if (make_xml_string(xsink, *(*str), *h, 0, format))
+   if (make_xml(xsink, *(*str), *h, 0, format))
       return 0;
 
    return str.release();
@@ -2522,7 +2542,7 @@ string makeXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATE
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
-   if (make_xml_string(xsink, *(*str), *h, 0))
+   if (make_xml(xsink, *(*str), *h, 0))
       return 0;
 
    return str.release();
@@ -2550,7 +2570,7 @@ string makeFormattedXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY,
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
-   if (make_xml_string(xsink, *(*str), *h, 0, XGF_ADD_FORMATTING))
+   if (make_xml(xsink, *(*str), *h, 0, XGF_ADD_FORMATTING))
       return 0;
 
    return str.release();
@@ -2560,6 +2580,37 @@ string makeFormattedXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY,
 /**
  */
 nothing makeFormattedXMLFragment() [flags=RUNTIME_NOOP] {
+}
+
+//! Parses an XML string and returns a %Qore hash structure
+/** @par Example:
+    @code my hash $h = parse_xml($xmlstr); @endcode
+
+    @param xml the XML string to parse
+    @param pflags XML parsing flags; see @ref xml_parsing_constants for more information
+    @param encoding an optional string giving the encoding for the output XML string; if this parameter is missing, all strings in the output hash will have the default encoding
+
+    @return a %Qore hash structure corresponding to the XML input string
+
+    @throw PARSE-XML-EXCEPTION Error parsing the XML string
+
+    @see @ref serialization
+
+    @since xml 1.3 as a replacement for deprecated camel-case parseXML() and parseXMLAsData()
+*/
+hash parse_xml(string xml, *int pflags, *string encoding) [flags=RET_VALUE_ONLY] {
+   //printd(5, "parseXMLintern(%d, %s)\n", as_data, p0->getBuffer());
+
+   // convert to UTF-8
+   TempEncodingHelper str(xml, QCS_UTF8, xsink);
+   if (!str)
+      return 0;
+
+   QoreXmlReader reader(*str, QORE_XML_PARSER_OPTIONS, xsink);
+   if (!reader)
+      return 0;
+
+   return reader.parseXmlData(encoding ? QEM.findCreate(encoding) : QCS_DEFAULT, pflags, xsink);
 }
 
 //! Parses an XML string and returns a %Qore hash structure
@@ -2577,12 +2628,12 @@ nothing makeFormattedXMLFragment() [flags=RUNTIME_NOOP] {
     @par Example:
     @code my hash $h = parseXML($xmlstr); @endcode
 
-    @see
-    - parseXMLAsData()
-    - @ref serialization
+    @see @ref serialization
+
+    @deprecated use parse_xml(); camel-case function names were deprecated in xml 1.3
 */
-hash parseXML(string[doc] xml, *string[doc] encoding) [flags=RET_VALUE_ONLY] {
-   return parse_xml_intern(false, args, xsink);
+hash parseXML(string[doc] xml, *string[doc] encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
+   return parse_xml_intern(XPF_PRESERVE_ORDER, args, xsink);
 }
 
 //! This is a variant that is basically a noop, included for backwards-compatibility for functions that ignored type errors in the calling parameters
@@ -2613,7 +2664,7 @@ nothing parseXML() [flags=RUNTIME_NOOP] {
     - @ref serialization
 */
 hash parseXMLAsData(string[doc] xml, *string[doc] encoding) [flags=RET_VALUE_ONLY] {
-   return parse_xml_intern(true, args, xsink);
+   return parse_xml_intern(XPF_NONE, args, xsink);
 }
 
 //! This is a variant that is basically a noop, included for backwards-compatibility for functions that ignored type errors in the calling parameters

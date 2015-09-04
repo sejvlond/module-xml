@@ -138,16 +138,19 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
 
     <b>Functions For XML Serialization and Deserialization</b>
     |!Function Name|!Description
-    |makeFormattedXMLFragment()|Serializes a hash into an XML string with formatting without an XML header.
-    |make_formatted_xml_string()()|Serializes a hash into an XML string with formatting and an XML header.
-    |makeXMLFragment()|Serializes a hash into an XML string without an XML header or formatting.
-    |make_xml_string()|Serializes a hash into a complete XML string with an XML header and without formatting.
-    |parseXMLAsData()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and returns a %Qore hash structure.
+    |make_xml_fragment()|Serializes a hash into an XML string without an XML header or formatting.
+    |make_xml()|Serializes a hash into a complete XML string with an XML header
+    |parse_xml()|parses an XML string and returns a %Qore hash structure.
     |parseXMLAsDataWithRelaxNG()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against a RelaxNG schema string and returns a %Qore hash structure.
     |parseXMLAsDataWithSchema()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against an XSD schema string and returns a %Qore hash structure.
-    |parseXML()|parses an XML string (XML element order is preserved by appending numeric suffixes to %Qore hash key names when necessary) and returns a %Qore hash structure.
     |parseXMLWithRelaxNG()|parses an XML string (XML element order is preserved by appending numeric suffixes to %Qore hash key names when necessary) and validates against a RelaxNG schema string and returns a %Qore hash structure.
     |parseXMLWithSchema()|parses an XML string (XML element order is preserved by appending numeric suffixes to %Qore hash key names when necessary) and validates against an XSD schema string and returns a %Qore hash structure.
+
+    <b>Deprecated Functions For XML Serialization and Deserialization</b>
+    - @ref makeFormattedXMLFragment()
+    - @ref makeXMLFragment()
+    - @ref makeFormattedXMLString()
+    - @ref makeXMLString()
 
     @anchor xmlclasses
     <b>Classes Providing XML Functionality</b>
@@ -258,8 +261,9 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
       - 500 HTTP response code returned with SOAP faults
     - user modules moved to top-level qore module directory from version-specific module directory since they are valid for multiple versions of qore
     - implemented the following non-camel-case functions as replacements for old camel-case functions (the following camel-case function names are now deprecated):
-      - make_xml_string(): replaced makeXMLString() and makeFormattedXMLString()
+      - make_xml(): replaced makeXMLString() and makeFormattedXMLString()
       - make_xml_fragment(): replaced makeXMLFragment() and makeFormattedXMLFragment()
+      - parse_xml(): replaced parseXML() and parseXMLAsData()
 
     @subsection xml12 xml Module Version 1.2
     <b>Changes and Bug Fixes in This Release</b>
