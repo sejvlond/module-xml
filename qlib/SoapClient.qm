@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file SoapClient.qm SOAP Client module implementation based on the WSDL classes
 
-/*  SoapClient.qm Copyright (C) 2012 - 2014 David Nichols
+/*  SoapClient.qm Copyright (C) 2012 - 2015 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -57,7 +57,7 @@ module SoapClient {
 */
 
 /** @mainpage SoapClient Module
-    
+
     @section soapclientintro Introduction to the SoapClient Module
 
     The SoapClient module implements a minimal SOAP client using WSDL, XSD, SOAP support implemented in the WSDL module.
@@ -86,7 +86,7 @@ my any $result = $sc.call("SubmitDocument", $msg);
       - \c "event_queue": to set an I/O event queue on the HTTPClient
       - \c "log": a @ref closure "closure" or @ref call_reference "call reference" taking a single string argument for informational logging
       - \c "dbglog": a @ref closure "closure" or @ref call_reference "call reference" taking a single string argument for verbose technical debugging logging
-    
+
     Also the following keys can be set to set HTTP options:
     - \c "connect_timeout"
     - \c "http_version"
@@ -163,7 +163,7 @@ public namespace SoapClient {
             my list $portTypes = keys $.wsdl.portType;
             if (elements $portTypes > 1 && !exists $h.portType)
                 throw "SOAP-CLIENT-ERROR", sprintf("no 'portType' key passed in the option hash argument to SoapClient::constructor() (WSDL defines the following services: %n)", $portTypes);
-            
+
             if (exists $h.portType) {
                 if (!inlist($h.portType, $portTypes))
                     throw "SOAP-CLIENT-ERROR", sprintf("portType %n is not defined by this WSDL (valid portTypes: %y)", $h.portType, $portTypes);
@@ -171,7 +171,7 @@ public namespace SoapClient {
             }
             else
                 $.portType = $portTypes[0];
-            
+
             if (exists $h.url)
                 $.url = $h.url;
             else {
@@ -232,7 +232,7 @@ public namespace SoapClient {
         */
         hash getMsg(string $operation, any $args, *hash $header, reference $op, *hash $nsh) {
             if (!exists $.wsdl.portType.$.portType.operations.$operation)
-                throw "SOAP-CLIENT-ERROR", sprintf("operation %n does not exist (operations defined by service %n: %y)", 
+                throw "SOAP-CLIENT-ERROR", sprintf("operation %n does not exist (operations defined by service %n: %y)",
                                                    $operation, $.portType, keys $.wsdl.portType.$.portType.operations);
 
             $op = $.wsdl.portType.$.portType.operations.$operation;
@@ -322,7 +322,7 @@ public namespace SoapClient {
         hash getType(string $type, any $v) {
             return $.wsdl.getType($type, $v);
         }
-       
+
         #! sends a log message to the log closure or call reference, if any
         log(string $msg) {
             if ($.log)
