@@ -448,7 +448,7 @@ public class WSDL::XSDNamedData inherits WSDL::XSDData {
         WSDL::XSDBase::removeNS(\$e);
 
         my *string $name = $e."^attributes^".name;
-        $.name = exists $name ? $name : "<unnamed type>";
+        $.name = $name ?? "<unnamed type>";
     }
 
     string getName() {
@@ -794,22 +794,60 @@ public class WSDL::XSDArrayType inherits WSDL::XSDAbstractType {
     }
 }
 
-#! XSD element class
-public class WSDL::XSDElement inherits WSDL::XSDNamedData {
+#! XSD attribute class
+public class WSDL::XSDTypedData inherits WSDL::XSDNamedData {
     public {
         any $.type;
+    }
+
+    constructor(reference $e) : XSDNamedData(\$e) {
+    }
+}
+
+#! XSD attribute class
+public class WSDL::XSDAttribute inherits WSDL::XSDTypedData {
+    public {
+        string $.use = "optional";
+
+        const AllowedUseValues = (
+            "optional": True,
+            "required": True,
+            "prohibited": True,
+            );
+    }
+
+    constructor(hash $attr, Namespaces $nsc, *XSDAbstractType $type, XSDLateResolverHelper $unresolved) : XSDTypedData(\$attr) {
+        if ($attr.type) {
+            $.type = $nsc.doType($attr.type);
+
+            if ($attr.use) {
+                if (!AllowedUseValues.($attr.use))
+                    throw "XSD-ATTRIBUTE-ERROR", sprintf("attribute %y: use %y is unrecognized; recognized use values: %y", $.name, $attr.use, AllowedUseValues.keys());
+                $.use = $attr.use;
+            }
+
+            # add self to unresolved list if element type cannot be resolved
+            if (!($.type instanceof XSDAbstractType))
+                $unresolved.add($self);
+        }
+    }
+}
+
+#! XSD element class
+public class WSDL::XSDElement inherits WSDL::XSDTypedData {
+    public {
         int $.minOccurs = 1;
         int $.maxOccurs = 1;
         bool $.nillable = False;
     }
 
-    constructor(hash $e, Namespaces $nsc, *XSDAbstractType $type, XSDLateResolverHelper $unresolved) : XSDNamedData(\$e) {
+    constructor(hash $e, Namespaces $nsc, *XSDAbstractType $type, XSDLateResolverHelper $unresolved) : XSDTypedData(\$e) {
         if ($type) {
             $.type = $type;
             return;
         }
 
-        my any $a = $e."^attributes^";
+        my *hash $a = $e."^attributes^";
 
         if (exists $a.minOccurs)
             $.minOccurs = int($a.minOccurs);
@@ -1009,6 +1047,9 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 
         bool $.required = False;
 
+        # attributes
+        hash $.attrs;
+
         # any annotated documentation
         *string $.documentation;
     }
@@ -1097,8 +1138,18 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
             $el = keys $d;
         }
 
+        # process attributes if any
+        foreach my hash $ah in (remove $d.attribute) {
+            if ($ah."^attributes^") {
+                $ah = $ah."^attributes^";
+
+                my XSDAttribute $attr($ah, $.nsc, NOTHING, $unresolved);
+                $.attrs.($attr.name) = $attr;
+            }
+        }
+
         if (elements $d > 1)
-            throw WSDL_ERROR, sprintf("%s: expecting a single element in the complexType hash, got: %n", $.name, $el);
+            throw WSDL_ERROR, sprintf("%s: expecting a single element in the complexType hash, got: %y", $.name, $el);
 
         my string $k = $el[0];
         if ($k == "all") {
@@ -1168,6 +1219,24 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
         if ($h.typeCode() != NT_HASH)
             throw SOAP_SERIALIZATION_ERROR, sprintf("expecting hash argument to serialize from complexType %n (got %n, type %n)", $.getName(), $h, type($h));
 
+        # process attributes first
+        my *hash $ah;
+        if ($h."^attributes^") {
+            my hash $mah = $h."^attributes^";
+            foreach my string $k in ($mah.keyIterator()) {
+                if (!$.attrs.$k)
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set unknown attribute %y of element %y; known attributes: %y", $k, $.getName(), $.attrs.keys());
+                if ($.attrs.$k.use == "prohibited")
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set attribute %y of element %y; the WSDL marks this attribute as prohibited", $k, $.getName());
+                $ah = $mah.$k;
+            }
+        }
+        # check for required attributes
+        foreach my XSDAttribute $attr in ($.attrs.iterator()) {
+            if ($attr.use == "required" && !exists $ah.($attr.name))
+                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize element %y without attribute %y; the WSDL marks this attribute as required", $.getName(), $attr.name);
+        }
+
         my hash $rh;
 
         if ($.hash_type == XET_SEQUENCE || $.hash_type == XET_ALL) {
@@ -1193,7 +1262,7 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
         }
 
         if ($.name && !$omit_type)
-            $rh."^attributes^" = ( "xsi:type" : "ns1:" + $.name );
+            $rh."^attributes^" = ("xsi:type": "ns1:" + $.name) + $ah;
         #printf("complex type %s returning %n from %n\n", $.name, $rh, $h);
         return $rh;
     }
@@ -1214,6 +1283,20 @@ public class WSDL::XSDComplexType inherits WSDL::XSDAbstractType {
 
         my hash $val = $oval;
         my any $attr = $val."^attributes^";
+
+        # parse incoming valid attributes
+        my *hash $ah;
+        foreach my XSDAttribute $xa in ($.attrs.iterator()) {
+            my *string $attr_val = $val."^attributes^".($xa.name);
+            if ($xa.use == "required" && !exists $attr_val)
+                throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y without attribute %y; the WSDL marks this attribute as required", $.getName(), $xa.name);
+            if (exists $attr_val) {
+                if ($attr.use == "prohibited")
+                    throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y with attribute %y; the WSDL marks this attribute as prohibited", $.getName(), $xa.name);
+                $ah."^attributes^".($xa.name) = $attr_val;
+            }
+        }
+
         delete $val."^attributes^";
 
         # ensure types match
