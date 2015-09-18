@@ -42,3 +42,4 @@ docs/WSDL/
 docs/XmlRpcHandler/
 docs/qlib/Doxyfile.*
 docs/qlib/*.dox.h
+docs/*.doxygen
