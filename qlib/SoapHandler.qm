@@ -49,7 +49,7 @@ module SoapHandler {
     * 2014-03-04 v0.2.5: David Nichols <david@qore.org>: added support for matching
                          requests with soap action values
 
-    * 2014-01-14 v0.2.5: David Nichols <david@qore.org>: added the err_func argument 
+    * 2014-01-14 v0.2.5: David Nichols <david@qore.org>: added the err_func argument
     *                    so SOAP response serialization errors can be logged at the source
 
     * 2012-05-31 v0.2.4: David Nichols <david@qore.org>: updated to a user module
@@ -66,7 +66,7 @@ module SoapHandler {
 */
 
 /** @mainpage SoapHandler Module
-    
+
     @section soaphandlerintro Introduction to the SoapHandler Module
 
     This module implements server-side support for the <a href="http://en.wikipedia.org/wiki/SOAP">SOAP protocol</a> for serialization/deserialization of message data.
@@ -138,7 +138,7 @@ public namespace SoapHandler {
             if (!$func)
                 throw "SOAP-SERVER-ADDMETHOD-PARAMETER-ERROR", sprintf("second argument is not a function name or callable value type (got: %y)", $func);
 
-            $.addMethodInternal($ws, 
+            $.addMethodInternal($ws,
                                 ( "operation" : $op,
                                   "name"      : $op.name,
                                   "function"  : $func,
@@ -222,7 +222,7 @@ public namespace SoapHandler {
                 if (!$.methods.$rn)
                     $.methods.$rn = $method;
             }
-                
+
             #printf("DEBUG: SoapHandler::addMethodInternal() %N %N\n", $method.name, $method.path);
         }
 
@@ -313,7 +313,7 @@ public namespace SoapHandler {
                     #printf("DEBUG: found element %N method %N\n", $element, $method);
                     if (!$method) {
                         if (!$element)
-                            throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $cx);	    
+                            throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $cx);
                         throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot map top-level element %n to a SOAP operation: %s", $element, elements $.methods ? sprintf("currently recognized top-level elements: %n", keys $.methods) : "no SOAP services are currently registered");
                     }
                 }
@@ -405,7 +405,7 @@ public namespace SoapHandler {
             }
 
             #$.log($cx, "body=%N", $h.body);
-            
+
             return $h;
         }
 
@@ -437,12 +437,12 @@ public namespace SoapHandler {
                 $path =~ s/\?wsdl$//i;
 
                 #printf("DEBUG: PATH=%N (%n %n)\n", $path, exists $.ws.$path, keys $.ws);
-                
+
                 if (!$path)
                     return (
                         "code": 501,
                         "body": sprintf("invalid HTTP GET: no path given in URL; known services: %y", keys $.ws),
-                    ); 
+                    );
 
                 $.rwl.readLock();
                 on_exit $.rwl.readUnlock();
@@ -451,8 +451,8 @@ public namespace SoapHandler {
                     return (
                         "code": 501,
                         "body": sprintf("invalid HTTP GET: no WebService object for path %y; known services: %y", $path, keys $.ws),
-                    ); 
-                
+                    );
+
                 return (
                     "code": 200,
                     "body": $.ws.$path.getWSDL(),
@@ -481,8 +481,8 @@ public namespace SoapHandler {
 
                     $args = WSDLLib::parseSOAPMessage($hdr + ("body" : $body));
                     #$args = parseXMLAsData($body);
-                    WSDL::XSDBase::removeNS(\$args);
-                    WSDL::XSDBase::removeNS(\$args.Envelope);
+                    WSDL::XsdBase::removeNS(\$args);
+                    WSDL::XsdBase::removeNS(\$args.Envelope);
 
                     # get SOAP operation name
                     my $element;
@@ -511,10 +511,10 @@ public namespace SoapHandler {
                             break;
                         }
                     }
-		    
+
                     if (!exists $element)
                         throw "SOAP-CALL-ERROR", "no operation call found in message";
-                    
+
                     $cx.element = $element;
                 }
                 catch ($ex) {
