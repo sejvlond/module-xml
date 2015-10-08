@@ -1379,8 +1379,8 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         bool usedocns = False;
         *string soapAction;
         *string request_name;
-        any inp;
-        any outp;
+        *hash inp;
+         outp;
         bool docstyle = False;
 
         # info about soap header requirements

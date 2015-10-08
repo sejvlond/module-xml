@@ -26,13 +26,13 @@
 %requires qore >= 0.8.10
 
 # requires XML functionality
-%requires xml
+%requires(reexport) xml
 
 # requires the WSDL module
-%requires WSDL
+%requires(reexport) WSDL
 
 # need mime definitions
-%requires Mime >= 1.1
+%requires(reexport) Mime >= 1.1
 
 module SoapClient {
     version = "0.2.4";
@@ -65,6 +65,11 @@ module SoapClient {
     Create outgoing request messages by setting up a Qore data structure corresponding to the SOAP message.  Exceptions will be thrown if either the outgoing or the response message do not corespond to the WSDL.   The exceptions should be fairly verbose to allow you to quickly correct any mistakes.
 
     Currently the WSDL implementation is fairly basic so any messages using unimplemented features of SOAP or XSD will fail.
+
+    This module requires the following modules which are also reexported to the program context:
+    - <a href="../../xml/html/index.html">xml binary module</a>
+    - <a href="../../WSDL/html/index.html">WSDL user module</a>
+    - @ref mimeintro "Mime user module"
 
     @section Example
 
