@@ -146,10 +146,10 @@ if test "$enable_64bit" = "auto"; then
    # turn on 64-bit by default if compiling on a 64-bit platform
    case "${host_cpu}" in
        *64*)
-                 enable_64bit=yes 
+                 enable_64bit=yes
                  ;;
        s390x)
-                 enable_64bit=yes 
+                 enable_64bit=yes
                  ;;
        *)        case "${host_os}" in
                      darwin*)   mv=`uname -r|cut -f1 -d.`
@@ -728,10 +728,10 @@ find_openssl() {
     if test -n "$openssl_static"; then
     	if test -f "$lib/libssl.a" -a -f "$lib/libcrypto.a"; then
 	    OPENSSL_LDFLAGS="$lib/libssl.a $lib/libcrypto.a"
-       	    AC_MSG_RESULT([$lib (forced static)])
+	    msg_lib="$lib (forced static)"
     	elif test "$bits" = 64 -a -f "$lib/64/libssl.a" -a -f "$lib/64/libcrypto.a"; then
 	    OPENSSL_LDFLAGS="$lib/64/libssl.a $lib/64/libcrypto.a"
-       	    AC_MSG_RESULT([$lib/64 (forced static)])
+	    msg_lib="$lib/64 (forced static)"
     	fi
     else
         if test -f "$lib/libssl.${SHLIB_SUFFIX}" -a -f "$lib/libcrypto.${SHLIB_SUFFIX}"; then
@@ -739,42 +739,46 @@ find_openssl() {
        	        OPENSSL_LDFLAGS="-L$lib"
     	    fi
 	    OPENSSL_LDFLAGS="$OPENSSL_LDFLAGS -lssl -lcrypto"
-       	    AC_MSG_RESULT([$lib (shared)])
+	    msg_lib="$lib (shared)"
     	elif test -f "$lib/libssl.a" -a -f "$lib/libcrypto.a"; then
 	    if test "$lib" != "/lib" -a "$lib" != "/usr/lib"; then
        	        OPENSSL_LDFLAGS="-L$lib"
     	    fi
 	    OPENSSL_LDFLAGS="$OPENSSL_LDFLAGS -lssl -lcrypto"
-       	    AC_MSG_RESULT([$lib (static)])
+	    msg_lib="$lib (static)"
         elif test "$bits" = 64 -a -f "$lib/64/libssl.${SHLIB_SUFFIX}" -a -f "$lib/64/libcrypto.${SHLIB_SUFFIX}"; then
 	    OPENSSL_LDFLAGS="-L$lib/64 -lssl -lcrypto"
-       	    AC_MSG_RESULT([$lib/64 (shared)])
+	    msg_lib="$lib/64 (shared)"
     	elif test "$bits" = 64 -a -f "$lib/64/libssl.a" -a -f "$lib/64/libcrypto.a"; then
 	    OPENSSL_LDFLAGS="-L$lib -lssl -lcrypto"
-       	    AC_MSG_RESULT([$lib (static)])
+	    msg_lib="$lib (static)"
     	fi
     fi
     if test -z "$OPENSSL_LDFLAGS"; then
+        unset msg_lib
         return
     fi
-    AC_MSG_CHECKING([for openssl include files])
     # try to find include files
     if test -f "$inc/openssl/ssl.h"; then
-        AC_MSG_RESULT([found: $inc/openssl])
+        msg_inc="$inc/openssl"
         set_openssl_cppflags $inc
     else
-	AC_MSG_ERROR([not found])
+        unset OPENSSL_LDFLAGS
+        unset msg_lib
+	return
     fi
 
-    QORE_LIB_LDFLAGS="$QORE_LIB_LDFLAGS $OPENSSL_LDFLAGS"
-    QORE_LIB_CPPFLAGS="$QORE_LIB_CPPFLAGS $OPENSSL_CPPFLAGS"
+    AC_MSG_RESULT([libs: $msg_lib includes: $msg_inc])
+
+    AC_SUBST(OPENSSL_LDFLAGS)
+    AC_SUBST(OPENSSL_CPPFLAGS)
 }
 
 # see if we can figure out where the openssl library is
 AC_ARG_WITH([openssl-dir],
   [AS_HELP_STRING([--with-openssl-dir@<:@=DIR@:>@],
                   [openssl directory])],
-  [if test ! -d "${with_openssl_dir}"; then AC_MSG_ERROR(bad value ${with_openssl_dir} for --with-openssl-dir); unset with_openssl_dir; fi], 
+  [if test ! -d "${with_openssl_dir}"; then AC_MSG_ERROR(bad value ${with_openssl_dir} for --with-openssl-dir); unset with_openssl_dir; fi],
   [with_openssl_dir="$OPENSSL_DIR"])
 
 AC_MSG_CHECKING([for openssl libraries and header files])
@@ -784,7 +788,7 @@ for dir in "${with_openssl_dir}" "${with_lib_prefix}" "${find_prefix}" /usr / /u
         break
     fi
 done
-if test -z "$OPENSSL_LDFLAGS"; then
+if test -z "$OPENSSL_LDFLAGS" -o -z "$OPENSSL_CPPFLAGS"; then
     AC_MSG_ERROR([no openssl library found])
 else
     SAVE_CPPFLAGS="$CPPFLAGS"
@@ -907,7 +911,7 @@ if test "$enable_optimization" = "yes"; then
     elif test "$CXX" = "CC" -a "`echo $host_os|cut -b-7`" = "solaris"; then
         # remove -g with Solaris CC as it reduces optimization levels
 	CXXFLAGS="`echo $CXXFLAGS| sed s/-g//` -xO5" # Solaris CC
-    elif test -n "`echo $CXX|grep aCC`"; then 
+    elif test -n "`echo $CXX|grep aCC`"; then
         # remove -g with HP-UX aCC as it reduces optimization levels
 	CXXFLAGS="`echo $CXXFLAGS| sed s/-g//` +O4" # HP-UX aCC
     fi

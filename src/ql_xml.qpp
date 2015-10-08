@@ -403,7 +403,7 @@ static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const Abst
       }
    }
 
-   if ((format & XGF_USE_CHAR_REFS) && t == NT_STRING) {
+   if ((format & XGF_USE_NUMERIC_REFS) && t == NT_STRING) {
       // first convert to UTF-8
       QoreStringValueHelper temp(n, QCS_UTF8, xsink);
       if (*xsink)
@@ -1099,7 +1099,7 @@ AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEnco
 
 	 const char* str = constValue();
 	 if (str) {
-	    QoreStringNode* val = getValue(data_ccsid, xsink);
+            QoreStringNodeHolder val(getValue(data_ccsid, xsink));
 	    if (!val)
 	       return 0;
 
@@ -1108,11 +1108,11 @@ AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEnco
 	       QoreHashNode* h = n->getType() == NT_HASH ? reinterpret_cast<QoreHashNode*>(n) : 0;
 	       if (h) {
 		  if (!xstack.getValueCount())
-		     h->setKeyValue("^value^", val, xsink);
+		     h->setKeyValue("^value^", val.release(), xsink);
 		  else {
 		     QoreString kstr;
 		     kstr.sprintf("^value%d^", xstack.getValueCount());
-		     h->setKeyValue(kstr.getBuffer(), val, xsink);
+		     h->setKeyValue(kstr.getBuffer(), val.release(), xsink);
 		  }
 	       }
 	       else { // convert value to hash and save value node
@@ -1123,12 +1123,12 @@ AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEnco
 
 		  QoreString kstr;
 		  kstr.sprintf("^value%d^", 1);
-		  h->setKeyValue(kstr.getBuffer(), val, xsink);
+		  h->setKeyValue(kstr.getBuffer(), val.release(), xsink);
 	       }
 	       xstack.incValueCount();
 	    }
 	    else
-	       xstack.setNode(val);
+	       xstack.setNode(val.release());
 	 }
       }
       else if (nt == XML_READER_TYPE_CDATA) {
@@ -2318,11 +2318,11 @@ static AbstractQoreNode* parseXMLWithRelaxNGIntern(bool as_data, const QoreListN
 //! no flags; standard XML generation without whitespace formatting and characters without unicode character references
 const XGF_NONE = XGF_NONE;
 
-//! use unicode character references instead of native characters for non-ascii character when generating XML
-/** note that character references are not applied to CDATA when serializing XML (keys that begin with \c "^cdata"
-    are serialized as cdata).
+//! use numeric character references instead of native characters for non-ascii character when generating XML
+/** note that character references are not applied to CDATA when serializing XML
+    (keys that begin with \c "^cdata" are serialized as cdata.
  */
-const XGF_USE_CHAR_REFS = XGF_USE_CHAR_REFS;
+const XGF_USE_NUMERIC_REFS = XGF_USE_NUMERIC_REFS;
 
 //! use whitespace formatting including line breaks to make generated XML more readable
 const XGF_ADD_FORMATTING = XGF_ADD_FORMATTING;
@@ -2334,9 +2334,6 @@ const XGF_ADD_FORMATTING = XGF_ADD_FORMATTING;
 //@{
 //! no flags; standard XML parsing without character reference conversion
 const XPF_NONE = XPF_NONE;
-
-//! decode unicode character references to their native characters when parsing XML
-const XPF_DECODE_CHAR_REFS = XPF_DECODE_CHAR_REFS;
 
 //! decode XML as data; do not try to preserve element order by re-writing hash keys
 /** If this option is given and duplicate, out-of-order XML elements are found in the input string, they are deserialized to %Qore hash elements with the same name as the XML element but including a caret \c '^' and a numeric prefix to maintain the same key order in the %Qore hash as in the input XML string.

@@ -32,18 +32,18 @@
 
 // XML generation flags
 // no flags
-#define XGF_NONE             0
-// use unicode character references instead of non-ascii characters
-#define XGF_USE_CHAR_REFS    (1 << 0)
+#define XGF_NONE                0
+// use unicode numeric character references instead of non-ascii characters
+#define XGF_USE_NUMERIC_REFS    CE_NONASCII
 // add whitespace formatting
-#define XGF_ADD_FORMATTING   (1 << 1)
+#define XGF_ADD_FORMATTING      (1 << 20)
 
 // XML parsing flags
 // no flags
-#define XPF_NONE              0
-// use unicode character references instead of non-ascii characters
-#define XPF_DECODE_CHAR_REFS  (1 << 0)
+#define XPF_NONE                 0
 // preserve element order by re-writing hash keys in case of duplicate out-of-order elements
-#define XPF_PRESERVE_ORDER    (1 << 1)
+#define XPF_PRESERVE_ORDER       (1 << 20)
+
+#define XPF_DECODE_MASK (XPF_DECODE_NUMERIC_REFS | XPF_DECODE_XHTML_REFS)
 
 #endif
