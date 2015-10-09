@@ -250,7 +250,14 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     - added the @ref Qore::Xml::SaxIterator "SaxIterator" and @ref Qore::Xml::FileSaxIterator "FileSaxIterator" classes
     - many major SOAP messaging and WSDL handling fixes including major namespace handling and serialization/deserialization fixes
     - allow for XSD imports without a URI scheme to be imported with custom logic
-    - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes: fixed URI request path, fixed agent string, added optional logging closures, added SOAP headers to info hash when available, fixed parsing messages with multiple input parts, required modules are now reexported
+    - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes:
+      - fixed URI request path
+      - fixed agent string
+      - added optional logging closures
+      - added SOAP headers to info hash when available
+      - fixed parsing messages with multiple input parts
+      - required modules are now reexported
+      - added the SoapClient::getWebService() method
     - <a href="../../SoapHandler/html/index.html">SoapHandler</a> changes:
       - allow SOAP serialization errors to be logged at the source
       - added support for matching requests by soap action values

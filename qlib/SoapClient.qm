@@ -45,21 +45,9 @@ module SoapClient {
     license = "MIT";
 }
 
-/*  Version History
-    * 2014-04-22 v0.2.4: David Nichols <david@qore.org>
-    *  + handle SOAP fault messages returned with 500-series error codes as Fault messages
-
-    * 2014-03-14 v0.2.4: David Nichols <david@qore.org>
-    *  + added optional logging closures, added SOAP headers to info hash when available
-
-    * 2014-03-04 v0.2.4: David Nichols <david@qore.org>
-    *  + fixed URI request path, fixed agent string
-
-    * 2012-05-31 v0.2.3: David Nichols <david@qore.org>
-    *  + updated to a user module
-*/
-
 /** @mainpage SoapClient Module
+
+    @tableofcontents
 
     @section soapclientintro Introduction to the SoapClient Module
 
@@ -101,6 +89,17 @@ any result = sc.call("SubmitDocument", msg);
     - \c "max_redirects"
     - \c "proxy"
     - \c "timeout"
+
+    @section soapclientrelnotes SoapClient Release Notes
+
+    @subsection soapclient_0_2_4 SoapClient v0.2.4
+    - handle SOAP fault messages returned with 500-series error codes as Fault messages
+    - added optional logging closures, added SOAP headers to info hash when available
+    - fixed URI request path, fixed agent string
+    - added the @ref SoapClient::SoapClient::getWebService() method
+
+    @subsection soapclient_0_2_3 SoapClient v0.2.3
+    - updated to a user module
 */
 
 #! main SoapClient namespace
@@ -165,7 +164,7 @@ public namespace SoapClient {
             if (!exists wsdl)
                 throw "SOAP-CLIENT-ERROR", "missing wsdl in SoapClient::constructor()";
 
-            wsdl = wsdl instanceof WebService ? wsdl : new WebService(wsdl, ("http_client" : self, "http_headers" : h.headers, "def_path": def_path) + h.wsdl_opt);
+            self.wsdl = wsdl = wsdl instanceof WebService ? wsdl : new WebService(wsdl, ("http_client" : self, "http_headers" : h.headers, "def_path": def_path) + h.wsdl_opt);
 
             # set service
             # get list of services in this wsdl
@@ -330,6 +329,11 @@ public namespace SoapClient {
         #! returns a hash that can be used to ensure serialization with the XSD type given as the \a type argument
         hash getType(string type, any v) {
             return wsdl.getType(type, v);
+        }
+
+        #! returns the WSDL::WebService object associated with this object
+        WSDL::WebService getWebService() {
+            return wsdl;
         }
 
         #! sends a log message to the log closure or call reference, if any
