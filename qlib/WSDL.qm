@@ -44,24 +44,7 @@ module WSDL {
     license = "MIT";
 }
 
-/*  Version History
-    * 2014-01-14 v0.3.5: David Nichols <david@qore.org>: fixed msg serialization issues
-    * 2012-05-31 v0.3.4: David Nichols <david@qore.org>: updated to a user module
-    *            v0.3.3: added initial support for the anyAttribute element of complexType
-                         added initial support for SOAP header processing
-                         added initial support for multiple portType and bindings in a WSDL
-
-    *            v0.3.2: fixed bugs de/serializing negative values for "int" and "short"
-    *            v0.3.1: improved XSD imports and namespace handling
-
-    *            v0.3.0: implemented WSDLLib class of helper functions
-                         implemented support for xsd import statements in WSDLs
-
-    *            v0.2.0: use parseXMLAsData() instead of parseXML()
-                         implemented initial simpleType support
-                         fixed xsd:date serialization and deserialization
-
-
+/*
     WSDL classes
     provides some minimal WSDL and XSD support for SOAP messaging used by the SoapClient class and the SoapHandler
 
@@ -69,6 +52,8 @@ module WSDL {
 */
 
 /** @mainpage WSDL Module
+
+    @tableofcontents
 
     @section wsdlintro Introduction to the WSDL Module
 
@@ -84,6 +69,35 @@ module WSDL {
     See the following for modules using the %WSDL module:
     - <a href="../../SoapClient/html/index.html">SoapClient user module</a>
     - <a href="../../SoapHandler/html/index.html">SoapHandler user module</a>
+
+    @section wsdlrelnotes WSDL Module Release Notes
+
+    @subsection wsdl_0_3_5 WSDL v0.3.5
+    - fixed many message serialization and deserialization issues
+    - added @ref WSDL::WebService::getOperation()
+
+    @subsection wsdl_0_3_4 WSDL v0.3.4
+    - updated to a user module
+
+    @subsection wsdl_0.3.3 WSDL v0.3.3
+    - added initial support for the anyAttribute element of complexType
+    - added initial support for SOAP header processing
+    - added initial support for multiple portType and bindings in a WSDL
+
+    @subsection wsdl_0.3.2 WSDL v0.3.2
+    - fixed bugs de/serializing negative values for "int" and "short"
+
+    @subsection wsdl_0.3.1 WSDL v0.3.1
+    - improved XSD imports and namespace handling
+
+    @subsection wsdl_0.3.0 WSDL v0.3.0
+    - implemented WSDLLib class of helper functions
+    - implemented support for xsd import statements in WSDLs
+
+    @subsection wsdl_0.2.0 WSDL v0.2.0
+    - use parseXMLAsData() instead of parseXML()
+    - implemented initial simpleType support
+    - fixed xsd:date serialization and deserialization
 */
 
 #! main WSDL namespace
@@ -343,7 +357,7 @@ public class WSDL::WSDLLib {
             return xmldata;
         }
 
-        WSDLLib::checkSOAPContentType(msg."content-type");
+        WSDLLib::checkSOAPContentType(msg."_qore_orig_content_type");
 
         return parseXMLAsData(msg.body);
     }
@@ -2418,6 +2432,27 @@ public class WSDL::WebService inherits WSDL::XsdBase {
 
         if (exists h.definitions.service)
             parseService(h.definitions.service);
+    }
+
+    #! returns the given operation or throws an exception if it cannot be found; operations are searched in portTypes in the order they are declared
+    WSOperation getOperation(string opname) {
+        foreach hash pt in (portType.iterator()) {
+            if (pt.operations{opname})
+                return pt.operations{opname};
+        }
+        list l = ();
+        map l += $1.operations.keys(), portType.iterator();
+        throw "WSDL-OPERATION-ERROR", sprintf("cannot retrieve operation %y; known operations: %y", opname, l);
+    }
+
+    #! returns the given operation or throws an exception if it cannot be found; operations are searched in portTypes in the order they are declared
+    WSOperation getOperation(string port, string opname) {
+        *WSOperation op = portType{port}.opname;
+        if (op)
+            return op;
+        if (!portType{port})
+            throw "WSDL-OPERATION-ERROR", sprintf("port %y is not a defined port; known ports: %y", port, portType.keys());
+        throw "WSDL-OPERATION-ERROR", sprintf("operation %y is not known in port %y; known operations: %y", opname, port, portType{port}.operations.keys());
     }
 
     hash getType(string name, any v) {
