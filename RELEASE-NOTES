@@ -7,10 +7,14 @@ version 1.3
 * many WSDL handling/SOAP messaging fixes including major namespace handling
   and serialization/deserialization fixes
 * allow for XSD imports without a URI scheme to be imported with custom logic
-* SoapClient fixes: fixed URI request path, fixed agent string, added optional
-  logging closures, added SOAP headers to info hash when available, fixed
-  parsing messages with multiple input parts, required modules are also
-  reexported
+* SoapClient fixes:
+  + fixed URI request path
+  + fixed agent string
+  + added optional logging closures
+  + added SOAP headers to info hash when available
+  + fixed parsing messages with multiple input parts
+  + required modules are also reexported
+  + added the SoapClient::getWebService() method
 * SoapHandler changes:
   + allow SOAP serialization errors to be logged at the source
   + added support for matching requests by soap action values
