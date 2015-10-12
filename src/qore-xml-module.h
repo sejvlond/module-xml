@@ -38,6 +38,8 @@
 // add whitespace formatting
 #define XGF_ADD_FORMATTING      (1 << 20)
 
+#define XGF_ENCODE_MASK (XGF_USE_NUMERIC_REFS)
+
 // XML parsing flags
 // no flags
 #define XPF_NONE                 0
