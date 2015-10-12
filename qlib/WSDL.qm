@@ -1199,8 +1199,6 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         # process attributes if any
         foreach hash ah in (remove d.attribute) {
             if (ah."^attributes^") {
-                ah = ah."^attributes^";
-
                 XsdAttribute attr(ah, nsc, NOTHING, unresolved);
                 attrs.(attr.name) = attr;
             }
@@ -1351,7 +1349,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         foreach XsdAttribute xa in (attrs.iterator()) {
             *string attr_val = val."^attributes^".(xa.name);
             if (xa.use == "required" && !exists attr_val)
-                throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), xa.name);
+                throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), xa.name, val, xa);
             if (exists attr_val) {
                 if (attr.use == "prohibited")
                     throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y with attribute %y; the WSDL marks this attribute as prohibited", getName(), xa.name);
