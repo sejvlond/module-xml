@@ -4,8 +4,11 @@ version 1.3
 
 * requires Qore 0.8.9+ to build & run
 * added SaxIterator and FileSaxIterator classes
-* many WSDL handling/SOAP messaging fixes including major namespace handling
-  and serialization/deserialization fixes
+* WSDL module fixes and enhancements:
+  + many WSDL handling/SOAP messaging fixes including major namespace handling
+    and serialization/deserialization fixes
+  + perform environment-variable substitution on the file path in
+    WSDLLib::getWSDL()
 * allow for XSD imports without a URI scheme to be imported with custom logic
 * SoapClient fixes:
   + fixed URI request path
