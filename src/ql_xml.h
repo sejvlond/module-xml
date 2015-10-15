@@ -37,7 +37,7 @@ DLLLOCAL QoreStringNode* make_xml(ExceptionSink* xsink, const QoreEncoding* enc,
 DLLLOCAL QoreStringNode* make_xmlrpc_call_string(ExceptionSink* xsink, const QoreEncoding* ccs, int offset, const QoreValueList* args, int flags = 0);
 DLLLOCAL QoreStringNode* make_xmlrpc_call_string_args(ExceptionSink* xsink, const QoreEncoding* ccs, int offset, const QoreValueList* args, int flags = 0);
 // ccsid is the output encoding for strings
-DLLLOCAL QoreHashNode* parseXMLRPCResponse(const QoreString* msg, const QoreEncoding* ccsid, ExceptionSink* xsink);
+DLLLOCAL QoreHashNode* parse_xmlrpc_response(ExceptionSink* xsink, const QoreString* msg, const QoreEncoding* ccsid, int flags = 0);
 DLLLOCAL void init_xml_functions(QoreNamespace& ns);
 
 // returns the string corresponding to the element type

@@ -26,6 +26,7 @@ EXTRA_DIST = COPYING.LGPL COPYING.MIT ChangeLog AUTHORS README \
 	src/QC_SaxIterator.qpp \
 	src/QC_FileSaxIterator.qpp \
 	src/ql_xml.qpp \
+	src/qc_option.qpp \
 	test/xml-test.q \
 	examples/xml-rpc-client.q \
 	examples/XmlRpcServerValidation.q \

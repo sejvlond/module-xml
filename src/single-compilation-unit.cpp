@@ -5,4 +5,5 @@
 #include "QC_SaxIterator.cpp"
 #include "QC_FileSaxIterator.cpp"
 #include "ql_xml.cpp"
+#include "qc_option.cpp"
 #include "xml-module.cpp"

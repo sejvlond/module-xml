@@ -109,10 +109,10 @@ static QoreHashNode *make_xmlrpc_call(QORE_HTTP_CLIENT* client, QoreStringNode *
       xsink->raiseException("XMLRPCCLIENT-RESPONSE-ERROR", "undecoded binary response received from remote server");
       return 0;
    }
-   //printd(5, "make_xmlrpc_call() ah=%s\n", reinterpret_cast<const QoreStringNode *>(ah)->getBuffer());
+   //printd(5, "parse_xmlrpc_response() ah: %s\n", reinterpret_cast<const QoreStringNode *>(ah)->getBuffer());
 
    // parse XML-RPC response
-   return parseXMLRPCResponse(reinterpret_cast<const QoreStringNode *>(ah), QCS_DEFAULT, xsink);
+   return parse_xmlrpc_response(xsink, reinterpret_cast<const QoreStringNode *>(ah), QCS_DEFAULT);
 }
 
 //! The XmlRpcClient class provides easy access to XML-RPC web services

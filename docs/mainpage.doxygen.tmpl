@@ -36,8 +36,8 @@
 
     <b>XML Option Constants</b>
     |!Name|!Type|!Description
-    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHRELAXNG "HAVE_PARSEXMLWITHRELAXNG"|\c bool|Indicates if parseXMLWithRelaxNG() and Qore::Xml::XmlReader::relaxNGValidate() are available
-    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHSCHEMA "HAVE_PARSEXMLWITHSCHEMA"|\c bool|Indicates if parseXMLWithSchema() and Qore::Xml::XmlReader::schemaValidate() are available
+    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHRELAXNG "HAVE_PARSEXMLWITHRELAXNG"|\c bool|Indicates if parse_xml_with_relaxng() and Qore::Xml::XmlReader::relaxNGValidate() are available
+    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHSCHEMA "HAVE_PARSEXMLWITHSCHEMA"|\c bool|Indicates if parse_xml_with_schema() and Qore::Xml::XmlReader::schemaValidate() are available
 
     If either of the above constants are \c False, then calling any of the dependent functions or methods will result in a run-time exception.
 
@@ -51,7 +51,7 @@
 
     @code
 $h = ("record": ("name": ("first": "Fred", "last": "Smith")));
-printf("%s\n", makeFormattedXMLString($h));@endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     This produces the following result
 
@@ -71,7 +71,7 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     @code
 $h = ("record": ("^attributes^": ("type": "customer") ,
 	         "name": ("first": "Fred", "last": "Smith")));
-printf("%s\n", makeFormattedXMLString($h));@endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     This produces the following results:
 
@@ -89,7 +89,7 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     @code
 $h = ("record": ("^attributes^": ("type": "customer"),
 	         "^value^": "NO-RECORD"));
-printf("%s\n", makeFormattedXMLString($h)); @endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING)); @endcode
 
     Giving the following results:
 
@@ -100,7 +100,7 @@ printf("%s\n", makeFormattedXMLString($h)); @endcode
 
     @code
 $h = ("record": ("part": ("part-02-05", "part-99-23", "part-34-28")));
-printf("%s\n", makeFormattedXMLString($h));@endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     Producing the following results:
 
@@ -128,11 +128,11 @@ $h = ("para": ("^value^": "Keywords: ",
                "^value^2" : ", and ",
                "code^2" : "the_other",
                "^value^3" : "."));
-printf("%s\n", makeFormattedXMLString($h));@endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     By ignoring the text after the \c '^' character, the above code will serialize to the XML string we want. In general, by using this convention, we can properly serialize multiple out-of-order keys without losing data and still have unique names for our hash keys.
 
-    Note than when deserializing XML strings to %Qore data structures, the above rules are applied in reverse. If any out-of-order duplicate keys are detected, %Qore will automatically generate unique hash key names based on the above rules.
+    Note than when deserializing XML strings to %Qore data structures, the above rules are applied in reverse. If any out-of-order duplicate keys are detected, %Qore will automatically generate unique hash key names based on the above rules only if the @ref Qore::Xml::XPF_PRESERVE_ORDER "XPF_PRESERVE_ORDER" flag is given with the parse_xml(), parse_xml_with_relaxng() or parse_xml_with_schema() function calls.
 
     Also note that \c CDATA text will be generated if a hash key starts with \c '^cdata'; such text will not be processed for escape code substitution. When deserializing XML strings to qore data structures, CDATA text will be placed unmodified under such a hash key as well.
 
@@ -141,16 +141,20 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     |make_xml_fragment()|Serializes a hash into an XML string without an XML header or formatting.
     |make_xml()|Serializes a hash into a complete XML string with an XML header
     |parse_xml()|parses an XML string and returns a %Qore hash structure.
-    |parseXMLAsDataWithRelaxNG()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against a RelaxNG schema string and returns a %Qore hash structure.
-    |parseXMLAsDataWithSchema()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against an XSD schema string and returns a %Qore hash structure.
-    |parseXMLWithRelaxNG()|parses an XML string (XML element order is preserved by appending numeric suffixes to %Qore hash key names when necessary) and validates against a RelaxNG schema string and returns a %Qore hash structure.
-    |parseXMLWithSchema()|parses an XML string (XML element order is preserved by appending numeric suffixes to %Qore hash key names when necessary) and validates against an XSD schema string and returns a %Qore hash structure.
+    |parse_xml_with_relaxng()|parses an XML string and validates against a RelaxNG schema string and returns a %Qore hash structure.
+    |parse_xml_with_schema()|parses an XML string and validates against an XSD schema string and returns a %Qore hash structure.
 
     <b>Deprecated Functions For XML Serialization and Deserialization</b>
     - @ref makeFormattedXMLFragment()
     - @ref makeXMLFragment()
     - @ref makeFormattedXMLString()
     - @ref makeXMLString()
+    - @ref parseXML()
+    - @ref parseXMLAsData()
+    - @ref parseXMLAsDataWithRelaxNG()
+    - @ref parseXMLAsDataWithSchema()
+    - @ref parseXMLWithRelaxNG()
+    - @ref parseXMLWithSchema()
 
     @anchor xmlclasses
     <b>Classes Providing XML Functionality</b>
@@ -271,6 +275,8 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
       - make_xml(): replaced makeXMLString() and makeFormattedXMLString()
       - make_xml_fragment(): replaced makeXMLFragment() and makeFormattedXMLFragment()
       - parse_xml(): replaced parseXML() and parseXMLAsData()
+      - parse_xml_with_relaxng(): replaced parseXMLWithRelaxNG() and parseXMLAsDataWithRelaxNG()
+      - parse_xml_with_schema(): replaced parseXMLWithSchema() and parseXMLAsDataWithSchema()
 
     @subsection xml12 xml Module Version 1.2
     <b>Changes and Bug Fixes in This Release</b>

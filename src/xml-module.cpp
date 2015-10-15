@@ -88,10 +88,12 @@ QoreStringNode *xml_module_init() {
 
    XNS.addSystemClass(initXmlRpcClientClass(XNS));
 
+   init_xml_constants(XNS);
+
    // set up Option namespace for XML options
    QoreNamespace *option = new QoreNamespace("Option");
 
-   init_xml_constants(*option);
+   init_option_constants(*option);
 
    XNS.addInitialNamespace(option);
 
