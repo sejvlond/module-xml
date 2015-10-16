@@ -287,7 +287,7 @@ public class WSDL::WSDLLib {
         is performed on the path string
      */
     static string getWSDL(string wsdl, *HTTPClient http_client, *hash http_headers, *reference new_def_path) {
-        if (wsdl =~ /^\<?xml/)
+        if (wsdl =~ /^<\?xml/)
             return wsdl;
         return WSDLLib::getFileFromURL(wsdl, "file", http_client, http_headers, NOTHING, NOTHING, \new_def_path);
     }
