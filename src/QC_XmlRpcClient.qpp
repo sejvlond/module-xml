@@ -219,7 +219,7 @@ XmlRpcClient::copy() {
 */
 hash XmlRpcClient::callArgs(string[doc] method, any[doc] args) {
    // create the outgoing message in XML-RPC call format
-   QoreStringNodeHolder msg(make_xmlrpc_call_string_args(xsink, client->getEncoding(), 0, args));
+   QoreStringNodeHolder msg(make_xmlrpc_call_args(xsink, client->getEncoding(), 0, args));
    if (!msg)
       return 0;
 
@@ -250,7 +250,7 @@ hash XmlRpcClient::callArgs(string[doc] method, any[doc] args) {
 */
 hash XmlRpcClient::call(string[doc] method, ...) {
    // create the outgoing message in XML-RPC call format
-   QoreStringNodeHolder msg(make_xmlrpc_call_string(xsink, client->getEncoding(), 0, args));
+   QoreStringNodeHolder msg(make_xmlrpc_call(xsink, client->getEncoding(), 0, args));
    if (!msg)
       return 0;
 
@@ -293,7 +293,7 @@ hash XmlRpcClient::callArgsWithInfo(reference info, string[doc] method, any[doc]
    ReferenceHolder<QoreValueList> xargs(args->copyListFrom(1), xsink);
 
    // create the outgoing message in XML-RPC call format
-   QoreStringNode *msg = make_xmlrpc_call_string_args(xsink, client->getEncoding(), 0, *xargs);
+   QoreStringNode *msg = make_xmlrpc_call_args(xsink, client->getEncoding(), 0, *xargs);
    if (!msg)
       return 0;
 
@@ -338,7 +338,7 @@ hash XmlRpcClient::callWithInfo(reference info, string[doc] method, ...) {
    ReferenceHolder<QoreValueList> xargs(args->copyListFrom(1), xsink);
 
    // create the outgoing message in XML-RPC call format
-   QoreStringNode *msg = make_xmlrpc_call_string(xsink, client->getEncoding(), 0, *xargs);
+   QoreStringNode *msg = make_xmlrpc_call(xsink, client->getEncoding(), 0, *xargs);
    if (!msg)
       return 0;
 

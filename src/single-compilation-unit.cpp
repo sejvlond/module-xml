@@ -7,3 +7,5 @@
 #include "ql_xml.cpp"
 #include "qc_option.cpp"
 #include "xml-module.cpp"
+#include "QoreXmlReader.cpp"
+#include "QoreXmlRpcReader.cpp"

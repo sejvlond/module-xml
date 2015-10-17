@@ -145,16 +145,16 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
     |parse_xml_with_schema()|parses an XML string and validates against an XSD schema string and returns a %Qore hash structure.
 
     <b>Deprecated Functions For XML Serialization and Deserialization</b>
-    - @ref makeFormattedXMLFragment()
-    - @ref makeXMLFragment()
-    - @ref makeFormattedXMLString()
-    - @ref makeXMLString()
-    - @ref parseXML()
-    - @ref parseXMLAsData()
-    - @ref parseXMLAsDataWithRelaxNG()
-    - @ref parseXMLAsDataWithSchema()
-    - @ref parseXMLWithRelaxNG()
-    - @ref parseXMLWithSchema()
+    - @ref makeFormattedXMLFragment(): deprecated by make_xml_fragment()
+    - @ref makeFormattedXMLString(): deprecated by make_xml()
+    - @ref makeXMLFragment(): deprecated by make_xml_fragment()
+    - @ref makeXMLString(): deprecated by make_xml()
+    - @ref parseXML(): deprecated by parse_xml()
+    - @ref parseXMLAsData(): deprecated by parse_xml()
+    - @ref parseXMLAsDataWithRelaxNG(): deprecated by parse_xml_with_relaxng()
+    - @ref parseXMLAsDataWithSchema(): deprecated by parse_xml_with_schema()
+    - @ref parseXMLWithRelaxNG(): deprecated by parse_xml_with_relaxng()
+    - @ref parseXMLWithSchema(): deprecated by parse_xml_with_schema()
 
     @anchor xmlclasses
     <b>Classes Providing XML Functionality</b>
@@ -190,27 +190,36 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     <b>Functions Providing XML-RPC Functionality</b>
     |!Function Name|!Description
-    |makeFormattedXMLRPCCallString()|Serializes a hash into an XML string formatted for an XML-RPC call with formatting.
-    |makeFormattedXMLRPCCallStringArgs()|Serializes a hash into an XML string formatted for an XML-RPC call with formatting, taking a single list argument for the argument list.
-    |makeFormattedXMLRPCCallStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC call with formatting and an explicit output encoding
-    |makeFormattedXMLRPCCallStringArgsWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC call with formatting, taking a single list argument for the argument list and an explicit output encoding
-    |makeFormattedXMLRPCFaultResponseString()|Serializes a hash into an XML string formatted for an XML-RPC fault response with formatting.
-    |makeFormattedXMLRPCFaultResponseStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC fault response with formatting and an explicit output encoding.
-    |makeFormattedXMLRPCResponseString()|Serializes a hash into an XML string formatted for an XML-RPC response with formatting.
-    |makeFormattedXMLRPCResponseStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC response with formatting and an explicit output encoding.
-    |makeFormattedXMLRPCValueString()|Serializes a hash into an XML string in XML-RPC value format with formatting.
-    |makeXMLRPCCallString()|Serializes a hash into an XML string formatted for an XML-RPC call without formatting.
-    |makeXMLRPCCallStringArgs()|Serializes a hash into an XML string formatted for an XML-RPC call without formatting, taking a single list argument for the argument list.
-    |makeXMLRPCCallStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC call without formatting and an explicit output encoding.
-    |makeXMLRPCCallStringArgsWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC call without formatting, taking a single list argument for the argument list and an explicit output encoding.
-    |makeXMLRPCFaultResponseString()|Serializes a hash into an XML string formatted for an XML-RPC fault response without formatting.
-    |makeXMLRPCFaultResponseStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC fault response without formatting and an explicit output encoding.
-    |makeXMLRPCResponseString()|Serializes a hash into an XML string formatted for an XML-RPC response without formatting.
-    |makeXMLRPCResponseStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC response without formatting and an explicit output encoding.
-    |makeXMLRPCValueString()|Serializes a hash into an XML string in XML-RPC value format without formatting.
-    |parseXMLRPCCall()|deserializies an XML-RPC call string, returning a %Qore hash respresenting the call information.
-    |parseXMLRPCResponse()|deserializies an XML-RPC response string, returning a %Qore hash respresenting the response information.
-    |parseXMLRPCValue()|deserializies an XML-RPC value tree, returning a %Qore hash respresenting the information.
+    |make_xmlrpc_call()|Serializes a hash into an XML string formatted for an XML-RPC call
+    |make_xmlrpc_fault()|Serializes a hash into an XML string formatted for an XML-RPC fault response
+    |make_xmlrpc_value()|Serializes a hash into an XML string in XML-RPC value format
+    |make_xmlrpc_response()|Serializes a hash into an XML string formatted for an XML-RPC response
+    |parse_xmlrpc_call()|deserializies an XML-RPC call string, returning a %Qore hash respresenting the call information.
+    |parse_xmlrpc_response()|deserializies an XML-RPC response string, returning a %Qore hash respresenting the response information.
+    |parse_xmlrpc_value()|deserializies an XML-RPC value tree, returning a %Qore hash respresenting the information.
+
+    <b>Deprecated Functions For XML-RPC Serialization and Deserialization</b>
+    - @ref makeFormattedXMLRPCCallString(): deprecated by make_xmlrpc_call()
+    - @ref makeFormattedXMLRPCCallStringArgs(): deprecated by make_xmlrpc_call()
+    - @ref makeFormattedXMLRPCCallStringArgsWithEncoding(): deprecated by make_xmlrpc_call()
+    - @ref makeFormattedXMLRPCCallStringWithEncoding(): deprecated by make_xmlrpc_call()
+    - @ref makeFormattedXMLRPCFaultResponseString(): deprecated by make_xmlrpc_fault()
+    - @ref makeFormattedXMLRPCFaultResponseStringWithEncoding(): deprecated by make_xmlrpc_fault()
+    - @ref makeFormattedXMLRPCResponseString(): deprecated by make_xmlrpc_response()
+    - @ref makeFormattedXMLRPCResponseStringWithEncoding(): deprecated by make_xmlrpc_response()
+    - @ref makeFormattedXMLRPCValueString(): deprecated by make_xmlrpc_value()
+    - @ref makeXMLRPCCallString(): deprecated by make_xmlrpc_call()
+    - @ref makeXMLRPCCallStringArgs(): deprecated by make_xmlrpc_call()
+    - @ref makeXMLRPCCallStringArgsWithEncoding(): deprecated by make_xmlrpc_call()
+    - @ref makeXMLRPCCallStringWithEncoding(): deprecated by make_xmlrpc_call()
+    - @ref makeXMLRPCFaultResponseString(): deprecated by make_xmlrpc_fault()
+    - @ref makeXMLRPCFaultResponseStringWithEncoding(): deprecated by make_xmlrpc_fault()
+    - @ref makeXMLRPCResponseString(): deprecated by make_xmlrpc_response()
+    - @ref makeXMLRPCResponseStringWithEncoding(): deprecated by make_xmlrpc_response()
+    - @ref makeXMLRPCValueString(): deprecated by make_xmlrpc_value()
+    - @ref parseXMLRPCCall(): deprecated by parse_xmlrpc_call()
+    - @ref parseXMLRPCResponse(): deprecated by parse_xmlrpc_response()
+    - @ref parseXMLRPCValue(): deprecated by parse_xmlrpc_value()
 
     @section constants XML Constants
 
@@ -272,11 +281,46 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - 500 HTTP response code returned with SOAP faults
     - user modules moved to top-level qore module directory from version-specific module directory since they are valid for multiple versions of qore
     - implemented the following non-camel-case functions as replacements for old camel-case functions (the following camel-case function names are now deprecated):
-      - make_xml(): replaced makeXMLString() and makeFormattedXMLString()
-      - make_xml_fragment(): replaced makeXMLFragment() and makeFormattedXMLFragment()
-      - parse_xml(): replaced parseXML() and parseXMLAsData()
-      - parse_xml_with_relaxng(): replaced parseXMLWithRelaxNG() and parseXMLAsDataWithRelaxNG()
-      - parse_xml_with_schema(): replaced parseXMLWithSchema() and parseXMLAsDataWithSchema()
+      - make_xml(): replaced:
+      	 - makeXMLString()
+	 - makeFormattedXMLString()
+      - make_xml_fragment(): replaced:
+        - makeXMLFragment()
+	- makeFormattedXMLFragment()
+      - make_xmlrpc_call(): replaced:
+        - makeFormattedXMLRPCCallString()
+	- makeFormattedXMLRPCCallStringArgs()
+	- makeFormattedXMLRPCCallStringArgsWithEncoding()
+	- makeFormattedXMLRPCCallStringWithEncoding()
+	- makeXMLRPCCallString()
+	- makeXMLRPCCallStringArgs()
+	- makeXMLRPCCallStringArgsWithEncoding()
+	- makeXMLRPCCallStringWithEncoding()
+      - make_xmlrpc_fault(): replaced:
+        - makeFormattedXMLRPCFaultResponseString()
+	- makeFormattedXMLRPCFaultResponseStringWithEncoding()
+	- makeXMLRPCFaultResponseString()
+	- makeXMLRPCFaultResponseStringWithEncoding()
+      - make_xmlrpc_response(): replaced:
+        - makeFormattedXMLRPCResponseString()
+	- makeFormattedXMLRPCResponseStringWithEncoding()
+	- makeXMLRPCResponseString()
+	- makeXMLRPCResponseStringWithEncoding()
+      - make_xmlrpc_value(): replaced:
+        - makeFormattedXMLRPCValueString()
+	- makeXMLRPCValueString()
+      - parse_xml(): replaced:
+        - parseXML()
+	- parseXMLAsData()
+      - parse_xml_with_relaxng(): replaced:
+        - parseXMLWithRelaxNG()
+	- parseXMLAsDataWithRelaxNG()
+      - parse_xml_with_schema(): replaced:
+        - parseXMLWithSchema()
+	- parseXMLAsDataWithSchema()
+      - parse_xmlrpc_call(): replaced parseXMLRPCCall()
+      - parse_xmlrpc_response(): replaced parseXMLRPCResponse()
+      - parse_xmlrpc_value(): replaced: parseXMLRPCValue()
 
     @subsection xml12 xml Module Version 1.2
     <b>Changes and Bug Fixes in This Release</b>

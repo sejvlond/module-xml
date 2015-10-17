@@ -37,6 +37,9 @@
 # need definitions from the HttpServerUtil
 %requires HttpServerUtil >= 0.3.11
 
+# do not use $ for vars
+%new-style
+
 module SoapHandler {
     version = "0.2.5";
     desc = "SoapHandler module";
@@ -83,45 +86,45 @@ public namespace SoapHandler {
 
         #! @cond nodoc
         private {
-            hash $.methods;
-            $.mi;
+            hash methods;
+            mi;
 
             # hash of WebService objects (values) per path (keys)
-            hash $.ws;
+            hash ws;
 
             # path -> top-level-method-name -> method
-            hash $.pathmethods;
+            hash pathmethods;
 
             # soapaction map: action -> operation
-            hash $.sam;
+            hash sam;
 
             # path -> soapaction
-            hash $.psam;
+            hash psam;
 
-            int $.loglevel;
+            int loglevel;
 
             # if True then verbose exception info will be logged
-            bool $.debug;
+            bool debug;
 
             # a closure/call reference to get the log message and/or process arguments in incoming requests
-            *code $.getLogMessage;
+            *code getLogMessage;
 
             # for atomicity when adding / removing methods
-            RWLock $.rwl();
+            RWLock rwl();
 
             # hash of methods by path
-            hash $.th;
+            hash th;
         }
         #! @endcond
 
         #! creates the handler with the given method list
         /** @param auth an authentication object (use new AbstractAuthenticator() for no authentication)
-            @param getLogMessage an optional closure or call reference to be called when an incoming request is received; if this is set then it will be called with the following arguments: a context hash (see HttpServer::AbstractHttpRequestHandler::handleRequest() for a description of the context hash), the method definition as passed in the methods argument to this constructor, and a reference to the arguments in this call
+            @param n_getLogMessage an optional closure or call reference to be called when an incoming request is received; if this is set then it will be called with the following arguments: a context hash (see HttpServer::AbstractHttpRequestHandler::handleRequest() for a description of the context hash), the method definition as passed in the methods argument to this constructor, and a reference to the arguments in this call
             @param dbg this parameter is set to @ref Qore::True "True", then additional information will be logged when errors occur
          */
-        constructor(AbstractAuthenticator $auth, *code $getLogMessage, bool $dbg = False) : AbstractHttpRequestHandler($auth) {
-            $.getLogMessage = $getLogMessage;
-            $.debug = $dbg;
+        constructor(AbstractAuthenticator auth, *code n_getLogMessage, bool dbg = False) : AbstractHttpRequestHandler(auth) {
+            getLogMessage = n_getLogMessage;
+            debug = dbg;
         }
 
         #! adds a method to the handler dynamically
@@ -129,415 +132,414 @@ public namespace SoapHandler {
             @param op the WSOperation object for the web service operation the method corresponds to
             @param func a call reference, a closure, or a string function name to call with the deserialized arguments to the method; the return value will be serialized to SOAP according to the WSDL and sent back to the caller
             @param help optional help text for the method
-            @param logopt log options which can be used by a custom logger (see the getLogMessage parameter in the constructor)
+            @param logopt log options which can be used by a custom logger (see the \a getLogMessage parameter in the constructor)
             @param cmark an optional "context marker" for the method
             @param path an optional path for the method
             @param err_func a call reference, a closure, or a string function name to call with error information if an exception is thrown with SOAP data
          */
-        addMethod(WebService $ws, WSOperation $op, any $func, *string $help, *int $logopt, any $cmark, *string $path, any $err_func) {
-            if (!$func)
-                throw "SOAP-SERVER-ADDMETHOD-PARAMETER-ERROR", sprintf("second argument is not a function name or callable value type (got: %y)", $func);
+        addMethod(WebService ws, WSOperation op, any func, *string help, *int logopt, any cmark, *string path, any err_func) {
+            if (!func)
+                throw "SOAP-SERVER-ADDMETHOD-PARAMETER-ERROR", sprintf("second argument is not a function name or callable value type (got: %y)", func);
 
-            $.addMethodInternal($ws,
-                                ( "operation" : $op,
-                                  "name"      : $op.name,
-                                  "function"  : $func,
-                                  "err_func"  : $err_func,
-                                  "help"      : $help,
-                                  "logopt"    : $logopt,
-                                  "cmark"     : $cmark,
-                                  "path"      : $path,
+            addMethodInternal(ws,
+                                ( "operation" : op,
+                                  "name"      : op.name,
+                                  "function"  : func,
+                                  "err_func"  : err_func,
+                                  "help"      : help,
+                                  "logopt"    : logopt,
+                                  "cmark"     : cmark,
+                                  "path"      : path,
                                 ));
-            #printf("methods=%N\n", $.methods);
+            #printf("methods=%N\n", methods);
         }
 
         #! call to remove all service mappings for services with the given path
-        removeServicesWithPath(string $path) {
-            $.rwl.writeLock();
-            on_exit $.rwl.writeUnlock();
+        removeServicesWithPath(string path) {
+            rwl.writeLock();
+            on_exit rwl.writeUnlock();
 
             # remove webservice mappings
-            delete $.ws.$path;
+            delete ws{path};
 
             # remove path/method mappings
-            delete $.pathmethods.$path;
+            delete pathmethods{path};
 
             # remove soapaction mappings
-            map delete $.sam.$1, $.psam.$path.keyIterator();
+            map delete sam.$1, psam{path}.keyIterator();
 
             # remove path soapaction mappings
-            delete $.psam.$path;
+            delete psam{path};
 
             # remove method link mappings
-            map delete $.methods.$1, $.th.$path.keyIterator();
+            map delete methods.$1, th{path}.keyIterator();
 
             # remove path method mapping
-            delete $.th.$path;
+            delete th{path};
         }
 
         #! @cond nodoc
         # don't reimplement this method; fix/enhance it in the module
-        final private addMethodInternal(WebService $ws, hash $method) {
-            my string $rn = $method.operation.getTopLevelRequestName();
+        final private addMethodInternal(WebService n_ws, hash method) {
+            string rn = method.operation.getTopLevelRequestName();
 
-            my *string $sa = $method.operation.soapAction;
-            if ($sa)
-                $method.soap_action = $sa;
+            *string sa = method.operation.soapAction;
+            if (sa)
+                method.soap_action = sa;
 
-            $.rwl.writeLock();
-            on_exit $.rwl.writeUnlock();
+            rwl.writeLock();
+            on_exit rwl.writeUnlock();
 
-            if ($sa) {
-                if (!$.sam.$sa)
-                    $.sam.$sa = $method;
-                else if ($.sam.$sa.operation != $method.operation)
-                    throw "SOAPACTION-ERROR", sprintf("cannot register soapAction %y for operation %y because it is already registered for operation %y", $sa, $method.operation.name, $.sam.$sa.operation.name);
+            if (sa) {
+                if (!sam{sa})
+                    sam{sa} = method;
+                else if (sam{sa}.operation != method.operation)
+                    throw "SOAPACTION-ERROR", sprintf("cannot register soapAction %y for operation %y because it is already registered for operation %y", sa, method.operation.name, sam{sa}.operation.name);
             }
 
-            #printf("DEBUG: SoapHandler::addMethodIntern() method: %N\n", $method);
+            #printf("DEBUG: SoapHandler::addMethodIntern() method: %N\n", method);
 
             # map top-level element to method
-            if ($method.path) {
-                my string $path = $method.path;
+            if (method.path) {
+                string path = method.path;
 
                 # add path / soapaction mapping for service removal
-                if ($sa && !$.psam.$path.$sa)
-                    $.psam.$path.$sa = True;
+                if (sa && !psam{path}{sa})
+                    psam{path}{sa} = True;
 
                 # add link to WebService object
-                if (!$.ws.$path)
-                    $.ws.$path = $ws;
+                if (!ws{path})
+                    ws{path} = n_ws;
 
-                if (!$.pathmethods.$path.$rn)
-                    $.pathmethods.$path.$rn = $method;
+                if (!pathmethods{path}{rn})
+                    pathmethods{path}{rn} = method;
 
                 # add method link if it doesn't already exist
-                if (!$.methods.$rn) {
-                    $.methods.$rn = $method;
-                    $.th.$path.$rn = True;
+                if (!methods{rn}) {
+                    methods{rn} = method;
+                    th{path}{rn} = True;
                 }
             }
             else {
                 # add method link if it doesn't already exist
-                if (!$.methods.$rn)
-                    $.methods.$rn = $method;
+                if (!methods{rn})
+                    methods{rn} = method;
             }
 
-            #printf("DEBUG: SoapHandler::addMethodInternal() %N %N\n", $method.name, $method.path);
+            #printf("DEBUG: SoapHandler::addMethodInternal() %N %N\n", method.name, method.path);
         }
 
-        private *hash help(hash $cx) {
-            my hash $h;
+        private *hash help(hash cx) {
+            hash h;
 
-            $.rwl.readLock();
-            on_exit $.rwl.readUnlock();
+            rwl.readLock();
+            on_exit rwl.readUnlock();
 
-            foreach my string $cmd in ($.methods.keyIterator()) {
-                $h.$cmd.description = $.methods.$cmd.help;
-                if ($.methods.$cmd.params)
-                    $h.$cmd.params = $.methods.$cmd.params;
+            foreach string cmd in (methods.keyIterator()) {
+                h{cmd}.description = methods{cmd}.help;
+                if (methods{cmd}.params)
+                    h{cmd}.params = methods{cmd}.params;
             }
-            foreach my string $path in ($.pathmethods.keyIterator()) {
-                foreach my string $cmd in ($.pathmethods.$path.keyIterator()) {
-                    $h.$cmd.description = $.methods.$cmd.help;
-                    if ($.pathmethods.$path.$cmd.params)
-                        $h.$path.$cmd.params = $.pathmethods.$path.$cmd.params;
+            foreach string path in (pathmethods.keyIterator()) {
+                foreach string cmd in (pathmethods{path}.keyIterator()) {
+                    h{cmd}.description = methods{cmd}.help;
+                    if (pathmethods{path}{cmd}.params)
+                        h{path}{cmd}.params = pathmethods{path}{cmd}.params;
                 }
             }
 
-            return $h;
+            return h;
         }
 
         # don't reimplement this method; fix/enhance it in the module
-        final private log(hash $cx, string $str) {
-            my $msg = "SOAP ";
-            if (exists $cx.user)
-                $msg += sprintf("user %s ", $cx.user);
-            $msg += sprintf("from %s: ", $cx."peer-info".address_desc);
-            $msg += vsprintf($str, $argv);
+        final private log(hash cx, string str) {
+            my msg = "SOAP ";
+            if (exists cx.user)
+                msg += sprintf("user %s ", cx.user);
+            msg += sprintf("from %s: ", cx."peer-info".address_desc);
+            msg += vsprintf(str, argv);
 
-            call_function_args($cx.logfunc, $msg);
+            call_function_args(cx.logfunc, msg);
         }
 
         # don't reimplement this method; fix/enhance it in the module
-        private static string makeSoapFaultResponse(bool $soap12, string $err, string $desc) {
-            my hash $o;
-            if ($soap12) {
-                $o = ENVELOPE_12_NS;
-                $o."soapenv:Envelope"."soapenv:Body" =
+        private static string makeSoapFaultResponse(bool soap12, string err, string desc, *bool fmt) {
+            hash o;
+            if (soap12) {
+                o = ENVELOPE_12_NS;
+                o."soapenv:Envelope"."soapenv:Body" =
                     ("soapenv:Fault":
-                     ("soapenv:Code": ("soapenv:Value": $err),
-                      "soapenv:Reason": ("soapenv:Text": $desc)));
+                     ("soapenv:Code": ("soapenv:Value": err),
+                      "soapenv:Reason": ("soapenv:Text": desc)));
             }
             else {
-                $o = ENVELOPE_11_NS;
-                $o."soapenv:Envelope"."soapenv:Body" =
+                o = ENVELOPE_11_NS;
+                o."soapenv:Envelope"."soapenv:Body" =
                     ("soapenv:Fault":
-                      ("faultcode": $err,
-                       "faultstring": $desc,
+                      ("faultcode": err,
+                       "faultstring": desc,
                        "desc": ""));
             }
 
-            return makeXMLString($o);
+            return make_xml(o, fmt ? XGF_ADD_FORMATTING: 0);
         }
 
         # don't reimplement this method; fix/enhance it in the module
-        final private hash callOperation(hash $cx, any $args, *string $soapaction, bool $reqsoap12) {
-            my *string $element = $cx.element;
+        final private hash callOperation(hash cx, any args, *string soapaction, bool reqsoap12) {
+            *string element = cx.element;
 
-            my *hash $method;
+            *hash method;
             {
-                $.rwl.readLock();
-                on_exit $.rwl.readUnlock();
+                rwl.readLock();
+                on_exit rwl.readUnlock();
 
                 # first match with soapaction if possible
-                if ($soapaction && $.sam.$soapaction) {
-                    $method = $.sam.$soapaction;
-                    #printf("DEBUG: request matched with SoapAction %y\n", $soapaction);
+                if (soapaction && sam{soapaction}) {
+                    method = sam{soapaction};
+                    #printf("DEBUG: request matched with SoapAction %y\n", soapaction);
                 }
                 else {
-                    if ($cx.url.path) {
-                        my string $path = $cx.url.path;
+                    if (cx.url.path) {
+                        string path = cx.url.path;
                         # prepend "/" if it's not already there
-                        if ($path !~ /^\//)
-                            $path =~ s/(.*)/\/$1/;
+                        if (path !~ /^\//)
+                            path =~ s/(.*)/\/$1/;
 
-                        $method = $.pathmethods.$path.$element;
-                        #printf("DEBUG: SoapHandler::callOperation() path: %y method exists: %y (%y)\n", $path, exists $method, keys $.pathmethods);
-                        #printf("DEBUG: SoapHandler::callOperation() cx: %y\n", $cx);
+                        method = pathmethods{path}{element};
+                        #printf("DEBUG: SoapHandler::callOperation() path: %y method exists: %y (%y)\n", path, exists method, keys pathmethods);
+                        #printf("DEBUG: SoapHandler::callOperation() cx: %y\n", cx);
                     }
 
-                    if (!$method)
-                        $method = $.methods.$element;
+                    if (!method)
+                        method = methods{element};
 
-                    #printf("DEBUG: found element %N method %N\n", $element, $method);
-                    if (!$method) {
-                        if (!$element)
-                            throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", $cx);
-                        throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot map top-level element %n to a SOAP operation: %s", $element, elements $.methods ? sprintf("currently recognized top-level elements: %n", keys $.methods) : "no SOAP services are currently registered");
+                    #printf("DEBUG: found element %N method %N\n", element, method);
+                    if (!method) {
+                        if (!element)
+                            throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot find operation element in SOAP call; call context=%N", cx);
+                        throw "SOAP-SERVER-UNKNOWN-OPERATION", sprintf("cannot map top-level element %n to a SOAP operation: %s", element, elements methods ? sprintf("currently recognized top-level elements: %n", keys methods) : "no SOAP services are currently registered");
                     }
                 }
             }
 
             # NOTE: internal methods have no operation definition and can take no parameters
-            my hash $h;
-            if ($method.internal) {
-                $h.body = call_object_method($self, $method.function);
-                return $h;
+            hash h;
+            if (method.internal) {
+                h.body = call_object_method(self, method.function);
+                return h;
             }
 
             try {
-                $args = $method.operation.deserializeRequest($args);
+                args = method.operation.deserializeRequest(args);
             }
-            catch ($ex) {
+            catch (ex) {
                 return (
 		    "code": 500,
-		    "errlog": sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
-		    "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
-		    "hdr": ("Content-Type": $reqsoap12 ? MimeTypeSoapXml : MimeTypeXml),
+		    "errlog": sprintf("%s:%d: %s: %s", ex.file, ex.line, ex.err, ex.desc),
+		    "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
+		    "hdr": ("Content-Type": reqsoap12 ? MimeTypeSoapXml : MimeTypeXml),
 		    );
             }
 
             # add context marker, if any
-            $cx.cmark = $method.cmark;
-            $cx.function = $method.function;
-            $cx.operation = $method.operation;
+            cx.cmark = method.cmark;
+            cx.function = method.function;
+            cx.operation = method.operation;
 
-            if (($method.logopt & HttpServer::LP_LEVELMASK) <= $.loglevel && exists $cx.logfunc) {
-                my $msg;
+            if ((method.logopt & HttpServer::LP_LEVELMASK) <= loglevel && exists cx.logfunc) {
+                my msg;
 
-                $msg = sprintf("SOAP call from %s: %s", $cx."peer-info".address_desc, $method.name);
-                if ($method.logopt & HttpServer::LP_LOGPARAMS) {
-                    $msg += sprintf("(");
-                    my $i = 0;
-                    foreach my $arg in ($args) {
-                        if (inlist($i++, $method.maskargs))
-                            $msg += "<masked>, ";
-                        else if ($arg.typeCode() == NT_HASH && elements $arg) {
-                            $msg += "(";
-                            foreach my $k in (keys $arg) {
-                                if ($k == $method.maskkey)
-                                    $msg += sprintf("%s=<masked>, ", $k);
+                msg = sprintf("SOAP call from %s: %s", cx."peer-info".address_desc, method.name);
+                if (method.logopt & HttpServer::LP_LOGPARAMS) {
+                    msg += sprintf("(");
+                    my i = 0;
+                    foreach my arg in (args) {
+                        if (inlist(i++, method.maskargs))
+                            msg += "<masked>, ";
+                        else if (arg.typeCode() == NT_HASH && elements arg) {
+                            msg += "(";
+                            foreach my k in (keys arg) {
+                                if (k == method.maskkey)
+                                    msg += sprintf("%s=<masked>, ", k);
                                 else
-                                    $msg += sprintf("%s=%n, ", $k, $arg.$k);
+                                    msg += sprintf("%s=%n, ", k, arg{k});
                             }
-                            splice $msg, -2, 2;
-                            $msg += "), ";
+                            splice msg, -2, 2;
+                            msg += "), ";
                         }
                         else
-                            $msg += sprintf("%n, ", $arg);
+                            msg += sprintf("%n, ", arg);
                     }
                     # remove the last two characters from the string if any were added
-                    if ($i)
-                        splice $msg, -2, 2;
-                    $msg += ")";
+                    if (i)
+                        splice msg, -2, 2;
+                    msg += ")";
                 }
 
-                $.log($cx, $msg);
-                $h.logreply = True;
+                log(cx, msg);
+                h.logreply = True;
             }
-            #printf("about to call function '%s' (method=%s params=%N)\n", $method.function, $method.name, $args);flush();
-            my $rv;
+            #printf("about to call function '%s' (method=%s params=%N)\n", method.function, method.name, args);flush();
+            my rv;
 
-            if ($args.typeCode() == NT_LIST)
-                unshift $args, $cx;
-            else if (exists $args)
-                $args = ($cx, $args);
+            if (args.typeCode() == NT_LIST)
+                unshift args, cx;
+            else if (exists args)
+                args = (cx, args);
             else
-                $args = $cx;
+                args = cx;
 
-            if ($method.internal)
-                $rv = call_object_method_args($self, $method.function, $args);
+            if (method.internal)
+                rv = call_object_method_args(self, method.function, args);
             else
-                $rv = call_function_args($method.function, $args);
+                rv = call_function_args(method.function, args);
 
             # if there is an output message, then serialize the response
-            if ($method.operation.output) {
+            if (method.operation.output) {
                 try {
-                    my any $header = remove $rv."^header^";
-                    $h += $method.operation.serializeResponse($rv, $header, NOTHING, NOTHING, $reqsoap12);
+                    any header = remove rv."^header^";
+                    h += method.operation.serializeResponse(rv, header, NOTHING, NOTHING, reqsoap12);
                 }
-                catch (hash $ex) {
-                    if ($method.err_func)
-                        call_function($method.err_func, $cx, $ex);
+                catch (hash ex) {
+                    if (method.err_func)
+                        call_function(method.err_func, cx, ex);
                     rethrow;
                 }
             }
 
-            #$.log($cx, "body=%N", $h.body);
+            #log(cx, "body=%N", h.body);
 
-            return $h;
+            return h;
         }
 
         # method called by HttpServer
         # don't reimplement this method; fix/enhance it in the module
-        final hash handleRequest(hash $cx, hash $hdr, *data $body) {
-            #log(LL_DEBUG_1, "soap handler context=%y hdr=%y body=%y ws=%y", $cx, $hdr, $body, $.ws.keys());
-            #printf("soap handler context=%y hdr=%y body=%y keys ws=%y\n", $cx, $hdr, $body, keys $.ws);
-            $cx.http_header = $hdr;
-            $cx.http_body = $body;
+        final hash handleRequest(hash cx, hash hdr, *data body) {
+            #log(LL_DEBUG_1, "soap handler context=%y hdr=%y body=%y ws=%y", cx, hdr, body, ws.keys());
+            #printf("soap handler context=%y hdr=%y body=%y keys ws=%y\n", cx, hdr, body, keys ws);
+            cx.http_header = hdr;
+            cx.http_body = body;
 
-            my *string $soapaction = ($hdr."content-type" =~ x/;action=(.+)/)[0];
-            if ($soapaction)
-                $hdr."content-type" =~ s/;.+$/;#/;
+            *string soapaction = (hdr."content-type" =~ x/;action=(.+)/)[0];
+            if (soapaction)
+                hdr."content-type" =~ s/;.+$/;#/;
             else
-                $soapaction = $hdr.soapaction;
+                soapaction = hdr.soapaction;
 
-            my $args;
-            my bool $reqsoap12 = False; # set to True if soap 1.2 envelope is used in request
+            my args;
+            bool reqsoap12 = False; # set to True if soap 1.2 envelope is used in request
 
-            if ($hdr.method == "GET") {
-                my *string $path = $cx.url.path;
+            if (hdr.method == "GET") {
+                *string path = cx.url.path;
 
                 # prepend "/" if it's not already there
-                if ($path !~ /^\//)
-                    $path = "/" + $path;
+                if (path !~ /^\//)
+                    path = "/" + path;
 
                 # remove ?wsdl if there
-                $path =~ s/\?wsdl$//i;
+                path =~ s/\?wsdl$//i;
 
-                #printf("DEBUG: PATH=%N (%n %n)\n", $path, exists $.ws.$path, keys $.ws);
+                #printf("DEBUG: PATH=%N (%n %n)\n", path, exists ws{path}, keys ws);
 
-                if (!$path)
+                if (!path)
                     return (
                         "code": 501,
-                        "body": sprintf("invalid HTTP GET: no path given in URL; known services: %y", keys $.ws),
+                        "body": sprintf("invalid HTTP GET: no path given in URL; known services: %y", keys ws),
                     );
 
-                $.rwl.readLock();
-                on_exit $.rwl.readUnlock();
+                rwl.readLock();
+                on_exit rwl.readUnlock();
 
-                if (!exists $.ws.$path)
+                if (!exists ws{path})
                     return (
                         "code": 501,
-                        "body": sprintf("invalid HTTP GET: no WebService object for path %y; known services: %y", $path, keys $.ws),
+                        "body": sprintf("invalid HTTP GET: no WebService object for path %y; known services: %y", path, keys ws),
                     );
 
                 return (
                     "code": 200,
-                    "body": $.ws.$path.getWSDL(),
+                    "body": ws{path}.getWSDL(),
                     "hdr": ("Content-Type": "text/xml"),
                     );
             }
             else {
-                if ($hdr.method != "POST")
+                if (hdr.method != "POST")
                     return ( "code" : 501,
-                             "body" : sprintf("don't know how to handle method %n", $hdr.method) );
+                             "body" : sprintf("don't know how to handle method %n", hdr.method) );
 
                 try {
-                    my $ct = $hdr."_qore_orig_content_type";
+                    my ct = hdr."_qore_orig_content_type";
                     # parse multipart messages
-                    if ($ct =~ /multipart\//) {
-                        my $x = ($ct =~ x/multipart\/([^;]+)/)[0];
-                        $hdr."_qore_multipart" = $x;
-                        $x = ($ct =~ x/start=([^;]+)/)[0];
-                        if (exists $x)
-                            $hdr."_qore_multipart_start" = $x;
-                        $x = ($ct =~ x/boundary=([^;]+)/)[0];
-                        if (exists $x)
-                            $hdr."_qore_multipart_boundary" = $x;
-                        #printf("hdr=%N\n", $hdr);
+                    if (ct =~ /multipart\//) {
+                        my x = (ct =~ x/multipart\/([^;]+)/)[0];
+                        hdr."_qore_multipart" = x;
+                        x = (ct =~ x/start=([^;]+)/)[0];
+                        if (exists x)
+                            hdr."_qore_multipart_start" = x;
+                        x = (ct =~ x/boundary=([^;]+)/)[0];
+                        if (exists x)
+                            hdr."_qore_multipart_boundary" = x;
+                        #printf("hdr=%N\n", hdr);
                     }
 
-                    $args = WSDLLib::parseSOAPMessage($hdr + ("body" : $body));
-                    #$args = parseXMLAsData($body);
-                    WSDL::XsdBase::removeNS(\$args);
-                    WSDL::XsdBase::removeNS(\$args.Envelope);
+                    args = WSDLLib::parseSOAPMessage(hdr + ("body" : body));
+                    WSDL::XsdBase::removeNS(\args);
+                    WSDL::XsdBase::removeNS(\args.Envelope);
 
                     # get SOAP operation name
-                    my $element;
-                    if (!exists ($element = ($ct =~ x/action=".*\/(.*)"/)[0])) {
+                    my element;
+                    if (!exists (element = (ct =~ x/action=".*\/(.*)"/)[0])) {
 
-                        my $sbody = $args.Envelope.Body;
-                        if (!exists $sbody)
+                        my sbody = args.Envelope.Body;
+                        if (!exists sbody)
                             throw "SOAP-CALL-ERROR", "missing SOAP body in SOAP envelope in SOAP operation call";
 
-                        foreach my $k in (keys $sbody) {
-                            if ($k == "multiRef" || $k == "^attributes^")
+                        foreach my k in (keys sbody) {
+                            if (k == "multiRef" || k == "^attributes^")
                                 continue;
-                            $element = $k =~ x/.*:(.*)/[0];
+                            element = k =~ x/.*:(.*)/[0];
                             break;
                         }
                     }
 
                     # set soap version in request
-                    my $attr = $args.Envelope."^attributes^";
-                    foreach my $k in ($attr.keyIterator()) {
-                        if ($k =~ /:soapenv$/) {
-                            if ($attr.$k == SOAP_12_ENV)
-                                $reqsoap12 = True;
-                            else if ($attr.$k != SOAP_11_ENV)
-                                throw "SOAP-CALL-ERROR", sprintf("unsupported SOAP envelope received: %n", $attr.$k);
+                    my attr = args.Envelope."^attributes^";
+                    foreach my k in (attr.keyIterator()) {
+                        if (k =~ /:soapenv$/) {
+                            if (attr{k} == SOAP_12_ENV)
+                                reqsoap12 = True;
+                            else if (attr{k} != SOAP_11_ENV)
+                                throw "SOAP-CALL-ERROR", sprintf("unsupported SOAP envelope received: %n", attr{k});
                             break;
                         }
                     }
 
-                    if (!exists $element)
+                    if (!exists element)
                         throw "SOAP-CALL-ERROR", "no operation call found in message";
 
-                    $cx.element = $element;
+                    cx.element = element;
                 }
-                catch ($ex) {
-                    $.log($cx, "exception parsing SOAP msg: %y", $body);
-                    #my string $str = sprintf("exception in %s:%d: %s: %s (1: %N)", $ex.file, $ex.line, $ex.err, $ex.desc, $ex.callstack);
+                catch (ex) {
+                    log(cx, "exception parsing SOAP msg: %y", body);
+                    #string str = sprintf("exception in %s:%d: %s: %s (1: %N)", ex.file, ex.line, ex.err, ex.desc, ex.callstack);
                     return (
                         "code": 500,
-			"errlog": sprintf("%s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc),
-                        "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
+			"errlog": sprintf("%s:%d: %s: %s", ex.file, ex.line, ex.err, ex.desc),
+                        "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
                         "hdr": ("Content-Type" : MimeTypeSoapXml),
                         );
                 }
             }
             try {
-                #printf("DEBUG: context: %N\nargs: %N\n", $cx, $args);
-                return ("code": 200) + $.callOperation($cx, $args, $soapaction, $reqsoap12);
+                #printf("DEBUG: context: %N\nargs: %N\n", cx, args);
+                return ("code": 200) + callOperation(cx, args, soapaction, reqsoap12);
             }
-            catch ($ex) {
-                my string $str = sprintf("exception in %s:%d: %s: %s", $ex.file, $ex.line, $ex.err, $ex.desc);
+            catch (ex) {
+                string str = sprintf("exception in %s:%d: %s: %s", ex.file, ex.line, ex.err, ex.desc);
                 return (
                     "code": 500,
-                    "errlog": $str,
-                    "body": SoapHandler::makeSoapFaultResponse($reqsoap12, $ex.err, $ex.desc),
+                    "errlog": str,
+                    "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
                     "hdr": ("Content-Type" : MimeTypeSoapXml)
                     );
             }

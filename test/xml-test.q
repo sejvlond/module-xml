@@ -19,7 +19,9 @@
 %disable-warning deprecated
 
 # make sure we have the right version of qore
-%requires qore >= 0.8.1
+%requires qore >= 0.8.12
+
+#%requires QUnit
 
 our (hash o, int errors);
 our hash thash;
@@ -110,54 +112,40 @@ sub xml_tests() {
     str = make_xml("o", o, XGF_ADD_FORMATTING);
     test_value(mo == parse_xml(str, XPF_PRESERVE_ORDER), True, "second parse_xml()");
 
-    if (Option::HAVE_PARSEXMLWITHSCHEMA) {
-        o = ( "ns:TestElement" : ( "^attributes^" : ( "xmlns:ns" : "http://qoretechnologies.com/test/namespace" ), "^value^" : "testing" ) );
-
-        test_value(parse_xml_with_schema(make_xml(o), xsd), o, "parseXMLWithSchema()");
-    }
-}
-
-sub deprecated_xml_tests() {
-    hash o = Hash;
-    hash mo = ("o": o);
-    string str = makeXMLString("o", o);
-    test_value(mo.o == parseXML(str).o, True, "first parseXML()");
-    str = makeFormattedXMLString("o", o);
-    test_value(mo == parseXML(str), True, "second parseXML()");
     list params = (1, True, "string", NOTHING, o + ("emptylist": (), "emptyhash": hash()));
-    str = makeFormattedXMLRPCCallStringArgs("test.method", params);
+    str = make_xmlrpc_call("test.method", params, XGF_ADD_FORMATTING);
     hash result = ( "methodName" : "test.method", "params" : params );
-    test_value(parseXMLRPCCall(str), result, "makeXMLRPCCallStringArgs() and parseXMLRPCCall()");
-    str = makeFormattedXMLRPCCallStringArgs("test.method", params);
-
-    test_value(parseXMLRPCCall(str), result, "makeFormattedXMLRPCCallStringArgs() and parseXMLRPCCall()");
-    str = makeXMLRPCCallString("test.method", True, o);
+    test_value(parse_xmlrpc_call(str), result, "make_xmlrpc_call() and parse_xmlrpc_call() 1");
+    str = make_xmlrpc_call("test.method", params);
+    test_value(parse_xmlrpc_call(str), result, "make_xmlrpc_call() and parse_xmlrpc_call() 2");
+    str = make_xmlrpc_call("test.method", (True, o));
     result = ( "methodName" : "test.method","params" : (True, o) );
-    test_value(parseXMLRPCCall(str), result, "makeXMLRPCCallString() and parseXMLRPCCall()");
-    str = makeFormattedXMLRPCCallString("test.method", True, o);
-    test_value(parseXMLRPCCall(str), result, "makeFormattedXMLRPCCallString() and parseXMLRPCCall()");
-    str = makeXMLRPCResponseString(o);
-    test_value(parseXMLRPCResponse(str), ( "params" : o ), "first makeXMLRPCResponse() and parseXMLRPCResponse()");
-    str = makeFormattedXMLRPCResponseString(o);
-    test_value(parseXMLRPCResponse(str), ( "params" : o ), "first makeFormattedXMLRPCResponse() and parseXMLRPCResponse()");
-    str = makeXMLRPCFaultResponseString(100, "error");
+    test_value(parse_xmlrpc_call(str), result, "make_xmlrpc_call() and parse_xmlrpc_call() 3");
+    str = make_xmlrpc_call("test.method", (True, o), XGF_ADD_FORMATTING);
+    test_value(parse_xmlrpc_call(str), result, "make_xmlrpc_call() and parse_xmlrpc_call() 4");
+
+    str = make_xmlrpc_response(o);
+    test_value(parse_xmlrpc_response(str), ( "params" : o ), "make_xmlrpc_response() and parse_xmlrpc_response() 1");
+    str = make_xmlrpc_response(o, XGF_ADD_FORMATTING);
+    test_value(parse_xmlrpc_response(str), ( "params" : o ), "make_xmlrpc_response() and parse_xmlrpc_response() 2");
+    str = make_xmlrpc_fault(100, "error");
     hash fr = ( "fault" : ( "faultCode" : 100, "faultString" : "error" ) );
-    test_value(parseXMLRPCResponse(str), fr, "second makeXMLRPCResponse() and parseXMLRPCResponse()");
-    str = makeFormattedXMLRPCFaultResponseString(100, "error");
-    test_value(parseXMLRPCResponse(str), fr, "second makeXMLRPCResponse() and parseXMLRPCResponse()");
+    test_value(parse_xmlrpc_response(str), fr, "make_xmlrpc_fault() and parse_xmlrpc_response() 1");
+    str = make_xmlrpc_fault(100, "error", XGF_ADD_FORMATTING);
+    test_value(parse_xmlrpc_response(str), fr, "make_xmlrpc_fault() and parse_xmlrpc_response() 2");
     o = ( "xml" : (o + ( "^cdata^" : "this string contains special characters &<> etc" )) );
-    test_value(o == parseXML(makeXMLString(o)), True, "xml serialization with cdata");
+    test_value(o == parse_xml(make_xml(o), XPF_PRESERVE_ORDER), True, "xml serialization with cdata");
 
     if (Option::HAVE_PARSEXMLWITHSCHEMA) {
         o = ( "ns:TestElement" : ( "^attributes^" : ( "xmlns:ns" : "http://qoretechnologies.com/test/namespace" ), "^value^" : "testing" ) );
 
-        test_value(parseXMLWithSchema(makeXMLString(o), xsd), o, "parseXMLWithSchema()");
+        test_value(parse_xml_with_schema(make_xml(o), xsd), o, "parse_xml_with_schema()");
     }
 
-    str = makeXMLString(mo);
-    XmlDoc xd = new XmlDoc(str);
+    str = make_xml(mo);
+    XmlDoc xd(str);
     test_value(xd.toQore() == mo, True, "XmlDoc::constructor(<string>), XmlDoc::toQore()");
-    test_value(parseXML(xd.toString()) == mo, True, "XmlDoc::toString()");
+    test_value(parse_xml(xd.toString(), XPF_PRESERVE_ORDER) == mo, True, "XmlDoc::toString()");
     XmlNode n = xd.evalXPath("//list[2]")[0];
     test_value(n.getContent(), "2", "XmlDoc::evalXPath()");
     test_value(n.getElementTypeName(), "XML_ELEMENT_NODE", "XmlNode::getElementTypeName()");
@@ -176,6 +164,44 @@ sub deprecated_xml_tests() {
     xr.read();
     test_value(xr.nodeType(), Xml::XML_NODE_TYPE_ELEMENT, "XmlReader::read(), XmlReader::Type()");
     test_value(xr.toQore() == mo.o, True, "XmlReader::toQoreData()");
+}
+
+sub deprecated_xml_tests() {
+    hash o = Hash;
+    hash mo = ("o": o);
+    string str = makeXMLString("o", o);
+    test_value(mo.o == parseXML(str).o, True, "first parseXML()");
+    str = makeFormattedXMLString("o", o);
+    test_value(mo == parseXML(str), True, "second parseXML()");
+    list params = (1, True, "string", NOTHING, o + ("emptylist": (), "emptyhash": hash()));
+    str = makeFormattedXMLRPCCallStringArgs("test.method", params);
+    hash result = ( "methodName" : "test.method", "params" : params );
+    test_value(parseXMLRPCCall(str), result, "makeXMLRPCCallStringArgs() and parseXMLRPCCall()");
+    str = makeFormattedXMLRPCCallStringArgs("test.method", params);
+    test_value(parseXMLRPCCall(str), result, "makeFormattedXMLRPCCallStringArgs() and parseXMLRPCCall()");
+    str = makeXMLRPCCallString("test.method", True, o);
+    result = ( "methodName" : "test.method","params" : (True, o) );
+    test_value(parseXMLRPCCall(str), result, "makeXMLRPCCallString() and parseXMLRPCCall()");
+    str = makeFormattedXMLRPCCallString("test.method", True, o);
+    test_value(parseXMLRPCCall(str), result, "makeFormattedXMLRPCCallString() and parseXMLRPCCall()");
+
+    str = makeXMLRPCResponseString(o);
+    test_value(parseXMLRPCResponse(str), ( "params" : o ), "first makeXMLRPCResponse() and parseXMLRPCResponse()");
+    str = makeFormattedXMLRPCResponseString(o);
+    test_value(parseXMLRPCResponse(str), ( "params" : o ), "first makeFormattedXMLRPCResponse() and parseXMLRPCResponse()");
+    str = makeXMLRPCFaultResponseString(100, "error");
+    hash fr = ( "fault" : ( "faultCode" : 100, "faultString" : "error" ) );
+    test_value(parseXMLRPCResponse(str), fr, "second makeXMLRPCResponse() and parseXMLRPCResponse()");
+    str = makeFormattedXMLRPCFaultResponseString(100, "error");
+    test_value(parseXMLRPCResponse(str), fr, "second makeXMLRPCResponse() and parseXMLRPCResponse()");
+    o = ( "xml" : (o + ( "^cdata^" : "this string contains special characters &<> etc" )) );
+    test_value(o == parseXML(makeXMLString(o)), True, "xml serialization with cdata");
+
+    if (Option::HAVE_PARSEXMLWITHSCHEMA) {
+        o = ( "ns:TestElement" : ( "^attributes^" : ( "xmlns:ns" : "http://qoretechnologies.com/test/namespace" ), "^value^" : "testing" ) );
+
+        test_value(parseXMLWithSchema(makeXMLString(o), xsd), o, "parseXMLWithSchema()");
+    }
 }
 
 sub do_tests() {
