@@ -1,22 +1,22 @@
 MNAME=xml
 
 .qpp.cpp:
-	qpp $<
+	qpp -V $<
 
-GENERATED_SOURCES = QC_XmlDoc.cpp QC_XmlNode.cpp QC_XmlReader.cpp QC_XmlRpcClient.cpp QC_SaxIterator.cpp QC_FileSaxIterator.cpp ql_xml.cpp
+GENERATED_SOURCES = QC_XmlDoc.cpp QC_XmlNode.cpp QC_XmlReader.cpp QC_XmlRpcClient.cpp QC_SaxIterator.cpp QC_FileSaxIterator.cpp ql_xml.cpp qc_option.cpp
 CLEANFILES = $(GENERATED_SOURCES)
 
 if COND_SINGLE_COMPILATION_UNIT
 single-compilation-unit.cpp: $(GENERATED_SOURCES)
 XML_SOURCES = single-compilation-unit.cpp
 else
-XML_SOURCES = xml-module.cpp
+XML_SOURCES = xml-module.cpp QoreXmlReader.cpp QoreXmlRpcReader.cpp
 nodist_xml_la_SOURCES = $(GENERATED_SOURCES)
 endif
 
 lib_LTLIBRARIES = xml.la
 xml_la_SOURCES = $(XML_SOURCES)
-xml_la_LDFLAGS = -module -avoid-version ${LIBXML2_LDFLAGS} ${MODULE_LDFLAGS}
+xml_la_LDFLAGS = -module -avoid-version ${LIBXML2_LDFLAGS} ${MODULE_LDFLAGS} ${OPENSSL_LDFLAGS}
 
 INCLUDES = -I$(top_srcdir)/include
 

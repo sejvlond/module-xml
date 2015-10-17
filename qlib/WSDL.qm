@@ -1349,7 +1349,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         foreach XsdAttribute xa in (attrs.iterator()) {
             *string attr_val = val."^attributes^".(xa.name);
             if (xa.use == "required" && !exists attr_val)
-                throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), xa.name, val, xa);
+                throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), xa.name);
             if (exists attr_val) {
                 if (attr.use == "prohibited")
                     throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y with attribute %y; the WSDL marks this attribute as prohibited", getName(), xa.name);
@@ -2320,7 +2320,6 @@ public class WSDL::Namespaces {
         *string nsa = nsr{ns};
         if (nsa)
             return nsa;
-
         return registerNamespaceIntern(ns);
     }
 
@@ -2431,7 +2430,6 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         wsdl = str;
 
         try_import = opts.try_import;
-
         def_path = opts.def_path;
 
         # remove namespace (normally "wsdl:") prefix from keys if present
@@ -2439,7 +2437,6 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         WSDL::XsdBase::removeNS(\h.definitions);
         nsc = new Namespaces(h.definitions."^attributes^");
         #getNSPrefixes(h.definitions."^attributes^");
-
         #printf("%Y\n", h.definitions.types);
 
         if (exists h.definitions.types)

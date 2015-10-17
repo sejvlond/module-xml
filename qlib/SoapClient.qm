@@ -229,7 +229,7 @@ public namespace SoapClient {
         }
 
         #! returns a hash representing the serialized SOAP request for a given @ref WSDL::WSOperation "WSOperation"
-        /** the returned hash can be passed to makeXMLString() to make the actual SOAP message
+        /** the returned hash can be passed to make_xml() to make the actual SOAP message
 
             @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying @ref WSDL::WebService "WebService" class, an exception will be thrown
             @param args the arguments to the SOAP operation

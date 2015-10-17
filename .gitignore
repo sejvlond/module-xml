@@ -41,3 +41,6 @@ docs/*.doxygen
 docs/qlib/Doxyfile.*
 docs/qlib/*.dox.h
 docs/xml/
+
+# cmake build dir
+build/

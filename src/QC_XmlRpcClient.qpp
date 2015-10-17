@@ -51,7 +51,7 @@ public:
       // we have to create a temporary ExceptionSink if there is
       // an active exception, otherwise writing back the reference will fail
       ExceptionSink *txsink = *xsink ? new ExceptionSink : xsink;
-      
+
       // write info hash to reference
       AutoVLock vl(txsink);
       QoreTypeSafeReferenceHelper rh(ref, vl, txsink);
@@ -59,7 +59,7 @@ public:
          return;
 
       if (rh.assign(info.release(), txsink))
-         return;   
+         return;
 
       if (txsink != xsink)
          xsink->assimilate(txsink);
@@ -104,15 +104,15 @@ static QoreHashNode *make_xmlrpc_call(QORE_HTTP_CLIENT* client, QoreStringNode *
       info->setKeyValue("response", ans.release(), xsink);
       info->setKeyValue("response_headers", response.release(), xsink);
    }
-   
+
    if (ah->getType() != NT_STRING) {
       xsink->raiseException("XMLRPCCLIENT-RESPONSE-ERROR", "undecoded binary response received from remote server");
       return 0;
    }
-   //printd(5, "make_xmlrpc_call() ah=%s\n", reinterpret_cast<const QoreStringNode *>(ah)->getBuffer());
+   //printd(5, "parse_xmlrpc_response() ah: %s\n", reinterpret_cast<const QoreStringNode *>(ah)->getBuffer());
 
-   // parse XML-RPC response   
-   return parseXMLRPCResponse(reinterpret_cast<const QoreStringNode *>(ah), QCS_DEFAULT, xsink);
+   // parse XML-RPC response
+   return parse_xmlrpc_response(xsink, reinterpret_cast<const QoreStringNode *>(ah), QCS_DEFAULT);
 }
 
 //! The XmlRpcClient class provides easy access to XML-RPC web services
@@ -206,7 +206,7 @@ XmlRpcClient::copy() {
       - \c faultCode: an integer fault code
       - \c faultString: a string error message
 
-    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object) 
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @throw PARSE-XMLRPC-RESPONSE-ERROR missing required element or other syntax error
     @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
     @throw HTTP-CLIENT-TIMEOUT timeout on response from HTTP server
@@ -219,7 +219,7 @@ XmlRpcClient::copy() {
 */
 hash XmlRpcClient::callArgs(string[doc] method, any[doc] args) {
    // create the outgoing message in XML-RPC call format
-   QoreStringNodeHolder msg(makeXMLRPCCallStringArgs(client->getEncoding(), 0, args, xsink));
+   QoreStringNodeHolder msg(make_xmlrpc_call_args(xsink, client->getEncoding(), 0, args));
    if (!msg)
       return 0;
 
@@ -237,7 +237,7 @@ hash XmlRpcClient::callArgs(string[doc] method, any[doc] args) {
       - \c faultCode: an integer fault code
       - \c faultString: a string error message
 
-    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object) 
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @throw PARSE-XMLRPC-RESPONSE-ERROR missing required element or other syntax error
     @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
     @throw HTTP-CLIENT-TIMEOUT timeout on response from HTTP server
@@ -250,7 +250,7 @@ hash XmlRpcClient::callArgs(string[doc] method, any[doc] args) {
 */
 hash XmlRpcClient::call(string[doc] method, ...) {
    // create the outgoing message in XML-RPC call format
-   QoreStringNodeHolder msg(makeXMLRPCCallString(client->getEncoding(), 0, args, xsink));
+   QoreStringNodeHolder msg(make_xmlrpc_call(xsink, client->getEncoding(), 0, args));
    if (!msg)
       return 0;
 
@@ -275,7 +275,7 @@ hash XmlRpcClient::call(string[doc] method, ...) {
       - \c faultCode: an integer fault code
       - \c faultString: a string error message
 
-    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object) 
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @throw PARSE-XMLRPC-RESPONSE-ERROR missing required element or other syntax error
     @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
     @throw HTTP-CLIENT-TIMEOUT timeout on response from HTTP server
@@ -290,10 +290,10 @@ my hash $result = $xrc.callArgsWithInfo(\$info, "method.name", $arg_list);@endco
 */
 hash XmlRpcClient::callArgsWithInfo(reference info, string[doc] method, any[doc] args) {
    // get arguments
-   ReferenceHolder<QoreListNode> xargs(args->copyListFrom(1), xsink);
+   ReferenceHolder<QoreValueList> xargs(args->copyListFrom(1), xsink);
 
    // create the outgoing message in XML-RPC call format
-   QoreStringNode *msg = makeXMLRPCCallStringArgs(client->getEncoding(), 0, *xargs, xsink);
+   QoreStringNode *msg = make_xmlrpc_call_args(xsink, client->getEncoding(), 0, *xargs);
    if (!msg)
       return 0;
 
@@ -320,7 +320,7 @@ hash XmlRpcClient::callArgsWithInfo(reference info, string[doc] method, any[doc]
       - \c faultCode: an integer fault code
       - \c faultString: a string error message
 
-    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object) 
+    @throw XMLRPC-SERIALIZATION-ERROR empty member name in hash or cannot serialize type to XML-RPC (ex: object)
     @throw PARSE-XMLRPC-RESPONSE-ERROR missing required element or other syntax error
     @throw PARSE-XMLRPC-ERROR syntax error parsing XML-RPC string
     @throw HTTP-CLIENT-TIMEOUT timeout on response from HTTP server
@@ -335,10 +335,10 @@ my hash $result = $xrc.callWithInfo(\$info, "method.name", $arg1, $arg2);@endcod
 */
 hash XmlRpcClient::callWithInfo(reference info, string[doc] method, ...) {
    // get arguments
-   ReferenceHolder<QoreListNode> xargs(args->copyListFrom(1), xsink);
+   ReferenceHolder<QoreValueList> xargs(args->copyListFrom(1), xsink);
 
    // create the outgoing message in XML-RPC call format
-   QoreStringNode *msg = makeXMLRPCCallString(client->getEncoding(), 0, *xargs, xsink);
+   QoreStringNode *msg = make_xmlrpc_call(xsink, client->getEncoding(), 0, *xargs);
    if (!msg)
       return 0;
 

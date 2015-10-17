@@ -16,7 +16,7 @@ list(APPEND CMAKE_REQUIRED_INCLUDES ${LIBXML2_INCLUDE_DIR})
 include_directories( ${CMAKE_SOURCE_DIR}/src )
 include_directories( ${LIBXML2_INCLUDE_DIR} )
 
-#include(CheckSymbolExists) 
+#include(CheckSymbolExists)
 include(CheckFunctionExists)
 
 macro(qore_check_symbol _symbol _define)
@@ -63,7 +63,7 @@ set(QMOD
     qlib/XmlRpcHandler.qm
 )
 
-qore_wrap_qpp(QPP_SOURCES ${QPP_SRC})
+qore_wrap_qpp_value(QPP_SOURCES ${QPP_SRC})
 
 SET (module_name "xml")
 
@@ -75,5 +75,3 @@ qore_user_modules("${QMOD}")
 qore_dist("${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 qore_config_info()
-
-
