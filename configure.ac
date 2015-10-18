@@ -788,7 +788,7 @@ for dir in "${with_openssl_dir}" "${with_lib_prefix}" "${find_prefix}" /usr / /u
         break
     fi
 done
-if test -z "$OPENSSL_LDFLAGS" -o -z "$OPENSSL_CPPFLAGS"; then
+if test -z "$OPENSSL_LDFLAGS"; then
     AC_MSG_ERROR([no openssl library found])
 else
     SAVE_CPPFLAGS="$CPPFLAGS"
