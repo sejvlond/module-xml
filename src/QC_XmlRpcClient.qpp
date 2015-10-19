@@ -24,18 +24,12 @@
 
 #include "qore-xml-module.h"
 
-#ifdef _QORE_HAS_QOREHTTPCLIENTOBJECT
 #include <qore/QoreHttpClientObject.h>
-#define QORE_HTTP_CLIENT QoreHttpClientObject
-#else
-#include <qore/QoreHTTPClient.h>
-#define QORE_HTTP_CLIENT QoreHTTPClient
-#endif
 
 #include "QC_XmlRpcClient.h"
 #include "ql_xml.h"
 
-typedef ReferenceHolder<QORE_HTTP_CLIENT> safe_httpclient_t;
+typedef ReferenceHolder<QoreHttpClientObject> safe_httpclient_t;
 
 class HTTPInfoRefHelper {
 protected:
@@ -69,7 +63,7 @@ public:
    }
 };
 
-static void set_xrc_defaults(QORE_HTTP_CLIENT& client) {
+static void set_xrc_defaults(QoreHttpClientObject& client) {
    // set options for XML-RPC communication
    client.setDefaultPath("RPC2");
    client.setDefaultHeaderValue("Content-Type", "text/xml;charset=utf-8");
@@ -80,7 +74,7 @@ static void set_xrc_defaults(QORE_HTTP_CLIENT& client) {
    client.addProtocol("xmlrpcs", 443, true);
 }
 
-static QoreHashNode *make_xmlrpc_call(QORE_HTTP_CLIENT* client, QoreStringNode *msg, QoreHashNode *info, ExceptionSink *xsink) {
+static QoreHashNode *make_xmlrpc_call(QoreHttpClientObject* client, QoreStringNode *msg, QoreHashNode *info, ExceptionSink *xsink) {
    ReferenceHolder<QoreHashNode> hdr(xsink);
 
    if (client->getEncoding() != QCS_UTF8) {
@@ -136,7 +130,7 @@ static QoreHashNode *make_xmlrpc_call(QORE_HTTP_CLIENT* client, QoreStringNode *
 
     @note This class is not available with the \c PO_NO_NETWORK parse option.
 */
-qclass XmlRpcClient [arg=QORE_HTTP_CLIENT* client; ns=Qore::Xml; default_base=QC_HTTPCLIENT];
+qclass XmlRpcClient [arg=QoreHttpClientObject* client; ns=Qore::Xml; default_base=QC_HTTPCLIENT];
 
 //! Creates the XmlRpcClient object with no parameters
 /** No connection is made because no connection parameters are set with this call; connection parameters must be set afterwards using the appropriate HTTPClient methods.
@@ -147,7 +141,7 @@ $xrc.setURL("http://localhost:8080");@endcode
 */
 XmlRpcClient::constructor() {
    // get HTTPClient object
-   safe_httpclient_t client((QORE_HTTP_CLIENT*)self->getReferencedPrivateData(CID_HTTPCLIENT, xsink), xsink);
+   safe_httpclient_t client((QoreHttpClientObject*)self->getReferencedPrivateData(CID_HTTPCLIENT, xsink), xsink);
    if (!client)
       return;
 
@@ -175,7 +169,7 @@ XmlRpcClient::constructor() {
 */
 XmlRpcClient::constructor(hash opts, softbool no_connect = False) {
    // get HTTPClient object
-   safe_httpclient_t client((QORE_HTTP_CLIENT*)self->getReferencedPrivateData(CID_HTTPCLIENT, xsink), xsink);
+   safe_httpclient_t client((QoreHttpClientObject*)self->getReferencedPrivateData(CID_HTTPCLIENT, xsink), xsink);
    if (!client)
       return;
 

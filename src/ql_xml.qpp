@@ -227,12 +227,10 @@ static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const Abst
 	 return 0;
       }
 
-#ifdef _QORE_HAS_NUMBER_TYPE
       case NT_NUMBER: {
          reinterpret_cast<const QoreNumberNode*>(n)->getStringRepresentation(str);
          return 0;
       }
-#endif
 
       case NT_BOOLEAN: {
 	 str.sprintf("%d", reinterpret_cast<const QoreBoolNode*>(n)->getValue());
@@ -622,13 +620,11 @@ static int add_xmlrpc_value_intern(QoreString* str, const QoreValue n, int inden
    else if (ntype == NT_FLOAT)
       str->sprintf("<double>%.20g</double>", n.getAsFloat());
 
-#ifdef _QORE_HAS_NUMBER_TYPE
    else if (ntype == NT_NUMBER) {
       str->concat("<double>");
       n.get<const QoreNumberNode>()->getStringRepresentation(*str);
       str->concat("</double>");
    }
-#endif
 
    else if (ntype == NT_DATE) {
       str->concat("<dateTime.iso8601>");
