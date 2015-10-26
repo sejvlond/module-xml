@@ -938,7 +938,7 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
     }
 
     assimilate(WSDL::XsdElement other) {
-        map self.$1 = other.$1, other.keyIterator();
+        map self.$1 = other.$1, other.keyIterator(), !exists self.$1;
     }
 
     bool required() {
@@ -1282,13 +1282,13 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         # process attributes first
         *hash ah;
         if (h."^attributes^") {
-            hash mah = h."^attributes^";
+            hash mah = remove h."^attributes^";
             foreach string k in (mah.keyIterator()) {
                 if (!attrs{k})
                     throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set unknown attribute %y of element %y; known attributes: %y", k, getName(), attrs.keys());
                 if (attrs{k}.use == "prohibited")
                     throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set attribute %y of element %y; the WSDL marks this attribute as prohibited", k, getName());
-                ah = mah{k};
+                ah{k} = mah{k};
             }
         }
         # check for required attributes
