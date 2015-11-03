@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://qore.org/simpletest" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" targetNamespace="http://qore.org/simpletest" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest">
+      <s:element name="SetInfo">
+	<s:complexType>
+	  <s:all>
+	    <s:element name="name" type="s:string"/>
+	    <s:element name="id" type="s:int"/>
+	  </s:all>
+	  <s:attribute name="infoType" type="s:string" use="required"/>
+	  <s:attribute name="code" type="s:int" use="required"/>
+	</s:complexType>
+      </s:element>
+      <s:element name="SetInfoResult" type="s:string"/>
+      <s:element name="GetInfo">
+	<s:complexType>
+	  <s:all>
+	    <s:element name="tickerSymbol" type="s:string"/>
+	  </s:all>
+	</s:complexType>
+      </s:element>
+      <s:element name="GetInfoResult">
+	<s:complexType>
+	  <s:all>
+	    <s:element name="result" type="s:decimal"/>
+	  </s:all>
+	</s:complexType>
+      </s:element>
+    </s:schema>
+  </wsdl:types>
+
+  <wsdl:message name="m1">
+    <wsdl:part name="body" element="tns:GetInfo"/>
+  </wsdl:message>
+
+  <wsdl:message name="m2">
+    <wsdl:part name="body" element="tns:GetInfoResult"/>
+    <wsdl:part name="docs" type="s:string"/>
+    <wsdl:part name="logo" type="s:base64Binary"/>
+  </wsdl:message>
+
+  <wsdl:message name="m3">
+    <wsdl:part name="body" element="tns:SetInfo"/>
+    <wsdl:part name="logo" type="s:base64Binary"/>
+  </wsdl:message>
+
+  <wsdl:message name="m4">
+    <wsdl:part name="body" element="tns:SetInfoResult"/>
+  </wsdl:message>
+
+  <wsdl:portType name="pt1">
+    <wsdl:operation name="getInfo">
+      <wsdl:input message="tns:m1"/>
+      <wsdl:output message="tns:m2"/>
+    </wsdl:operation>
+    <wsdl:operation name="setInfo">
+      <wsdl:input message="tns:m3"/>
+      <wsdl:output message="tns:m4"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="b1" type="tns:pt1">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc"/>
+    <wsdl:operation name="getInfo">
+      <soap12:operation soapAction="http://qore.org/getInfo"/>
+      <wsdl:input>
+	<soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+	<soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="setInfo">
+      <soap12:operation soapAction="http://qore.org/setInfo"/>
+      <wsdl:input>
+	<soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+	<soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="InfoService">
+    <wsdl:port name="InfoPort" binding="tns:b1">
+      <soap12:address location="http://localhost:8001/SOAP/simple"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

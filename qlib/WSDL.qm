@@ -867,13 +867,14 @@ public class WSDL::XsdAttribute inherits WSDL::XsdTypedData {
     }
 
     constructor(hash attr, Namespaces nsc, *XsdAbstractType n_type, XsdLateResolverHelper unresolved) : XsdTypedData(\attr) {
-        if (attr.type) {
-            type = nsc.doType(attr.type);
+        *hash aa = attr."^attributes^";
+        if (aa.type) {
+            type = nsc.doType(aa.type);
 
-            if (attr.use) {
-                if (!AllowedUseValues.(attr.use))
-                    throw "XSD-ATTRIBUTE-ERROR", sprintf("attribute %y: use %y is unrecognized; recognized use values: %y", name, attr.use, AllowedUseValues.keys());
-                use = attr.use;
+            if (aa.use) {
+                if (!AllowedUseValues.(aa.use))
+                    throw "XSD-ATTRIBUTE-ERROR", sprintf("attribute %y: use %y is unrecognized; recognized use values: %y", name, aa.use, AllowedUseValues.keys());
+                use = aa.use;
             }
 
             # add self to unresolved list if element type cannot be resolved
@@ -1490,12 +1491,14 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
     /** @param h the request to serialize
         @param header optional soap header info to serialize if required (ex: authorization info)
         @param enc the optional encoding to use; if this argument is not present, then the default encoding will be used
+        @param nsh an optional namespace hash for the output message
+        @param xml_opts optional XML generation options
 
         @return a hash with keys:
         - \c body: XML string in the SOAP request format
         - \c hdr: hash of HTTP headers
         */
-    hash serializeRequest(any h, *hash header, *string enc, *hash nsh) {
+    hash serializeRequest(any h, *hash header, *string enc, *hash nsh, *int xml_opts) {
         # setup namespaces for SOAP envelope
         hash rh = nsc.hasSoap12() ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
 
@@ -1527,7 +1530,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             rh."soapenv:Envelope"."soapenv:Body" = input.serialize(inp, mpm, mname, h);
         }
 
-        string body = HAVE_LIBRARY_DEBUGGING ? makeFormattedXMLString(rh, enc) : makeXMLString(rh, enc);
+        string body = make_xml(rh, enc, xml_opts);
 
         if (mpm) {
             mpm.splicePart(body, sprintf("<%s>", inp.body.parts), nsc.hasSoap12() ? MimeTypeSoapXml : MimeTypeXml);
@@ -1569,12 +1572,13 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         @param enc the optional encoding to use; if this argument is not present, then the default encoding will be used
         @param nsh namespace hash
         @param soap12 set to True if the response should use SOAP 1.2 encoding
+        @param xml_opts optional XML generation options
 
         @return a hash with keys:
         - \c body: XML string in the SOAP request format
         - \c hdr: hash of HTTP headers
     */
-    hash serializeResponse(any h, *hash header, *string enc, *hash nsh, *bool soap12) {
+    hash serializeResponse(any h, *hash header, *string enc, *hash nsh, *bool soap12, *int xml_opts) {
         if (soap12) {
             if (!nsc.hasSoap12())
                 throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize response for operation %y with SOAP 1.2 encoding; this operation does not support SOAP 1.2", name);
@@ -1611,7 +1615,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             rh."soapenv:Envelope"."soapenv:Body" = output.serialize(outp, mpm, mname, h);
         }
 
-        string body = HAVE_LIBRARY_DEBUGGING ? makeFormattedXMLString(rh, enc) : makeXMLString(rh, enc);
+        string body = make_xml(rh, enc, xml_opts);
 
         string ct = soap12 ? MimeTypeSoapXml : MimeTypeXml;
         if (exists mpm) {
@@ -1681,7 +1685,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
     #! parses a hash representing a parsed XML request (parsed with parseXMLAsData()) for the operation and returns the corresponding Qore data structure
     /** @param o the parsed XML request (parsed with parseXMLAsData()) for the operation
-    @return the Qore data structure corresponding to the request data
+        @return the Qore data structure corresponding to the request data
     */
     any deserializeRequest(hash o) {
         WSDL::XsdBase::removeNS(\o);
