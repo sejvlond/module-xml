@@ -1,0 +1,48 @@
+#!/usr/bin/env qr
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+# requires at least this qore version to run
+%requires qore >= 0.8.12
+
+%new-style
+%require-types
+
+%requires QUnit
+
+%exec-class SoapTest
+
+%requires ../qlib/WSDL.qm
+%requires xml
+
+class SoapTest inherits QUnit::Test {
+    constructor() : QUnit::Test("SoapTest", "1.0") {
+        addTestCase("AttributeTest", \attributeTest());
+        set_return_value(main());
+    }
+
+    attributeTest() {
+        WebService ws = new WebService(ReadOnlyFile::readTextFile(get_script_dir() + "/test.wsdl"));
+        WSOperation op = ws.getOperation("setInfo");
+
+        hash req = (
+            "body": ("name": "QORE", "id": 500),
+            "logo": binary("test"),
+            );
+
+        # negative test w/o attributes
+        testAssertion("attr-ser-neg", \op.serializeRequest(), req, new TestResultExceptionType("SOAP-SERIALIZATION-ERROR"));
+
+        req.body."^attributes^" = (
+            "infoType": "test",
+            "code": 1,
+            );
+
+        hash h = op.serializeRequest(req);
+        testAssertionValue("attr-ser", h.body, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><soapenv:Envelope xmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:ns1=\"http://qore.org/simpletest\"><soapenv:Body><ns1:setInfo><ns1:SetInfo infoType=\"test\" code=\"1\"><ns1:name>QORE</ns1:name><ns1:id>500</ns1:id></ns1:SetInfo><logo>dGVzdA==</logo></ns1:setInfo></soapenv:Body></soapenv:Envelope>");
+
+        h = parse_xml(h.body);
+        h = op.deserializeRequest(h);
+
+        testAssertionValue("attr-deser", h, req);
+    }
+}
