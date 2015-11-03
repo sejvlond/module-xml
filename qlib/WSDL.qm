@@ -882,6 +882,10 @@ public class WSDL::XsdAttribute inherits WSDL::XsdTypedData {
                 unresolved.add(self);
         }
     }
+
+    any getValue(string val) {
+        return type.deserialize(name, NOTHING, NOTHING, val);
+    }
 }
 
 #! XSD element class
@@ -1356,7 +1360,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             if (exists attr_val) {
                 if (attr.use == "prohibited")
                     throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y with attribute %y; the WSDL marks this attribute as prohibited", getName(), xa.name);
-                ah.(xa.name) = attr_val;
+                ah.(xa.name) = xa.getValue(attr_val);
             }
         }
 

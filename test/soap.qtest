@@ -21,7 +21,7 @@ class SoapTest inherits QUnit::Test {
     }
 
     attributeTest() {
-        WebService ws = new WebService(ReadOnlyFile::readTextFile("test.wsdl"));
+        WebService ws = new WebService(ReadOnlyFile::readTextFile(get_script_dir() + "/test.wsdl"));
         WSOperation op = ws.getOperation("setInfo");
 
         hash req = (
