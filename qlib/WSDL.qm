@@ -1534,7 +1534,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             rh."soapenv:Envelope"."soapenv:Body" = input.serialize(inp, mpm, mname, h);
         }
 
-        string body = make_xml(rh, enc, xml_opts);
+        string body = make_xml(rh, xml_opts, enc);
 
         if (mpm) {
             mpm.splicePart(body, sprintf("<%s>", inp.body.parts), nsc.hasSoap12() ? MimeTypeSoapXml : MimeTypeXml);
@@ -1619,7 +1619,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             rh."soapenv:Envelope"."soapenv:Body" = output.serialize(outp, mpm, mname, h);
         }
 
-        string body = make_xml(rh, enc, xml_opts);
+        string body = make_xml(rh, xml_opts, enc);
 
         string ct = soap12 ? MimeTypeSoapXml : MimeTypeXml;
         if (exists mpm) {
