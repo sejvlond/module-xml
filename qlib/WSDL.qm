@@ -955,6 +955,8 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
     }
 
     any serialize(any h, *softbool omit_type, *softbool omit_ns, string key, string typename, reference ons) {
+        if (type.typeCode() == NT_HASH)
+            printf("ERROR: %y\n", self);
         return serializeAsIntern(type, h, omit_type, omit_ns, key, typename, \ons);
     }
 
@@ -1122,6 +1124,9 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
         # simpleContent type
         any simpleType;
+
+        # finalization flag
+        bool finalized = False;
     }
 
     constructor(hash ct, Namespaces nsc, XsdLateResolverHelper unresolved) : XsdAbstractType(\ct, nsc) {
@@ -1170,7 +1175,6 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             }
             else if (d.extension) {
                 extension = d.extension."^attributes^".base;
-
                 # FIXME: check for soap encoding namespace
                 extension =~ s/(.*:)(.*)/$2/;
                 delete d.extension."^attributes^";
@@ -1191,6 +1195,35 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         }
         else if (ct)
             parseData(ct, unresolved);
+    }
+
+    finalize(hash types, Namespaces nsc) {
+        if (finalized)
+            return;
+        finalized = True;
+
+        # process restriction info
+        if (restriction) {
+            if (!exists types{restriction})
+                throw WSDL_ERROR, sprintf("complexType %s should be restricted from base type %y, but type %y is not defined", name, restriction, restriction);
+            # combine base type and new type
+            elementmap = types{restriction}.elementmap + elementmap;
+            #printf("DEBUG: extended %s with %s (%y)\n", name, restriction, types{t}.elementmap.keys());
+        }
+        # process extension info
+        else if (extension) {
+            if (!exists types{extension})
+                throw WSDL_ERROR, sprintf("complexType %s should be extended by %y, but type %y is not defined", name, extension, extension);
+            # combine base type and new type
+            elementmap = types{extension}.elementmap + elementmap;
+            #printf("DEBUG: extended %s with %s (%y)\n", name, et, types{t}.elementmap.keys());
+        }
+
+        # process array info
+        if (array) {
+            any et = array.val;
+            array = new XsdArrayType(types{et} ? types{et} : et, nsc);
+        }
     }
 
     checkExtends(XsdAbstractType t, string ename) {
@@ -2100,6 +2133,10 @@ class WSDL::XsdLateResolverHelper {
     list getList() {
         return l;
     }
+
+    clearResolved() {
+        l = map $1, l, !($1.type instanceof XsdData);
+    }
 }
 
 #! class for WSDL bindings
@@ -2569,10 +2606,13 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             *XsdElement e = elementmap{name};
             if (!e)
                 throw WSDL_ERROR, sprintf("cannot resolve element reference %y; known elements: %y", name, elementmap.keys());
+            if (e.type.typeCode() == NT_HASH)
+                resolveType(e);
+            #printf("resolved to e: %y type: %y\n", e.name, e.type.type());
             xe.assimilate(e);
             #throw "OOPS", sprintf("e: %y", xe);
         }
-        else
+        else if (xe.type.typeCode() == NT_HASH)
             xe.type = resolveType(xe.type);
     }
 
@@ -2704,50 +2744,28 @@ public class WSDL::WebService inherits WSDL::XsdBase {
 
         # resolve types
         map resolveType($1), unresolved.getList();
-        #foreach XsdTypedData e in (unresolved.getList())
-        #    e.type = resolveType(e.type);
+        unresolved.clearResolved();
 
+        # finalize complex types
         foreach string t in (types.keyIterator()) {
-            if (types{t} instanceof XsdComplexType) {
-                #foreach any e in (keys types{t}."elements")
-                #    if (!(types{t}."elements"{e}.type instanceof XsdData))
-                #           types{t}."elements"{e}.type = resolveType(types{t}."elements"{e}.type);
+            if (!(types{t} instanceof XsdComplexType))
+                continue;
 
-                # process restriction info
-                if (types{t}.restriction) {
-                    any et = types{t}.restriction;
-                    if (!exists types{et})
-                        throw WSDL_ERROR, sprintf("complexType %s should be restricted from base type %y, but type %y is not defined", t, et, et);
-                    # combine base type and new type
-                    types{t}.elementmap = types{et}.elementmap + types{t}.elementmap;
-                    #printf("DEBUG: extended %s with %s (%y)\n", t, et, keys types{t}.elements);
-                }
+            XsdComplexType ct = types{t};
+            ct.finalize(types, nsc);
+        }
 
-                # process extension info
-                if (types{t}.extension) {
-                    any et = types{t}.extension;
-                    if (!exists types{et})
-                        throw WSDL_ERROR, sprintf("complexType %s should be extended by %y, but type %y is not defined", t, et, et);
-                    # combine base type and new type
-                    types{t}.elementmap = types{et}.elementmap + types{t}.elementmap;
-                    #printf("DEBUG: extended %s with %s (%y)\n", t, et, keys types{t}.elements);
-                }
+        # finalize complex types in elements
+        foreach XsdElement el in (elementmap.iterator()) {
+            if (!(el.type instanceof XsdComplexType))
+                continue;
 
-                # process array info
-                if (types{t}.array) {
-                    any et = types{t}.array.val;
-                    types{t}.array = new XsdArrayType(types{et} ? types{et} : et, nsc);
-                }
-            }
+            XsdComplexType ct = el.type;
+            ct.finalize(types, nsc);
         }
 
         # resolve types
-        map resolveType($1), unresolved.getList(), !($1.type instanceof XsdData);
-        /*
-        foreach any e in (unresolved.getList())
-            if (!(e.type instanceof XsdData))
-                e.type = resolveType(e.type);
-        */
+        map resolveType($1), unresolved.getList();
     }
 
     private parseMessages(*softlist message) {
