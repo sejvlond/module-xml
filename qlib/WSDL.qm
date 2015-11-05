@@ -1190,14 +1190,17 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             WSDL::XsdBase::removeNS(\d);
             hash_type = XET_SIMPLE;
             simpleType = nsc.doType(d.extension."^attributes^".base);
+            remove d.extension."^attributes^";
             if (!(simpleType instanceof XsdAbstractType))
                 unresolved.add(self);
+            WSDL::XsdBase::removeNS(\d.extension);
+            parseData(d.extension, unresolved);
         }
         else if (ct)
             parseData(ct, unresolved);
     }
 
-    finalize(hash types, Namespaces nsc) {
+    finalize(*hash types, Namespaces nsc) {
         if (finalized)
             return;
         finalized = True;
@@ -1330,52 +1333,58 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         if (exists array)
             return array.serialize(h, omit_type, omit_ns);
 
-        if (h.typeCode() != NT_HASH)
-            throw SOAP_SERIALIZATION_ERROR, sprintf("expecting hash argument to serialize from complexType %y (got %y, type %y)", getName(), h, type(h));
-
         # process attributes first
         *hash ah;
-        if (h."^attributes^") {
-            hash mah = remove h."^attributes^";
-            foreach string k in (mah.keyIterator()) {
-                if (!attrs{k})
-                    throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set unknown attribute %y of element %y; known attributes: %y", k, getName(), attrs.keys());
-                if (attrs{k}.use == "prohibited")
-                    throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set attribute %y of element %y; the WSDL marks this attribute as prohibited", k, getName());
-                ah{k} = mah{k};
+        if (h.typeCode() == NT_HASH) {
+            if (h."^attributes^") {
+                hash mah = remove h."^attributes^";
+                foreach string k in (mah.keyIterator()) {
+                    if (!attrs{k})
+                        throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set unknown attribute %y of element %y; known attributes: %y", k, getName(), attrs.keys());
+                    if (attrs{k}.use == "prohibited")
+                        throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set attribute %y of element %y; the WSDL marks this attribute as prohibited", k, getName());
+                    ah{k} = mah{k};
+                }
             }
-        }
-        # check for required attributes
-        foreach XsdAttribute attr in (attrs.iterator()) {
-            if (attr.use == "required" && !exists ah.(attr.name))
-                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), attr.name);
+            # check for required attributes
+            foreach XsdAttribute attr in (attrs.iterator()) {
+                if (attr.use == "required" && !exists ah.(attr.name))
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), attr.name);
+            }
         }
 
         hash rh;
 
-        if (hash_type == XET_SEQUENCE || hash_type == XET_ALL) {
-            foreach string p in (elementmap.keyIterator()) {
-                #printf("DEBUG element: %y (%y)\nvalue: %y\n", p, elementmap{p}, h{p});
-                rh += serializeElement(p, h, omit_type, omit_ns);
-                delete h{p};
-            }
-            if (elements h) {
-                any kl = h.size() == 1 ? h.firstKey() : h.keys();
-                throw SOAP_SERIALIZATION_ERROR, sprintf("%y %s of type %y (valid elements: %y)", kl, kl.lsize() == 1 ? "is an invalid member" : "are invalid members", getName(), elementmap.keys());
-            }
-        }
-        else if (hash_type == XET_CHOICE) { # "choice" - union
-            if (elements h > 1)
-                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize type %s with more than 1 member (%y)", getName(), keys h);
-            *string key = h.firstKey();
-            if (!elementmap{key})
-                throw SOAP_SERIALIZATION_ERROR, sprintf("%y is an invalid member of type %y", key, getName());
-
-            # add namespace if necessary
-            rh = serializeElement(key, h, omit_type, omit_ns);
-        }
-        else { # "simple"
+        if (hash_type == XET_SIMPLE) {
+            if (exists h."^value^")
+                h = h."^value^";
             rh."^value^" = simpleType.serialize(h, omit_type, omit_ns);
+        }
+        else {
+            if (h.typeCode() != NT_HASH)
+                throw SOAP_SERIALIZATION_ERROR, sprintf("expecting hash argument to serialize from complexType %y (got %y, type %y)", getName(), h, type(h));
+
+            if (hash_type == XET_SEQUENCE || hash_type == XET_ALL) {
+                foreach string p in (elementmap.keyIterator()) {
+                    #printf("DEBUG element: %y (%y)\nvalue: %y\n", p, elementmap{p}, h{p});
+                    rh += serializeElement(p, h, omit_type, omit_ns);
+                    delete h{p};
+                }
+                if (elements h) {
+                    any kl = h.size() == 1 ? h.firstKey() : h.keys();
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("%y %s of type %y (valid elements: %y)", kl, kl.lsize() == 1 ? "is an invalid member" : "are invalid members", getName(), elementmap.keys());
+                }
+            }
+            else { # "choice" - union
+                if (elements h > 1)
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize type %s with more than 1 member (%y)", getName(), keys h);
+                *string key = h.firstKey();
+                if (!elementmap{key})
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("%y is an invalid member of type %y", key, getName());
+
+                # add namespace if necessary
+                rh = serializeElement(key, h, omit_type, omit_ns);
+            }
         }
 
         if (name && !omit_type)
@@ -1444,7 +1453,11 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         }
 
         if (hash_type == XET_SIMPLE) {
-            rh."^value^" = simpleType.deserialize(name, types, mrh, val);
+            any sv = simpleType.deserialize(name, types, mrh, val);
+            if (sv.typeCode() == NT_HASH)
+                rh = sv;
+            else
+                rh."^value^" = sv;
         }
         else {
             if (oval.typeCode() != NT_HASH)

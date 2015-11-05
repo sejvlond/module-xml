@@ -12,6 +12,15 @@
 	  <s:attribute name="code" type="s:int" use="required"/>
 	</s:complexType>
       </s:element>
+      <s:element name="Test">
+	<s:complexType>
+	  <s:simpleContent>
+            <s:extension base="s:string">
+              <s:attribute name="info" type="s:string" use="required"/>
+            </s:extension>
+          </s:simpleContent>
+	</s:complexType>
+      </s:element>
       <s:element name="SetInfoResult" type="s:string"/>
       <s:element name="GetInfo">
 	<s:complexType>
@@ -42,6 +51,7 @@
 
   <wsdl:message name="m3">
     <wsdl:part name="body" element="tns:SetInfo"/>
+    <wsdl:part name="test" element="tns:Test"/>
     <wsdl:part name="logo" type="s:base64Binary"/>
   </wsdl:message>
 
