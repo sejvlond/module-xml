@@ -1195,7 +1195,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 parseData(d.extension, unresolved);
             }
             else
-                throw "XSD-COMPLEXCONTENT-ERROR", sprintf("can't parse complexContent %y information", d.firstKey());
+                throw "XSD-COMPLEXCONTENT-ERROR", sprintf("can't parse complexContent %y %y information", getName(), d.firstKey());
         }
         else if (ct.simpleContent) {
             d = ct.simpleContent;
@@ -1213,9 +1213,6 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
     }
 
     finalize(TypeMap tmap, Namespaces nsc) {
-        if (!finalized && (extension || restriction))
-            printf("%s: restriction: %y extension: %y elementmap: %y\n", name, restriction, extension, elementmap.keys());
-
         if (finalized)
             return;
         finalized = True;
@@ -1337,17 +1334,17 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return h;
     }
 
-    private *hash serializeElement(string key, any h, *softbool omit_type, *softbool omit_ns) {
+    private *hash serializeElement(string key, XsdElement element, any h, *softbool omit_type, *softbool omit_ns) {
         any e;
         any v = h{key};
         string e_ons;
         #printf("DEBUG: XsdComplexType::serializeElement() key: %y v: %y h: %y ns: %y\n", key, v, h, nsc.getTargetNamespaceUri());
         if (v."^type^" && v."^type^" instanceof XsdAbstractType && v.hasKey("^val^")) {
             #printf("DBG: type: %s: %y val: %y\n", v."^type^".className(), v."^type^".name, v."^val^");
-            e = elementmap{key}.serializeAs(v."^type^", v."^val^", omit_type, omit_ns, key, name, \e_ons);
+            e = element.serializeAs(v."^type^", v."^val^", omit_type, omit_ns, key, name, \e_ons);
         }
         else
-            e = elementmap{key}.serialize(v, omit_type, omit_ns, key, name, \e_ons);
+            e = element.serialize(v, omit_type, omit_ns, key, name, \e_ons);
 
         if (!exists e)
             return;
@@ -1402,7 +1399,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             if (cx_type == XET_SEQUENCE || cx_type == XET_ALL) {
                 foreach string p in (elementmap.keyIterator()) {
                     #printf("DEBUG element: %y (%y)\nvalue: %y\n", p, elementmap{p}, h{p});
-                    rh += serializeElement(p, h, omit_type, omit_ns);
+                    rh += serializeElement(p, elementmap{p}, h, omit_type, omit_ns);
                     delete h{p};
                 }
 
@@ -1413,11 +1410,15 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                         if (ch.required)
                             throw SOAP_SERIALIZATION_ERROR, sprintf("expecting one of %y to serialize choice / union in complexType %y but no such keys were supplied", ch.elementmap.keys(), getName());
                     }
-                    else
-                        rh += serializeChoice(ch.elementmap, vh, omit_type, omit_ns);
+                    else {
+                        hash rch = serializeChoice(ch.elementmap, vh, omit_type, omit_ns);
+                        # remove the serialized key from the input hash for the check below
+                        remove h{vh.firstKey()};
+                        rh += rch;
+                    }
                 }
 
-                if (elements h) {
+                if (h) {
                     any kl = h.size() == 1 ? h.firstKey() : h.keys();
                     throw SOAP_SERIALIZATION_ERROR, sprintf("%y %s of type %y (valid elements: %y)", kl, kl.lsize() == 1 ? "is an invalid member" : "are invalid members", getName(), elementmap.keys());
                 }
@@ -1443,7 +1444,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             throw SOAP_SERIALIZATION_ERROR, sprintf("%y is an invalid member of choice / union in complexType %y; expecting one of: %y", key, getName(), emap.keys());
 
         # add namespace if necessary
-        return serializeElement(key, h, omit_type, omit_ns);
+        return serializeElement(key, emap{key}, h, omit_type, omit_ns);
     }
 
     *hash deserialize(string en, *TypeMap tmap, *hash mrh, any oval) {

@@ -26,7 +26,18 @@ class SoapTest inherits QUnit::Test {
 
         hash req = (
             "body": ("name": "QORE", "id": 500),
-            "test": ("^attributes^": ("info": "test"), "^value^": "test"),
+            "test": (
+                "^attributes^": ("info": "test"),
+                "^value^": "test",
+            ),
+            "issue86": (
+                "issue86_1_1": "i86_1",
+                "issue86_1_2": "i86_2",
+            ),
+            "issue87": (
+                "issue87e1": "i87",
+                "choice12": "i87c12",
+            ),
             "logo": binary("test"),
             );
 
@@ -39,7 +50,7 @@ class SoapTest inherits QUnit::Test {
             );
 
         hash h = op.serializeRequest(req);
-        testAssertionValue("attr-ser", h.body, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><soapenv:Envelope xmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:ns1=\"http://qore.org/simpletest\"><soapenv:Body><ns1:setInfo><ns1:SetInfo infoType=\"test\" code=\"1\"><ns1:name>QORE</ns1:name><ns1:id>500</ns1:id></ns1:SetInfo><ns1:Test info=\"test\">test</ns1:Test><logo>dGVzdA==</logo></ns1:setInfo></soapenv:Body></soapenv:Envelope>");
+        testAssertionValue("attr-ser", h.body, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><soapenv:Envelope xmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:ns1=\"http://qore.org/simpletest\" xmlns:ns2=\"http://qore.org/simpletest1\"><soapenv:Body><ns1:setInfo><ns1:SetInfo infoType=\"test\" code=\"1\"><ns1:name>QORE</ns1:name><ns1:id>500</ns1:id></ns1:SetInfo><ns1:Test info=\"test\">test</ns1:Test><ns1:issue86><ns1:issue86_1_1>i86_1</ns1:issue86_1_1><ns1:issue86_1_2>i86_2</ns1:issue86_1_2></ns1:issue86><ns1:issue87><ns1:issue87e1>i87</ns1:issue87e1><ns1:choice12>i87c12</ns1:choice12></ns1:issue87><logo>dGVzdA==</logo></ns1:setInfo></soapenv:Body></soapenv:Envelope>");
 
         h = parse_xml(h.body);
         h = op.deserializeRequest(h);
