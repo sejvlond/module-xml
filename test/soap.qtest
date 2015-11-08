@@ -40,6 +40,8 @@ class NsMap {
 
 class SoapTest inherits QUnit::Test {
     public {
+        # all values are strings here because we do raw XML parsing and not SOAP deserialization for the comparison
+        # to avoid comparing values generated and parsed with the same code which would result in an identity test
         const Req_1 = (
             "soap:Envelope": (
                 "^attributes^": (
@@ -114,12 +116,52 @@ class SoapTest inherits QUnit::Test {
             );
 
         hash h = op.serializeRequest(req, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
-        compareSoapMsgs("attr-ser", parse_xml(h.body), Req_1);
+        hash xh = parse_xml(h.body);
+        compareSoapMsgs("attr-ser", xh, Req_1);
 
         h = parse_xml(h.body);
         h = op.deserializeRequest(h);
 
         testAssertionValue("attr-deser", h, req);
+
+        # do negative tests to ensure that namespace handling is correct in our test code
+        {
+            NsMap nh = SoapTest::getNamespaceMap(Req_1);
+            string ek = SoapTest::getKey(nh.se, "Envelope");
+            string bk = SoapTest::getKey(nh.se, "Body");
+            string pfx = nh.umap."http://qore.org/simpletest";
+            string sik1 = SoapTest::getKey(pfx, "setInfo");
+            string sik2 = SoapTest::getKey(pfx, "SetInfo");
+
+            hash r1 = Req_1;
+
+            # rename key with an undefined namespace
+            r1{ek}{bk}{sik1}."xxx:SetInfo" = remove r1{ek}{bk}{sik1}{sik2};
+            testAssertion("attr-ser-neg-1", \compareSoapMsgs(), ("attr-ser", xh, r1), new TestResultExceptionType("SOAP-NAMESPACE-ERROR"));
+
+            # rename key with a defined but incorrect namespace
+            string sik = sprintf("%s:SetInfo", nh.umap."http://www.w3.org/2003/05/soap-envelope");
+            r1{ek}{bk}{sik1}{sik} = remove r1{ek}{bk}{sik1}."xxx:SetInfo";
+            testAssertion("attr-ser-neg-2", \compareSoapMsgs(), ("attr-ser", xh, r1), new TestResultExceptionType("TEST-EXCEPTION"));
+        }
+
+        {
+            NsMap nh = SoapTest::getNamespaceMap(xh);
+            string ek = SoapTest::getKey(nh.se, "Envelope");
+            string bk = SoapTest::getKey(nh.se, "Body");
+            string pfx = nh.umap."http://qore.org/simpletest";
+            string sik1 = SoapTest::getKey(pfx, "setInfo");
+            string sik2 = SoapTest::getKey(pfx, "SetInfo");
+
+            # rename key with an undefined namespace
+            xh{ek}{bk}{sik1}."xxx:SetInfo" = remove xh{ek}{bk}{sik1}{sik2};
+            testAssertion("attr-ser-neg-3", \compareSoapMsgs(), ("attr-ser", xh, Req_1), new TestResultExceptionType("TEST-EXCEPTION"));
+
+            # rename key with a defined but incorrect namespace
+            pfx = nh.umap."http://www.w3.org/2003/05/soap-envelope";
+            xh{ek}{bk}{sik1}{pfx} = remove xh{ek}{bk}{sik1}."xxx:SetInfo";
+            testAssertion("attr-ser-neg-4", \compareSoapMsgs(), ("attr-ser", xh, Req_1), new TestResultExceptionType("TEST-EXCEPTION"));
+        }
     }
 
     compareSoapMsgs(string assert, hash h1, hash h2) {
@@ -139,20 +181,20 @@ class SoapTest inherits QUnit::Test {
             return;
         }
 
-        foreach string rkey in (v1.keyIterator()) {
-            (*string nsp1, *string key) = (rkey =~ x/^(\w+):(\w+)$/);
-            if (!nsp1) {
-                testAssertionValue(assert + sprintf(" (%s.%s)", loc, rkey), v1{rkey}, v2{rkey});
+        foreach string rkey in (v2.keyIterator()) {
+            (*string nsp2, *string key) = (rkey =~ x/^(\w+):(\w+)$/);
+            if (!nsp2) {
+                testAssertionValue(sprintf("%s (%s.%s)", assert, loc, rkey), v1{rkey}, v2{rkey});
                 continue;
             }
-            *string uri1 = nh1.pmap{nsp1};
-            if (!exists uri1)
-                throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) namespace prefix in %y is not defined", assert, loc, rkey);
-            *string nsp2 = nh2.umap{uri1};
-            if (!exists nsp2)
-                throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) namespace URI %y in the given key %y is not defined in the expected value", assert, loc, uri1, rkey);
-            string k2 = SoapTest::getKey(nsp2, key);
-            compareSoapValue(assert, sprintf("%s.%s", loc, key), v1{rkey}, v2{k2}, nh1, nh2);
+            *string uri2 = nh2.pmap{nsp2};
+            if (!exists uri2)
+                throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) namespace prefix in %y in the expected value is not defined", assert, loc, rkey);
+            *string nsp1 = nh1.umap{uri2};
+            if (!exists nsp1)
+                throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) expected namespace URI %y in key %y is not defined in the given value", assert, loc, uri2, rkey);
+            string k1 = SoapTest::getKey(nsp1, key);
+            compareSoapValue(assert, sprintf("%s.%s", loc, key), v1{k1}, v2{rkey}, nh1, nh2);
         }
     }
 
