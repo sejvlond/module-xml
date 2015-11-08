@@ -14,7 +14,71 @@
 %requires ../qlib/WSDL.qm
 %requires xml
 
+# maps from namespace prefixes to URIs and vice-versa
+class NsMap {
+    public {
+        # maps from prefixes to URIs
+        hash pmap;
+        # maps from URIs to prefixes
+        hash umap;
+
+        # soap envelope name
+        string se;
+    }
+
+    set(string prefix, string uri) {
+        if (exists pmap{prefix})
+            throw "SOAP-ENVELOPE-ERROR", sprintf("prefix %y given more than once in SOAP envelope attributes", prefix);
+
+        pmap{prefix} = uri;
+        umap{uri} = prefix;
+
+        if (uri == SOAP_12_ENV || uri == SOAP_11_ENV)
+            se = prefix;
+    }
+}
+
 class SoapTest inherits QUnit::Test {
+    public {
+        const Req_1 = (
+            "soap:Envelope": (
+                "^attributes^": (
+                    "xmlns:soap": "http://www.w3.org/2003/05/soap-envelope",
+                    "xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
+                    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                    "xmlns:st": "http://qore.org/simpletest",
+                ),
+                "soap:Body": (
+                    "st:setInfo": (
+                        "st:SetInfo": (
+                            "^attributes^": (
+                                "infoType": "test",
+                                "code": "1",
+                            ),
+                            "st:name": "QORE",
+                            "st:id": "500",
+                        ),
+                        "st:Test": (
+                            "^attributes^": (
+                                "info": "test",
+                            ),
+                            "^value^": "test",
+                        ),
+                        "st:issue86": (
+                            "st:issue86_1_1": "i86_1",
+                            "st:issue86_1_2": "i86_2",
+                        ),
+                        "st:issue87": (
+                            "st:issue87e1": "i87",
+                            "st:choice12": "i87c12",
+                        ),
+                        "logo": "dGVzdA==",
+                    ),
+                ),
+            ),
+            );
+    }
+
     constructor() : QUnit::Test("SoapTest", "1.0") {
         addTestCase("AttributeTest", \attributeTest());
         set_return_value(main());
@@ -49,12 +113,76 @@ class SoapTest inherits QUnit::Test {
             "code": 1,
             );
 
-        hash h = op.serializeRequest(req);
-        testAssertionValue("attr-ser", h.body, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><soapenv:Envelope xmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:ns1=\"http://qore.org/simpletest\" xmlns:ns2=\"http://qore.org/simpletest1\"><soapenv:Body><ns1:setInfo><ns1:SetInfo infoType=\"test\" code=\"1\"><ns1:name>QORE</ns1:name><ns1:id>500</ns1:id></ns1:SetInfo><ns1:Test info=\"test\">test</ns1:Test><ns1:issue86><ns1:issue86_1_1>i86_1</ns1:issue86_1_1><ns1:issue86_1_2>i86_2</ns1:issue86_1_2></ns1:issue86><ns1:issue87><ns1:issue87e1>i87</ns1:issue87e1><ns1:choice12>i87c12</ns1:choice12></ns1:issue87><logo>dGVzdA==</logo></ns1:setInfo></soapenv:Body></soapenv:Envelope>");
+        hash h = op.serializeRequest(req, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
+        compareSoapMsgs("attr-ser", parse_xml(h.body), Req_1);
 
         h = parse_xml(h.body);
         h = op.deserializeRequest(h);
 
         testAssertionValue("attr-deser", h, req);
+    }
+
+    compareSoapMsgs(string assert, hash h1, hash h2) {
+        # get namespace hashes and soap envelope prefix
+        NsMap nh1 = SoapTest::getNamespaceMap(h1);
+        NsMap nh2 = SoapTest::getNamespaceMap(h2);
+
+        hash b1 = SoapTest::getValue(h1, nh1.se, "Envelope", "Body");
+        hash b2 = SoapTest::getValue(h2, nh2.se, "Envelope", "Body");
+
+        compareSoapValue(assert, "Envelope.Body", b1, b2, nh1, nh2);
+    }
+
+    compareSoapValue(string assert, string loc, any v1, any v2, NsMap nh1, NsMap nh2) {
+        if (v1.typeCode() != NT_HASH) {
+            testAssertionValue(sprintf("%s (%s)", assert, loc), v1, v2);
+            return;
+        }
+
+        foreach string rkey in (v1.keyIterator()) {
+            (*string nsp1, *string key) = (rkey =~ x/^(\w+):(\w+)$/);
+            if (!nsp1) {
+                testAssertionValue(assert + sprintf(" (%s.%s)", loc, rkey), v1{rkey}, v2{rkey});
+                continue;
+            }
+            *string uri1 = nh1.pmap{nsp1};
+            if (!exists uri1)
+                throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) namespace prefix in %y is not defined", assert, loc, rkey);
+            *string nsp2 = nh2.umap{uri1};
+            if (!exists nsp2)
+                throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) namespace URI %y in the given key %y is not defined in the expected value", assert, loc, uri1, rkey);
+            string k2 = SoapTest::getKey(nsp2, key);
+            compareSoapValue(assert, sprintf("%s.%s", loc, key), v1{rkey}, v2{k2}, nh1, nh2);
+        }
+    }
+
+    static any getValue(hash h, string nsp, string key) {
+        any rv = h{SoapTest::getKey(nsp, key)};
+        map rv = rv{SoapTest::getKey(nsp, $1)}, argv;
+        return rv;
+    }
+
+    static string getKey(string nsp, string key) {
+        return sprintf("%s:%s", nsp, key);
+    }
+
+    static NsMap getNamespaceMap(hash h) {
+        string fk = h.firstKey();
+        h = h{fk};
+
+        NsMap rv();
+        foreach hash ah in (h."^attributes^".pairIterator()) {
+            (*string xmlns, *string prefix) = (ah.key =~ x/^(\w+):(\w+)$/);
+            if (xmlns != "xmlns")
+                continue;
+            rv.set(prefix, ah.value);
+        }
+        if (!rv.se)
+            throw "SOAP-ENVELOPE-ERROR", sprintf("no SOAP envelope namespace provided in SOAP envelope attributes: %y", h."^attributes^");
+
+        if (fk != sprintf("%s:Envelope", rv.se))
+            throw "SOAP-ENVELOPE-ERROR", sprintf("SOAP envelope key %y is not in the SOAP envelope namespace: %y", fk, rv.se);
+
+        return rv;
     }
 }
