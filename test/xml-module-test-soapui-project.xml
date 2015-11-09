@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project activeEnvironment="Default" name="xml-module test" resourceRoot="" soapui-version="5.0.0" xmlns:con="http://eviware.com/soapui/config"><con:settings/><con:interface xsi:type="con:WsdlInterface" wsaVersion="NONE" name="b1" type="wsdl" bindingName="{http://qore.org/simpletest}b1" soapVersion="1_2" anonymous="optional" definition="file:/Users/david/src/qore/git/module-xml/test/test.wsdl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache type="TEXT" rootPart="file:/Users/david/src/qore/git/module-xml/test/test.wsdl"><con:part><con:url>file:/Users/david/src/qore/git/module-xml/test/test.wsdl</con:url><con:content><![CDATA[<wsdl:definitions targetNamespace="http://qore.org/simpletest" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://qore.org/simpletest" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest" xmlns:tns1="http://qore.org/simpletest1">
+      <s:import namespace="http://qore.org/simpletest1"/>
+      <s:element name="SetInfo">
+        <s:complexType>
+          <s:all>
+            <s:element name="name" type="s:string"/>
+            <s:element name="id" type="s:int"/>
+          </s:all>
+          <s:attribute name="infoType" type="s:string" use="required"/>
+          <s:attribute name="code" type="s:int" use="required"/>
+        </s:complexType>
+      </s:element>
+      <s:element name="Test">
+        <s:complexType>
+          <s:simpleContent>
+            <s:extension base="s:string">
+              <s:attribute name="info" type="s:string" use="required"/>
+            </s:extension>
+          </s:simpleContent>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="issue86">
+        <s:sequence>
+          <s:element maxOccurs="1" minOccurs="1" ref="tns:issue86"/>
+          <!--add data element here in interface specific wsdl, can be any type-->
+        </s:sequence>
+      </s:complexType>
+      <s:element name="issue86" type="tns:issue86_2"/>
+      <s:complexType name="issue86_2">
+        <s:complexContent>
+          <s:extension base="tns1:issue86_1">
+            <s:sequence>
+              <s:element name="issue86_1_2" nillable="false" type="s:string"/>
+            </s:sequence>
+          </s:extension>
+        </s:complexContent>
+      </s:complexType>
+      <s:element name="issue87">
+        <s:complexType>
+          <s:sequence>
+            <s:element name="issue87e1" type="s:string"/>
+            <s:choice minOccurs="1">
+              <s:element name="choice11" type="s:string"/>
+              <s:element name="choice12" type="s:string"/>
+            </s:choice>
+            <s:choice minOccurs="0">
+              <s:element name="choice21" type="s:int"/>
+              <s:element name="choice22" type="s:int"/>
+            </s:choice>
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="SetInfoResult" type="s:string"/>
+      <s:element name="GetInfo">
+        <s:complexType>
+          <s:all>
+            <s:element name="tickerSymbol" type="s:string"/>
+          </s:all>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetInfoResult">
+        <s:complexType>
+          <s:all>
+            <s:element name="result" type="s:decimal"/>
+          </s:all>
+        </s:complexType>
+      </s:element>
+    </s:schema>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest1" xmlns:tns1="http://qore.org/simpletest1">
+      <s:element name="issue86" type="tns1:issue86_1"/>
+      <s:complexType name="issue86_1">
+        <s:sequence>
+          <s:element name="issue86_1_1" nillable="false" type="s:string"/>
+        </s:sequence>
+      </s:complexType>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="m1">
+    <wsdl:part name="body" element="tns:GetInfo"/>
+  </wsdl:message>
+  <wsdl:message name="m2">
+    <wsdl:part name="body" element="tns:GetInfoResult"/>
+    <wsdl:part name="docs" type="s:string"/>
+    <wsdl:part name="logo" type="s:base64Binary"/>
+  </wsdl:message>
+  <wsdl:message name="m3">
+    <wsdl:part name="body" element="tns:SetInfo"/>
+    <wsdl:part name="test" element="tns:Test"/>
+    <wsdl:part name="issue86" element="tns:issue86"/>
+    <wsdl:part name="issue87" element="tns:issue87"/>
+    <wsdl:part name="logo" type="s:base64Binary"/>
+  </wsdl:message>
+  <wsdl:message name="m4">
+    <wsdl:part name="body" element="tns:SetInfoResult"/>
+  </wsdl:message>
+  <wsdl:portType name="pt1">
+    <wsdl:operation name="getInfo">
+      <wsdl:input message="tns:m1"/>
+      <wsdl:output message="tns:m2"/>
+    </wsdl:operation>
+    <wsdl:operation name="setInfo">
+      <wsdl:input message="tns:m3"/>
+      <wsdl:output message="tns:m4"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="b1" type="tns:pt1">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc"/>
+    <wsdl:operation name="getInfo">
+      <soap12:operation soapAction="http://qore.org/getInfo"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="setInfo">
+      <soap12:operation soapAction="http://qore.org/setInfo"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="InfoService">
+    <wsdl:port name="InfoPort" binding="tns:b1">
+      <soap12:address location="http://localhost:8001/SOAP/simple"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint></con:endpoints><con:operation isOneWay="false" action="http://qore.org/getInfo" name="getInfo" bindingOperationName="getInfo" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call name="Request 1"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest">
+   <soap:Header/>
+   <soap:Body>
+      <sim:getInfo>
+         <sim:GetInfo>
+            <sim:tickerSymbol>?</sim:tickerSymbol>
+         </sim:GetInfo>
+      </sim:getInfo>
+   </soap:Body>
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://qore.org/simpletest/pt1/getInfoRequest"/><con:wsrmConfig version="1.2"/></con:call></con:operation><con:operation isOneWay="false" action="http://qore.org/setInfo" name="setInfo" bindingOperationName="setInfo" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call name="Request 1"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest" xmlns:sim1="http://qore.org/simpletest1">
+   <soap:Header/>
+   <soap:Body>
+      <sim:setInfo>
+         <sim:SetInfo infoType="?" code="?">
+            <!--You may enter the following 2 items in any order-->
+            <sim:name>?</sim:name>
+            <sim:id>?</sim:id>
+         </sim:SetInfo>
+         <sim:Test info="?">?</sim:Test>
+         <sim:issue86>
+            <sim1:issue86_1_1>?</sim1:issue86_1_1>
+            <sim:issue86_1_2>?</sim:issue86_1_2>
+         </sim:issue86>
+         <sim:issue87>
+            <sim:issue87e1>?</sim:issue87e1>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <sim:choice11>?</sim:choice11>
+            <sim:choice12>?</sim:choice12>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <sim:choice21>?</sim:choice21>
+            <sim:choice22>?</sim:choice22>
+         </sim:issue87>
+         <logo>cid:711683253497</logo>
+      </sim:setInfo>
+   </soap:Body>
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://qore.org/simpletest/pt1/setInfoRequest"/><con:wsrmConfig version="1.2"/></con:call></con:operation></con:interface><con:testSuite name="b1 TestSuite"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="getInfo TestCase" searchProperties="true"><con:settings/><con:testStep type="request" name="getInfo"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>b1</con:interface><con:operation>getInfo</con:operation><con:request name="getInfo"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest">
+   <soap:Header/>
+   <soap:Body>
+      <sim:getInfo>
+         <sim:GetInfo>
+            <sim:tickerSymbol>?</sim:tickerSymbol>
+         </sim:GetInfo>
+      </sim:getInfo>
+   </soap:Body>
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:wsaConfig action="http://qore.org/simpletest/pt1/getInfoRequest"/></con:request></con:config></con:testStep><con:properties/></con:testCase><con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="setInfo TestCase" searchProperties="true"><con:settings/><con:testStep type="request" name="setInfo"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>b1</con:interface><con:operation>setInfo</con:operation><con:request name="setInfo"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest" xmlns:sim1="http://qore.org/simpletest1">
+   <soap:Header/>
+   <soap:Body>
+      <sim:setInfo>
+         <sim:SetInfo infoType="?" code="?">
+            <!--You may enter the following 2 items in any order-->
+            <sim:name>?</sim:name>
+            <sim:id>?</sim:id>
+         </sim:SetInfo>
+         <sim:Test info="?">?</sim:Test>
+         <sim:issue86>
+            <sim1:issue86_1_1>?</sim1:issue86_1_1>
+            <sim:issue86_1_2>?</sim:issue86_1_2>
+         </sim:issue86>
+         <sim:issue87>
+            <sim:issue87e1>?</sim:issue87e1>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <sim:choice11>?</sim:choice11>
+            <sim:choice12>?</sim:choice12>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <sim:choice21>?</sim:choice21>
+            <sim:choice22>?</sim:choice22>
+         </sim:issue87>
+         <logo>cid:427400660399</logo>
+      </sim:setInfo>
+   </soap:Body>
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:wsaConfig action="http://qore.org/simpletest/pt1/setInfoRequest"/></con:request></con:config></con:testStep><con:properties/></con:testCase><con:properties/></con:testSuite><con:properties/><con:wssContainer/><con:oAuth2ProfileContainer/><con:sensitiveInformation/></con:soapui-project>
