@@ -548,7 +548,11 @@ public class WSDL::XsdAbstractType inherits WSDL::XsdNamedData {
         return ons + ":" + name;
     }
 
-    bool required() {
+    bool isNillable() {
+        return False;
+    }
+
+    bool isRequired() {
         return True;
     }
 
@@ -936,8 +940,10 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
             type = new XsdSimpleType(e.simpleType, nsc, unresolved, sprintf("simpleType for element %y", name));
         else if (e.hasKey("complexType")) {
             type = new XsdComplexType(e.complexType, nsc, unresolved, sprintf("complexType for element %y", name));
-            if (!type.required() && !exists a.minOccurs)
+            if (!type.isRequired() && !exists a.minOccurs)
                 minOccurs = 0;
+            if (type.isNillable() && !exists a.nillable)
+                nillable = True;
         }
         else if (e."^attributes^".ref) {
             ref = e."^attributes^".ref;
@@ -949,9 +955,20 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
         map self.$1 = other.$1, other.keyIterator(), !exists self.$1;
     }
 
-    bool required() {
-        return !nillable && minOccurs && ((type instanceof XsdAbstractType && type.required()) | True);
+    bool isRequired() {
+        return minOccurs > 0;
     }
+
+    bool isNillable() {
+        return nillable;
+    }
+
+    /*
+    bool isRequired() {
+        #printf("DBG %y: required nillable: %y minOccurs: %y type: %y\n", name, nillable, minOccurs, ((type instanceof XsdAbstractType && type.isRequired()) | True));
+        return !nillable && minOccurs && ((type instanceof XsdAbstractType && type.isRequired()) | True);
+    }
+    */
 
     any serialize(any h, *softbool omit_type, *softbool omit_ns, string key, string typename, reference ons) {
         if (type.typeCode() == NT_HASH)
@@ -975,14 +992,14 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
             if (!minOccurs)
                 return;
 
-            if (nillable) {
+            if (nillable || type.isNillable()) {
                 hash rh = ("xsi:nil" : "true");
                 if (!omit_type)
                     rh += ("xsi:type" : type.getNameWithNS());
                 return ("^attributes^" : rh);
             }
 
-            if (!type.required())
+            if (!type.isRequired())
                 return;
 
             throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value for %s::%s (minOccurs: %d, type %y)", name, typename, key, minOccurs, type.getName());
@@ -1013,14 +1030,14 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
         return (pf + type.serialize(h, omit_type, omit_ns));
     }
 
-    any deserialize(*TypeMap tmap, *hash mrh, any val) {
+    any deserialize(*TypeMap tmap, *hash mrh, any val, bool present) {
         any a = val."^attributes^";
         WSDL::XsdBase::removeNS(\a);
 
-        if (!exists val || a.nil == "true" && !mrh.body.hasKey(name)) {
-            if (nillable || !minOccurs)
+        if ((!exists val || a.nil == "true") && !present) {
+            if (nillable || type.isNillable() || !minOccurs)
                 return;
-            throw SOAP_DESERIALIZATION_ERROR, sprintf("NOTHING passed for element %y, but nillable=False and minOccurs: %d", name, minOccurs);
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("NOTHING passed for element %y type %y, but nillable=False and minOccurs: %d", name, type.getName(), minOccurs);
         }
 
         if (val.typeCode() == NT_LIST) {
@@ -1112,6 +1129,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
         bool anyAttribute = False;
 
+        bool nillable = False;
         bool required = False;
 
         # attributes
@@ -1289,7 +1307,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             WSDL::XsdBase::removeNS(\d.sequence.choice);
             foreach hash ch in (d.sequence.choice) {
                 #printf("ch: %y\n", ch);
-                *hash h = parseElements(ch.element, unresolved);
+                *hash h = parseElements(ch.element, unresolved, False);
                 if (h) {
                     hash ech.elementmap = h;
                     if (ch."^attributes^".minOccurs > 0)
@@ -1317,20 +1335,31 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         }
     }
 
-    bool required() {
+    bool isNillable() {
+        return nillable;
+    }
+
+    bool isRequired() {
         return required;
     }
 
-    private *hash parseElements(softlist el, XsdLateResolverHelper unresolved) {
+    private *hash parseElements(softlist el, XsdLateResolverHelper unresolved, bool for_object = True) {
         #printf("DEBUG: XsdComplexType::parseElements(%y)\n", el);
         hash h;
         foreach hash e in (el) {
             #printf("DEBUG: XsdComplexType::parseElements() ns: %y e: %y\n", nsc.getTargetNamespaceUri(), e);
             XsdElement elem(e, nsc, NOTHING, unresolved);
             h.(elem.name) = elem;
-            if (!required && elem.required())
+
+            if (for_object && !required && elem.isRequired())
                 required = True;
         }
+
+        if (for_object) {
+            if (h.size() == 1 && h.firstValue().isNillable())
+                nillable = True;
+        }
+
         return h;
     }
 
@@ -1346,7 +1375,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         else
             e = element.serialize(v, omit_type, omit_ns, key, name, \e_ons);
 
-        if (!exists e)
+        if (!exists e && !element.isRequired())
             return;
 
         /*
@@ -1393,7 +1422,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             rh."^value^" = simpleType.serialize(h, omit_type, omit_ns);
         }
         else if (cx_type != XET_NONE) {
-            if (h.typeCode() != NT_HASH)
+            if (exists h && h.typeCode() != NT_HASH)
                 throw SOAP_SERIALIZATION_ERROR, sprintf("expecting hash argument to serialize from complexType %y (got %y, type %y)", getName(), h, type(h));
 
             if (cx_type == XET_SEQUENCE || cx_type == XET_ALL) {
@@ -1458,7 +1487,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
         hash rh;
 
-        hash val = oval;
+        *hash val = oval;
         *hash attr = val."^attributes^";
 
         # attribute hash
@@ -1513,13 +1542,13 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 rh."^value^" = sv;
         }
         else if (cx_type != XET_NONE) {
-            if (val.typeCode() != NT_HASH)
+            if (exists val && val.typeCode() != NT_HASH)
                 throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y type %y from qore type %y (expecting hash)", en, getName(), val.type());
 
             if (cx_type == XET_SEQUENCE || cx_type == XET_ALL) {
                 foreach string p in (elementmap.keyIterator()) {
                     #printf("element %y\n", p);
-                    rh{p} = elementmap{p}.deserialize(tmap, mrh, getValue(mrh, val{p}));
+                    rh{p} = elementmap{p}.deserialize(tmap, mrh, getValue(mrh, val{p}), val.hasKey(p));
                     delete val{p};
                 }
                 # also parse each choice block, if any
@@ -1558,7 +1587,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         if (!exists emap{kl})
             throw SOAP_DESERIALIZATION_ERROR, sprintf("element %y is not a valid element for choice / union in type %y for element %y (valid elements: %y)", kl, getName(), en, emap.keys());
 
-        return (kl: emap{kl}.deserialize(tmap, mrh, getValue(mrh, val{kl})));
+        return (kl: emap{kl}.deserialize(tmap, mrh, getValue(mrh, val{kl}), val.hasKey(kl)));
     }
 }
 
@@ -2163,6 +2192,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         hash ro;
 
         foreach string key in (args.keyIterator()) {
+            bool present = val.hasKey(key);
             any v = remove val{key};
             if (v.typeCode() == NT_HASH)
                 XsdBase::removeNS2(\v);
@@ -2171,9 +2201,8 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
             if (pmap{key} && !args.(pmap{key}))
                 rk = pmap{key};
 
-            # XXX
             ro{rk} = args{key}.element
-                ? args{key}.element.deserialize(tmap, mrh, getValue(mrh, v))
+                ? args{key}.element.deserialize(tmap, mrh, getValue(mrh, v), present)
                 : args{key}.type.deserialize(name, tmap, mrh, getValue(mrh, v));
         }
 
@@ -2192,15 +2221,25 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         #printf("DBG WSMessage::deserializeDocument() args: %y val: %y\n", args.keys(), val);
         if (args.size() == 1) {
             string key = args.firstKey();
-            any v = (val.typeCode() == NT_HASH && val.hasKey(key)) ? remove val{key} : remove val;
+            bool present;
+            any v;
+            if (val.typeCode() == NT_HASH && val.hasKey(key)) {
+                present = True;
+                v = remove val{key};
+            }
+            else {
+                present = exists val;
+                v = remove val;
+            }
             XsdBase::removeNS2(\v);
-            rh = args.firstValue().element.deserialize(tmap, mrh, v);
+            rh = args.firstValue().element.deserialize(tmap, mrh, v, present);
         }
         else {
             foreach string key in (args.keyIterator()) {
+                bool present = val.hasKey(key);
                 any v = remove val{key};
                 XsdBase::removeNS2(\v);
-                rh{key} = args{key}.element.deserialize(tmap, mrh, v);
+                rh{key} = args{key}.element.deserialize(tmap, mrh, v, present);
             }
         }
 

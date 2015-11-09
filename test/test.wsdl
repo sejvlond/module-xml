@@ -53,6 +53,17 @@
 	  </s:sequence>
 	</s:complexType>
       </s:element>
+      <s:element name="issue97" type="tns:issue97"/>
+      <s:complexType name="issue97">
+        <s:sequence>
+          <s:element name="i97list" type="tns:i97list"/>
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="i97list">
+        <s:sequence>
+          <s:element maxOccurs="unbounded" minOccurs="0" name="i97element" type="s:string"/>
+        </s:sequence>
+      </s:complexType>
       <s:element name="SetInfoResult" type="s:string"/>
       <s:element name="GetInfo">
 	<s:complexType>
@@ -94,6 +105,7 @@
     <wsdl:part name="test" element="tns:Test"/>
     <wsdl:part name="issue86" element="tns:issue86"/>
     <wsdl:part name="issue87" element="tns:issue87"/>
+    <wsdl:part name="issue97" element="tns:issue97"/>
     <wsdl:part name="logo" type="s:base64Binary"/>
   </wsdl:message>
 

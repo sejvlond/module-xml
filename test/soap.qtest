@@ -99,6 +99,9 @@ class SoapTest inherits QUnit::Test {
             <!--You have a CHOICE of the next 2 items at this level-->
             <sim:choice12>i87c12</sim:choice12>
          </sim:issue87>
+         <sim:issue97>
+            <sim:i97list/>
+         </sim:issue97>
          <logo>dGVzdA==</logo>
       </sim:setInfo>
    </soap:Body>
@@ -106,11 +109,11 @@ class SoapTest inherits QUnit::Test {
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
-        addTestCase("AttributeTest", \attributeTest());
+        addTestCase("SoapTestCase", \soapTestCase());
         set_return_value(main());
     }
 
-    attributeTest() {
+    soapTestCase() {
         WebService ws = new WebService(ReadOnlyFile::readTextFile(get_script_dir() + "/test.wsdl"));
         WSOperation op = ws.getOperation("setInfo");
 
@@ -127,6 +130,9 @@ class SoapTest inherits QUnit::Test {
             "issue87": (
                 "issue87e1": "i87",
                 "choice12": "i87c12",
+            ),
+            "issue97": (
+                "i97list": NOTHING,
             ),
             "logo": binary("test"),
             );
