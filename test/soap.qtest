@@ -79,6 +79,30 @@ class SoapTest inherits QUnit::Test {
                 ),
             ),
             );
+
+        const SoapUiReq_1 = "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:sim=\"http://qore.org/simpletest\" xmlns:sim1=\"http://qore.org/simpletest1\">
+   <soap:Header/>
+   <soap:Body>
+      <sim:setInfo>
+         <sim:SetInfo infoType=\"test\" code=\"1\">
+            <!--You may enter the following 2 items in any order-->
+            <sim:name>QORE</sim:name>
+            <sim:id>500</sim:id>
+         </sim:SetInfo>
+         <sim:Test info=\"test\">test</sim:Test>
+         <sim:issue86>
+            <sim1:issue86_1_1>i86_1</sim1:issue86_1_1>
+            <sim:issue86_1_2>i86_2</sim:issue86_1_2>
+         </sim:issue86>
+         <sim:issue87>
+            <sim:issue87e1>i87</sim:issue87e1>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <sim:choice12>i87c12</sim:choice12>
+         </sim:issue87>
+         <logo>dGVzdA==</logo>
+      </sim:setInfo>
+   </soap:Body>
+</soap:Envelope>";
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
@@ -122,7 +146,7 @@ class SoapTest inherits QUnit::Test {
         h = parse_xml(h.body);
         h = op.deserializeRequest(h);
 
-        testAssertionValue("attr-deser", h, req);
+        testAssertionValue("attr-deser-our", h, req);
 
         # do negative tests to ensure that namespace handling is correct in our test code
         {
@@ -162,6 +186,11 @@ class SoapTest inherits QUnit::Test {
             xh{ek}{bk}{sik1}{pfx} = remove xh{ek}{bk}{sik1}."xxx:SetInfo";
             testAssertion("attr-ser-neg-4", \compareSoapMsgs(), ("attr-ser", xh, Req_1), new TestResultExceptionType("TEST-EXCEPTION"));
         }
+
+        h = parse_xml(SoapUiReq_1);
+        h = op.deserializeRequest(h);
+
+        testAssertionValue("attr-deser-soapui", h, req);
     }
 
     compareSoapMsgs(string assert, hash h1, hash h2) {
