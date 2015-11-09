@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://qore.org/simpletest" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" targetNamespace="http://qore.org/simpletest" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
   <wsdl:types>
-    <s:schema elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest">
+    <s:schema xmlns:tns1="http://qore.org/simpletest1" elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest">
+      <s:import namespace="http://qore.org/simpletest1"/>
       <s:element name="SetInfo">
 	<s:complexType>
 	  <s:all>
@@ -12,6 +13,57 @@
 	  <s:attribute name="code" type="s:int" use="required"/>
 	</s:complexType>
       </s:element>
+      <s:element name="Test">
+	<s:complexType>
+	  <s:simpleContent>
+            <s:extension base="s:string">
+              <s:attribute name="info" type="s:string" use="required"/>
+            </s:extension>
+          </s:simpleContent>
+	</s:complexType>
+      </s:element>
+      <s:complexType name="issue86">
+	<s:sequence>
+	  <s:element maxOccurs="1" minOccurs="1" ref="tns:issue86"/>
+	  <!-- add data element here in interface specific wsdl, can be any type -->
+	</s:sequence>
+      </s:complexType>
+      <s:element name="issue86" type="tns:issue86_2"/>
+      <s:complexType name="issue86_2">
+	<s:complexContent>
+	  <s:extension base="tns1:issue86_1">
+	    <s:sequence>
+	      <s:element name="issue86_1_2" nillable="false" type="s:string"/>
+	    </s:sequence>
+	  </s:extension>
+	</s:complexContent>
+      </s:complexType>
+      <s:element name="issue87">
+	<s:complexType>
+	  <s:sequence>
+	    <s:element name="issue87e1" type="s:string"/>
+	    <s:choice minOccurs="1">
+	      <s:element name="choice11" type="s:string"/>
+	      <s:element name="choice12" type="s:string"/>
+	    </s:choice>
+	    <s:choice minOccurs="0">
+	      <s:element name="choice21" type="s:int"/>
+	      <s:element name="choice22" type="s:int"/>
+	    </s:choice>
+	  </s:sequence>
+	</s:complexType>
+      </s:element>
+      <s:element name="issue97" type="tns:issue97"/>
+      <s:complexType name="issue97">
+        <s:sequence>
+          <s:element name="i97list" type="tns:i97list"/>
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="i97list">
+        <s:sequence>
+          <s:element maxOccurs="unbounded" minOccurs="0" name="i97element" type="s:string"/>
+        </s:sequence>
+      </s:complexType>
       <s:element name="SetInfoResult" type="s:string"/>
       <s:element name="GetInfo">
 	<s:complexType>
@@ -28,6 +80,14 @@
 	</s:complexType>
       </s:element>
     </s:schema>
+    <s:schema xmlns:tns1="http://qore.org/simpletest1" elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest1">
+      <s:element name="issue86" type="tns1:issue86_1"/>
+      <s:complexType name="issue86_1">
+	<s:sequence>
+	  <s:element name="issue86_1_1" nillable="false" type="s:string"/>
+	</s:sequence>
+      </s:complexType>
+    </s:schema>
   </wsdl:types>
 
   <wsdl:message name="m1">
@@ -42,6 +102,10 @@
 
   <wsdl:message name="m3">
     <wsdl:part name="body" element="tns:SetInfo"/>
+    <wsdl:part name="test" element="tns:Test"/>
+    <wsdl:part name="issue86" element="tns:issue86"/>
+    <wsdl:part name="issue87" element="tns:issue87"/>
+    <wsdl:part name="issue97" element="tns:issue97"/>
     <wsdl:part name="logo" type="s:base64Binary"/>
   </wsdl:message>
 
