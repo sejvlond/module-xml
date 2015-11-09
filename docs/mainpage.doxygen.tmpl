@@ -271,6 +271,7 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - complexTypes wtih a sequence of choice and element elements are now handled correctly
       - allow for XSD imports without a URI scheme to be imported with custom logic
       - perform environment-variable substitution on the file path in WSDLLib::getWSDL()
+      - better support for empty elements; correct de/serialization depending on element and type properties
     - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes:
       - fixed URI request path
       - fixed agent string
@@ -326,6 +327,7 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - parse_xmlrpc_call(): replaced parseXMLRPCCall()
       - parse_xmlrpc_response(): replaced parseXMLRPCResponse()
       - parse_xmlrpc_value(): replaced: parseXMLRPCValue()
+    - SOAP and WSDL test infrastructure
 
     @subsection xml12 xml Module Version 1.2
     <b>Changes and Bug Fixes in This Release</b>
