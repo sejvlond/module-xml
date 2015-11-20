@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<con:soapui-project activeEnvironment="Default" name="xml-module test" resourceRoot="" soapui-version="5.0.0" xmlns:con="http://eviware.com/soapui/config"><con:settings/><con:interface xsi:type="con:WsdlInterface" wsaVersion="NONE" name="b1" type="wsdl" bindingName="{http://qore.org/simpletest}b1" soapVersion="1_2" anonymous="optional" definition="file:/Users/david/src/qore/git/module-xml/test/test.wsdl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache type="TEXT" rootPart="file:/Users/david/src/qore/git/module-xml/test/test.wsdl"><con:part><con:url>file:/Users/david/src/qore/git/module-xml/test/test.wsdl</con:url><con:content><![CDATA[<wsdl:definitions targetNamespace="http://qore.org/simpletest" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://qore.org/simpletest" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+<con:soapui-project activeEnvironment="Default" name="xml-module test" resourceRoot="" soapui-version="5.2.1" id="2469bc3a-edf5-4667-86b2-d4b27240fb94" abortOnError="false" runType="SEQUENTIAL" xmlns:con="http://eviware.com/soapui/config"><con:settings/><con:interface xsi:type="con:WsdlInterface" wsaVersion="NONE" name="b1" type="wsdl" bindingName="{http://qore.org/simpletest}b1" soapVersion="1_2" anonymous="optional" definition="file:/export/home/dnichols/src/qore/git/module-xml/test/test.wsdl" id="09eab768-0a76-434e-9a56-2dd6443a3c21" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache type="TEXT" rootPart="file:/export/home/dnichols/src/qore/git/module-xml/test/test.wsdl"><con:part><con:url>file:/export/home/dnichols/src/qore/git/module-xml/test/test.wsdl</con:url><con:content><![CDATA[<wsdl:definitions targetNamespace="http://qore.org/simpletest" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://qore.org/simpletest" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
   <wsdl:types>
     <s:schema elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest" xmlns:tns1="http://qore.org/simpletest1">
       <s:import namespace="http://qore.org/simpletest1"/>
@@ -53,6 +53,17 @@
           </s:sequence>
         </s:complexType>
       </s:element>
+      <s:element name="issue97" type="tns:issue97"/>
+      <s:complexType name="issue97">
+        <s:sequence>
+          <s:element name="i97list" type="tns:i97list"/>
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="i97list">
+        <s:sequence>
+          <s:element maxOccurs="unbounded" minOccurs="0" name="i97element" type="s:string"/>
+        </s:sequence>
+      </s:complexType>
       <s:element name="SetInfoResult" type="s:string"/>
       <s:element name="GetInfo">
         <s:complexType>
@@ -91,6 +102,7 @@
     <wsdl:part name="test" element="tns:Test"/>
     <wsdl:part name="issue86" element="tns:issue86"/>
     <wsdl:part name="issue87" element="tns:issue87"/>
+    <wsdl:part name="issue97" element="tns:issue97"/>
     <wsdl:part name="logo" type="s:base64Binary"/>
   </wsdl:message>
   <wsdl:message name="m4">
@@ -132,7 +144,7 @@
       <soap12:address location="http://localhost:8001/SOAP/simple"/>
     </wsdl:port>
   </wsdl:service>
-</wsdl:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint></con:endpoints><con:operation isOneWay="false" action="http://qore.org/getInfo" name="getInfo" bindingOperationName="getInfo" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call name="Request 1"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest">
+</wsdl:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint></con:endpoints><con:operation isOneWay="false" action="http://qore.org/getInfo" name="getInfo" bindingOperationName="getInfo" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional" id="c42161e7-bff9-4cb0-8079-89ae613c4282"><con:settings/><con:call name="Request 1" id="055173bd-0077-4123-b12f-c6b05e50c294"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest">
    <soap:Header/>
    <soap:Body>
       <sim:getInfo>
@@ -141,7 +153,16 @@
          </sim:GetInfo>
       </sim:getInfo>
    </soap:Body>
-</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://qore.org/simpletest/pt1/getInfoRequest"/><con:wsrmConfig version="1.2"/></con:call></con:operation><con:operation isOneWay="false" action="http://qore.org/setInfo" name="setInfo" bindingOperationName="setInfo" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call name="Request 1"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest" xmlns:sim1="http://qore.org/simpletest1">
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://qore.org/simpletest/pt1/getInfoRequest"/><con:wsrmConfig version="1.2"/></con:call><con:call id="3a480d74-7632-47fd-9117-2cccf9fa9b62" name="Request 1"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest">
+   <soap:Header/>
+   <soap:Body>
+      <sim:getInfo>
+         <sim:GetInfo>
+            <sim:tickerSymbol>?</sim:tickerSymbol>
+         </sim:GetInfo>
+      </sim:getInfo>
+   </soap:Body>
+</soap:Envelope>]]></con:request><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://qore.org/simpletest/pt1/getInfoRequest"/></con:call></con:operation><con:operation isOneWay="false" action="http://qore.org/setInfo" name="setInfo" bindingOperationName="setInfo" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional" id="518c00db-0493-400a-a25e-2b7275675059"><con:settings/><con:call id="48e62a51-b321-476f-8c09-ce5cb201bd66" name="Request 1"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest" xmlns:sim1="http://qore.org/simpletest1">
    <soap:Header/>
    <soap:Body>
       <sim:setInfo>
@@ -164,10 +185,16 @@
             <sim:choice21>?</sim:choice21>
             <sim:choice22>?</sim:choice22>
          </sim:issue87>
-         <logo>cid:711683253497</logo>
+         <sim:issue97>
+            <sim:i97list>
+               <!--Zero or more repetitions:-->
+               <sim:i97element>?</sim:i97element>
+            </sim:i97list>
+         </sim:issue97>
+         <logo>cid:1134749127383</logo>
       </sim:setInfo>
    </soap:Body>
-</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://qore.org/simpletest/pt1/setInfoRequest"/><con:wsrmConfig version="1.2"/></con:call></con:operation></con:interface><con:testSuite name="b1 TestSuite"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="getInfo TestCase" searchProperties="true"><con:settings/><con:testStep type="request" name="getInfo"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>b1</con:interface><con:operation>getInfo</con:operation><con:request name="getInfo"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest">
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://qore.org/simpletest/pt1/setInfoRequest"/><con:wsrmConfig version="1.2"/></con:call></con:operation></con:interface><con:testSuite name="b1 TestSuite" id="1b2f60a8-e4b0-4b34-944f-159e048d2f87"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="getInfo TestCase" searchProperties="true" id="af2a287b-4f6d-46cd-a3f3-0c9cecf9f301"><con:settings/><con:testStep type="request" name="getInfo" id="494829fe-9e90-4c4d-8bf6-16b286415395"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>b1</con:interface><con:operation>getInfo</con:operation><con:request name="getInfo" id="c163a327-b110-4616-b4fa-8f8521361197"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest">
    <soap:Header/>
    <soap:Body>
       <sim:getInfo>
@@ -176,7 +203,7 @@
          </sim:GetInfo>
       </sim:getInfo>
    </soap:Body>
-</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:wsaConfig action="http://qore.org/simpletest/pt1/getInfoRequest"/></con:request></con:config></con:testStep><con:properties/></con:testCase><con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="setInfo TestCase" searchProperties="true"><con:settings/><con:testStep type="request" name="setInfo"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>b1</con:interface><con:operation>setInfo</con:operation><con:request name="setInfo"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest" xmlns:sim1="http://qore.org/simpletest1">
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:wsaConfig action="http://qore.org/simpletest/pt1/getInfoRequest"/></con:request></con:config></con:testStep><con:properties/></con:testCase><con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="setInfo TestCase" searchProperties="true" id="93953faa-c87e-4e08-9edf-ea75bd75801d"><con:settings/><con:testStep type="request" name="setInfo" id="2e70f372-b035-4bc0-8c35-d70bd9d80e48"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>b1</con:interface><con:operation>setInfo</con:operation><con:request name="setInfo" id="5f35f49a-c5a4-4e5e-bcba-36721920d4b8"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest" xmlns:sim1="http://qore.org/simpletest1">
    <soap:Header/>
    <soap:Body>
       <sim:setInfo>
@@ -200,6 +227,47 @@
             <sim:choice22>?</sim:choice22>
          </sim:issue87>
          <logo>cid:427400660399</logo>
+      </sim:setInfo>
+   </soap:Body>
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:wsaConfig action="http://qore.org/simpletest/pt1/setInfoRequest"/></con:request></con:config></con:testStep><con:properties/></con:testCase><con:testCase id="46b24ad4-b631-4e2f-a015-941ed7010944" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="getInfo TestCase" searchProperties="true"><con:settings/><con:testStep type="request" id="49439157-115b-4c10-9c6e-74a294e3136b" name="getInfo"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>b1</con:interface><con:operation>getInfo</con:operation><con:request name="getInfo" id="d1b36838-6e1c-4e76-ac23-8a8b54a27946"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest">
+   <soap:Header/>
+   <soap:Body>
+      <sim:getInfo>
+         <sim:GetInfo>
+            <sim:tickerSymbol>?</sim:tickerSymbol>
+         </sim:GetInfo>
+      </sim:getInfo>
+   </soap:Body>
+</soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:wsaConfig action="http://qore.org/simpletest/pt1/getInfoRequest"/></con:request></con:config></con:testStep><con:properties/></con:testCase><con:testCase id="817f2bbc-6ec1-4a67-a58b-f2b4c8eb2888" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="setInfo TestCase" searchProperties="true"><con:settings/><con:testStep type="request" id="d1c25b56-8446-4cdf-adeb-eb83c1d91ad7" name="setInfo"><con:settings/><con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:interface>b1</con:interface><con:operation>setInfo</con:operation><con:request name="setInfo" id="592e09b7-511f-4f65-9c8a-6d3335d29527"><con:settings/><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:8001/SOAP/simple</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sim="http://qore.org/simpletest" xmlns:sim1="http://qore.org/simpletest1">
+   <soap:Header/>
+   <soap:Body>
+      <sim:setInfo>
+         <sim:SetInfo infoType="?" code="?">
+            <!--You may enter the following 2 items in any order-->
+            <sim:name>?</sim:name>
+            <sim:id>?</sim:id>
+         </sim:SetInfo>
+         <sim:Test info="?">?</sim:Test>
+         <sim:issue86>
+            <sim1:issue86_1_1>?</sim1:issue86_1_1>
+            <sim:issue86_1_2>?</sim:issue86_1_2>
+         </sim:issue86>
+         <sim:issue87>
+            <sim:issue87e1>?</sim:issue87e1>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <sim:choice11>?</sim:choice11>
+            <sim:choice12>?</sim:choice12>
+            <!--You have a CHOICE of the next 2 items at this level-->
+            <sim:choice21>?</sim:choice21>
+            <sim:choice22>?</sim:choice22>
+         </sim:issue87>
+         <sim:issue97>
+            <sim:i97list>
+               <!--Zero or more repetitions:-->
+               <sim:i97element>?</sim:i97element>
+            </sim:i97list>
+         </sim:issue97>
+         <logo>cid:331880807177</logo>
       </sim:setInfo>
    </soap:Body>
 </soap:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:wsaConfig action="http://qore.org/simpletest/pt1/setInfoRequest"/></con:request></con:config></con:testStep><con:properties/></con:testCase><con:properties/></con:testSuite><con:properties/><con:wssContainer/><con:oAuth2ProfileContainer/><con:sensitiveInformation/></con:soapui-project>
