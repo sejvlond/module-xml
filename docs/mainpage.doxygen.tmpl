@@ -285,6 +285,7 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - added support for matching requests by soap action values
       - allow \c "^header^" key in top-level hash response to specify SOAP headers in the response message
       - 500 HTTP response code returned with SOAP faults
+      - added support for debugging (verbose exception info/logging)
     - user modules moved to top-level qore module directory from version-specific module directory since they are valid for multiple versions of qore
     - implemented the following non-camel-case functions as replacements for old camel-case functions (the following camel-case function names are now deprecated):
       - make_xml(): replaced:
