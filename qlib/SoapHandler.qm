@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file SoapHandler.qm SOAP handler module providing the SoapHandler class to be registered as a handler with the Qore HttpServer module
 
-/*  SoapHandler.qm Copyright (C) 2012 - 2014 David Nichols
+/*  SoapHandler.qm Copyright (C) 2012 - 2015 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 */
 
 # make sure we have the required qore version
-%requires qore >= 0.8.10
+%requires qore >= 0.8.12
 
 # requires XML functionality
 %requires xml
@@ -37,6 +37,9 @@
 # need definitions from the HttpServerUtil
 %requires HttpServerUtil >= 0.3.11
 
+# need Util functions
+%requires Util
+
 # do not use $ for vars
 %new-style
 
@@ -48,33 +51,40 @@ module SoapHandler {
     license = "MIT";
 }
 
-/*  Version History
-    * 2014-03-04 v0.2.5: David Nichols <david@qore.org>: added support for matching
-                         requests with soap action values
-
-    * 2014-01-14 v0.2.5: David Nichols <david@qore.org>: added the err_func argument
-    *                    so SOAP response serialization errors can be logged at the source
-
-    * 2012-05-31 v0.2.4: David Nichols <david@qore.org>: updated to a user module
-
-    *            v0.2.3: return correct soap fault structure according to request
-
-    *            v0.2.2: soap 1.2 improvements
-
-    *            v0.2.1: matched to new WSDL and HttpServer implementation
-
-    *            v0.2.0: better WSDL support
-
-    *            v0.1.0: initial WSDL-based SOAP support (still incomplete)
-*/
-
 /** @mainpage SoapHandler Module
+
+    @tableofcontents
 
     @section soaphandlerintro Introduction to the SoapHandler Module
 
     This module implements server-side support for the <a href="http://en.wikipedia.org/wiki/SOAP">SOAP protocol</a> for serialization/deserialization of message data.
 
     This module provides the @ref SoapHandler::SoapHandler "SoapHandler" class which can be used to provide an RPC handler for the HttpServer class provided by the HttpServer module.
+
+    @section soaphandler_relnotes SoapHandler Release History
+
+    @subsection soaphandler_0_2_5 SoapHandler 0.2.5
+    - added support for matching requests with soap action values
+    - added the err_func argument so SOAP response serialization errors can be logged at the source
+    - added support for debugging (verbose exception info/logging)
+
+    @subsection soaphandler_0_2_4 SoapHandler 0.2.4
+    - updated to a user module
+
+    @subsection soaphandler_0_2_3 SoapHandler 0.2.3
+    - return correct soap fault structure according to request
+
+    @subsection soaphandler_0_2_2 SoapHandler 0.2.2
+    - soap 1.2 improvements
+
+    @subsection soaphandler_0_2_1 SoapHandler 0.2.1
+    - matched to new WSDL and HttpServer implementation
+
+    @subsection soaphandler_0_2_0 SoapHandler 0.2.0
+    - better WSDL support
+
+    @subsection soaphandler_0_1_0 SoapHandler 0.1.0
+    - initial WSDL-based SOAP support (still incomplete)
 */
 
 #! main SoapHandler namespace
@@ -152,6 +162,16 @@ public namespace SoapHandler {
                                   "path"      : path,
                                 ));
             #printf("methods=%N\n", methods);
+        }
+
+        #! turns on or off debugging; when debugging is enabled more verbose error messages are reported
+        setDebug(bool dbg = True) {
+            debug = dbg;
+        }
+
+        #! returns the current status of the debug flag
+        bool getDebug() {
+            return debug;
         }
 
         #! call to remove all service mappings for services with the given path
@@ -329,22 +349,29 @@ public namespace SoapHandler {
                 return h;
             }
 
-            try {
-                args = method.operation.deserializeRequest(args);
-            }
-            catch (ex) {
-                return (
-		    "code": 500,
-		    "errlog": sprintf("%s:%d: %s: %s", ex.file, ex.line, ex.err, ex.desc),
-		    "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
-		    "hdr": ("Content-Type": reqsoap12 ? MimeTypeSoapXml : MimeTypeXml),
-		    );
-            }
-
             # add context marker, if any
             cx.cmark = method.cmark;
             cx.function = method.function;
             cx.operation = method.operation;
+
+            try {
+                args = method.operation.deserializeRequest(args);
+            }
+            catch (ex) {
+                if (method.err_func) {
+                    hash nex = ex;
+                    nex.desc = sprintf("error deserializing incoming SOAP request: %s", ex.desc);
+                    call_function(method.err_func, cx, nex);
+                }
+                return (
+		    "code": 500,
+		    "errlog": debug
+                    ? get_exception_string(ex)
+                    : sprintf("%s: %s: %s", get_ex_pos(ex), ex.err, ex.desc),
+		    "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
+		    "hdr": ("Content-Type": reqsoap12 ? MimeTypeSoapXml : MimeTypeXml),
+		    );
+            }
 
             if ((method.logopt & HttpServer::LP_LEVELMASK) <= loglevel && exists cx.logfunc) {
                 my msg;
@@ -523,7 +550,9 @@ public namespace SoapHandler {
                     #string str = sprintf("exception in %s:%d: %s: %s (1: %N)", ex.file, ex.line, ex.err, ex.desc, ex.callstack);
                     return (
                         "code": 500,
-			"errlog": sprintf("%s:%d: %s: %s", ex.file, ex.line, ex.err, ex.desc),
+			"errlog": debug
+                        ? get_exception_string(ex)
+                        : sprintf("%s: %s: %s", get_ex_pos(ex), ex.err, ex.desc),
                         "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
                         "hdr": ("Content-Type" : MimeTypeSoapXml),
                         );
@@ -534,7 +563,9 @@ public namespace SoapHandler {
                 return ("code": 200) + callOperation(cx, args, soapaction, reqsoap12);
             }
             catch (ex) {
-                string str = sprintf("exception in %s:%d: %s: %s", ex.file, ex.line, ex.err, ex.desc);
+                string str = debug
+                    ? get_exception_string(ex)
+                    : sprintf("exception in %s: %s: %s", get_ex_pos(ex), ex.err, ex.desc);
                 return (
                     "code": 500,
                     "errlog": str,
