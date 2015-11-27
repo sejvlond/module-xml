@@ -374,9 +374,8 @@ public namespace SoapHandler {
             }
 
             if ((method.logopt & HttpServer::LP_LEVELMASK) <= loglevel && exists cx.logfunc) {
-                my msg;
+                string msg = sprintf("SOAP call from %s: %s", cx."peer-info".address_desc, method.name);
 
-                msg = sprintf("SOAP call from %s: %s", cx."peer-info".address_desc, method.name);
                 if (method.logopt & HttpServer::LP_LOGPARAMS) {
                     msg += sprintf("(");
                     my i = 0;
@@ -385,7 +384,7 @@ public namespace SoapHandler {
                             msg += "<masked>, ";
                         else if (arg.typeCode() == NT_HASH && elements arg) {
                             msg += "(";
-                            foreach my k in (keys arg) {
+                            foreach string k in (arg.keyIterator()) {
                                 if (k == method.maskkey)
                                     msg += sprintf("%s=<masked>, ", k);
                                 else
@@ -520,7 +519,7 @@ public namespace SoapHandler {
                         if (!exists sbody)
                             throw "SOAP-CALL-ERROR", "missing SOAP body in SOAP envelope in SOAP operation call";
 
-                        foreach my k in (keys sbody) {
+                        foreach string k in (sbody.keyIterator()) {
                             if (k == "multiRef" || k == "^attributes^")
                                 continue;
                             element = k =~ x/.*:(.*)/[0];
@@ -529,8 +528,8 @@ public namespace SoapHandler {
                     }
 
                     # set soap version in request
-                    my attr = args.Envelope."^attributes^";
-                    foreach my k in (attr.keyIterator()) {
+                    *hash attr = args.Envelope."^attributes^";
+                    foreach string k in (attr.keyIterator()) {
                         if (k =~ /:soapenv$/) {
                             if (attr{k} == SOAP_12_ENV)
                                 reqsoap12 = True;
