@@ -1575,19 +1575,19 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
     }
 
     private *hash parseChoice(hash val, hash emap, string en, *TypeMap tmap, *hash mrh, *bool required) {
-        any kl = val.keys();
+        list kl = val.keys();
         if (elements kl > 1)
             throw SOAP_DESERIALIZATION_ERROR, sprintf("too many elements supplied for choice / union in type %y for element %y (%y)", getName(), en, kl);
-        kl = kl[0];
-        if (!exists kl) {
+        *string key = kl[0];
+        if (!exists key) {
             if (required)
                 throw SOAP_DESERIALIZATION_ERROR, sprintf("missing element for choice / union in type %y for element %y (expecting one of: %y)", getName(), en, emap.keys());
             return;
         }
-        if (!exists emap{kl})
-            throw SOAP_DESERIALIZATION_ERROR, sprintf("element %y is not a valid element for choice / union in type %y for element %y (valid elements: %y)", kl, getName(), en, emap.keys());
+        if (!exists emap{key})
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("element %y is not a valid element for choice / union in type %y for element %y (valid elements: %y)", key, getName(), en, emap.keys());
 
-        return (kl: emap{kl}.deserialize(tmap, mrh, getValue(mrh, val{kl}), val.hasKey(kl)));
+        return (key: emap{key}.deserialize(tmap, mrh, getValue(mrh, val{key}), val.hasKey(key)));
     }
 }
 
@@ -2380,6 +2380,32 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
     }
 }
 
+# private namespace prefix redefinition class
+class WSDL::NamespacePrefixHelper {
+    public {
+    }
+
+    private {
+        Namespaces nsc;
+
+        # overriden prefixes
+        hash h;
+    }
+
+    constructor(Namespaces n_nsc) {
+        nsc = n_nsc;
+    }
+
+    destructor() {
+        if (h)
+            nsc.restorePrefixes(h);
+    }
+
+    save(string k, string v) {
+        h{k} = v;
+    }
+}
+
 #! namespace container class
 public class WSDL::Namespaces {
     public {
@@ -2442,7 +2468,7 @@ public class WSDL::Namespaces {
         #printf("*** DEBUG: Namespaces::constructor() imap: %y\n", imap);
     }
 
-    addNamespaces(hash nsh) {
+    addNamespaces(hash nsh, *NamespacePrefixHelper nph) {
         foreach string k in (nsh.keyIterator()) {
             *string ns = (k =~ x/xmlns:(\w+)/)[0];
 
@@ -2453,22 +2479,40 @@ public class WSDL::Namespaces {
                 # ignore if the definition is the same
                 if (imap{ns} == nsh{k})
                     continue;
-                throw "WSDL-NAMESPACE-ERROR", sprintf("namespace prefix %y defined twice", ns);
+
+                if (nph) {
+                    string ov = imap{ns};
+                    if (imapr{ov} == target_ns)
+                        remove imapr{ov};
+                    if (nsh{ns} == XSD_NS)
+                        remove xml_schema{ns};
+                    nph.save(ns, ov);
+                }
+                else
+                    throw "WSDL-NAMESPACE-ERROR", sprintf("namespace prefix %y defined twice", ns);
             }
-            imap{ns} = nsh{k};
-
-            if (!imapr{nsh{k}})
-                imapr{nsh{k}} = ns;
-
-            if (nsh{k} == XSD_NS)
-                xml_schema{ns} = True;
-
-            if (nsh{k} == SOAP_11_NS)
-                hassoap11 = True;
-
-            if (nsh{k} == SOAP_12_NS)
-                hassoap12 = True;
+            addNamespaceIntern(ns, nsh{k});
         }
+    }
+
+    restorePrefixes(hash h) {
+        map addNamespaceIntern($1.key, $1.value, True), h.pairIterator();
+    }
+
+    private addNamespaceIntern(string ns, string val, *bool override) {
+        imap{ns} = val;
+
+        if (override || !imapr{val})
+            imapr{val} = ns;
+
+        if (val == XSD_NS)
+            xml_schema{ns} = True;
+
+        if (!hassoap11 && val == SOAP_11_NS)
+            hassoap11 = True;
+
+        if (!hassoap12 && val == SOAP_12_NS)
+            hassoap12 = True;
     }
 
     #! merges namespaces when parsing imported schemas
@@ -2835,8 +2879,9 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             *hash sa = schema."^attributes^";
             #if (!sa)
             #    throw "OOPS";
+            NamespacePrefixHelper nph(nsc);
             if (sa)
-                nsc.addNamespaces(sa);
+                nsc.addNamespaces(sa, nph);
 
             if (sa.elementFormDefault == "qualified")
                 usedocns = True;
