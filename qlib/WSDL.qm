@@ -2390,13 +2390,35 @@ class WSDL::NamespacePrefixHelper {
 
         # overriden prefixes
         hash h;
+
+        # overridden target namespace
+        bool targ_ns;
+
+        # overridden default namespace
+        bool def_ns;
     }
 
-    constructor(Namespaces n_nsc) {
+    constructor(Namespaces n_nsc, *hash nsattr) {
         nsc = n_nsc;
+
+        if (nsattr) {
+            nsc.addNamespaces(nsattr, self);
+            if (nsattr.targetNamespace) {
+                nsc.pushTargetNamespace(nsattr.targetNamespace);
+                targ_ns = True;
+            }
+            if (nsattr.xmlns) {
+                nsc.pushDefaultNamespace(nsattr.xmlns);
+                def_ns = True;
+            }
+        }
     }
 
     destructor() {
+        if (def_ns)
+            nsc.popDefaultNamespace();
+        if (targ_ns)
+            nsc.popTargetNamespace();
         if (h)
             nsc.restorePrefixes(h);
     }
@@ -2449,6 +2471,12 @@ public class WSDL::Namespaces {
 
         #! target namespace stack;
         list nss = ();
+
+        #! default namespace for unprefixed definitions
+        *string default_ns;
+
+        #! default namespace stack;
+        list dss = ();
     }
 
     #! creates the object with the WSDL definitions attribute hash
@@ -2458,14 +2486,18 @@ public class WSDL::Namespaces {
         if (nsh.targetNamespace)
             target_ns = nsh.targetNamespace;
 
+        # set default namespace for unprefixed definitions
+        if (nsh.xmlns)
+            default_ns = nsh.xmlns;
+
         #printf("*** DEBUG: Namespaces::constructor() %y\n", nsh);
         addNamespaces(nsh);
 
-        # "default" has to be quoted because it's a reserved word
-        if (nsh.xmlns)
-            ns."default" = nsh.xmlns;
-        #ns.target = nsh.targetNamespace;
         #printf("*** DEBUG: Namespaces::constructor() imap: %y\n", imap);
+    }
+
+    *string getDefaultNs() {
+        return default_ns;
     }
 
     addNamespaces(hash nsh, *NamespacePrefixHelper nph) {
@@ -2581,7 +2613,7 @@ public class WSDL::Namespaces {
         return getTargetNamespaceUri();
     }
 
-    #! pushes the previous target namespace URI on the stack when parsing schemas and sets the current target namespace URI to the current value
+    #! pushes the current target namespace URI on the stack when parsing schemas and sets the current target namespace URI to the current value
     pushTargetNamespace(string ns) {
         nss += target_ns;
         target_ns = ns;
@@ -2590,6 +2622,17 @@ public class WSDL::Namespaces {
     #! restores any previous target namespace URI from the stack to the current target namespace URI
     popTargetNamespace() {
         target_ns = pop nss;
+    }
+
+    #! pushes the current default namespace URI on the stack when parsing schemas and sets the current default namespace URI to the current value
+    pushDefaultNamespace(string ns) {
+        dss += default_ns;
+        default_ns = ns;
+    }
+
+    #! restores any previous default namespace URI from the stack to the current default namespace URI
+    popDefaultNamespace() {
+        default_ns = pop dss;
     }
 
     #! looks up and registers a namespace if necessary, returns the namespace's prefix
@@ -2649,8 +2692,13 @@ public class WSDL::Namespaces {
     any doType(string t) {
         #printf("DEBUG: XsdBase::doType(%y)\n", t);
         (*string ns, *string type) = t =~ x/(\w+):(\w+)/;
-        if (!type)
+        if (!type) {
+            #printf("DEBUG: XsdBase::doType(%y) xsd: %y\n", t, default_ns);
+            if (default_ns == XSD_NS)
+                return new XsdBaseType(t, self, getTargetNamespaceInputPrefix());
+
             return ("val": t);
+        }
 
         # if this is in the XML Schema namespace, then it's a base type
         if (xml_schema{ns})
@@ -2862,7 +2910,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
     }
 
     private XsdAbstractType resolveType(hash v) {
-        if (v.ns && nsc.isSchema(v.ns))
+        if (exists v.ns && nsc.isSchema(v.ns))
             return getBaseType(v.val);
 
         # find type
@@ -2879,16 +2927,10 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             *hash sa = schema."^attributes^";
             #if (!sa)
             #    throw "OOPS";
-            NamespacePrefixHelper nph(nsc);
-            if (sa)
-                nsc.addNamespaces(sa, nph);
+            NamespacePrefixHelper nph(nsc, sa);
 
             if (sa.elementFormDefault == "qualified")
                 usedocns = True;
-            if (sa.targetNamespace)
-                nsc.pushTargetNamespace(sa.targetNamespace);
-            on_exit if (sa.targetNamespace)
-                nsc.popTargetNamespace();
 
             #printf("DEBUG: schema tn: %y\n", schema."^attributes^"."targetNamespace");
             WSDL::XsdBase::removeNS(\schema);
