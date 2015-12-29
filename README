@@ -3,7 +3,7 @@ Qore xml module
 INTRODUCTION
 ------------
 The Qore xml module provides XML functionality to Qore.  This was previously
-part of the main qore library but moved to this module in qore v0.8.1 
+part of the main qore library but moved to this module in qore v0.8.1
 
 see docs for more information
 
@@ -46,6 +46,3 @@ make && make install
 
 please direct any questions to:
 david@qore.org
-
-or you can post in the qore forums at
-        http://qore.org/forums
