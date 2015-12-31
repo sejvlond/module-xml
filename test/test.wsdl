@@ -122,6 +122,12 @@
       <wsdl:input message="tns:m3"/>
       <wsdl:output message="tns:m4"/>
     </wsdl:operation>
+    <wsdl:operation name="noInput">
+      <wsdl:output message="tns:m4"/>
+    </wsdl:operation>
+    <wsdl:operation name="noOutput">
+      <wsdl:input message="tns:m3"/>
+    </wsdl:operation>
   </wsdl:portType>
 
   <wsdl:binding name="b1" type="tns:pt1">
@@ -143,6 +149,18 @@
       <wsdl:output>
 	<soap12:body use="literal"/>
       </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="noInput">
+      <soap12:operation soapAction="http://qore.org/noInput"/>
+      <wsdl:output>
+	<soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="noOutput">
+      <soap12:operation soapAction="http://qore.org/noOutput"/>
+      <wsdl:input>
+	<soap12:body use="literal"/>
+      </wsdl:input>
     </wsdl:operation>
   </wsdl:binding>
 
