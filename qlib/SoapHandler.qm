@@ -305,7 +305,7 @@ public namespace SoapHandler {
         }
 
         # don't reimplement this method; fix/enhance it in the module
-        final private hash callOperation(hash cx, any args, *string soapaction, bool reqsoap12) {
+        final private *hash callOperation(hash cx, any args, *string soapaction, bool reqsoap12) {
             *string element = cx.element;
 
             *hash method;
