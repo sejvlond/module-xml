@@ -712,7 +712,7 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
 
     any deserialize(string en, *TypeMap tmap, *hash mrh, any val) {
         string type;
-        if (val.typeCode() == NT_HASH && val."^attributes^") {
+        if (val.typeCode() == NT_HASH && val.hasKey("^value^")) {
             if (val."^attributes^"."xsi:type") {
                 type = val."^attributes^"."xsi:type";
                 string t = (type =~ x/\w+:(\w+)/)[0];
@@ -732,6 +732,7 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
         switch (type) {
             case "string":
             case "anyURI":
+                return string(val);
 
             case "integer": {
                 # note that we do not convert xsd:integer to a qore integer if we would lose precision
