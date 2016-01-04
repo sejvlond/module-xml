@@ -42,16 +42,19 @@ class NsMap {
 
 class SoapTest inherits QUnit::Test {
     public {
+        const SoapEnvAttr = (
+            "^attributes^": (
+                "xmlns:soap": "http://www.w3.org/2003/05/soap-envelope",
+                "xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
+                "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                "xmlns:st": "http://qore.org/simpletest",
+            ),
+            );
+
         # all values are strings here because we do raw XML parsing and not SOAP deserialization for the comparison
         # to avoid comparing values generated and parsed with the same code which would result in an identity test
         const Req_1 = (
-            "soap:Envelope": (
-                "^attributes^": (
-                    "xmlns:soap": "http://www.w3.org/2003/05/soap-envelope",
-                    "xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
-                    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-                    "xmlns:st": "http://qore.org/simpletest",
-                ),
+            "soap:Envelope": SoapEnvAttr + (
                 "soap:Body": (
                     "st:setInfo": (
                         "st:SetInfo": (
@@ -108,6 +111,12 @@ class SoapTest inherits QUnit::Test {
       </sim:setInfo>
    </soap:Body>
 </soap:Envelope>";
+
+        const EmptyReq = (
+            "soap:Envelope": SoapEnvAttr,
+            );
+
+        const EmptyRes = EmptyReq;
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
@@ -199,6 +208,20 @@ class SoapTest inherits QUnit::Test {
         h = op.deserializeRequest(h);
 
         testAssertionValue("attr-deser-soapui", h, req);
+
+        op = ws.getOperation("noInput");
+        h = op.serializeRequest();
+        xh = parse_xml(h.body);
+        compareSoapMsgs("no-input", xh, EmptyReq);
+        *hash eh = op.deserializeRequest(h);
+        assertEq(NOTHING, eh);
+
+        op = ws.getOperation("noOutput");
+        h = op.serializeResponse();
+        xh = parse_xml(h.body);
+        compareSoapMsgs("no-output", xh, EmptyRes);
+        eh = op.deserializeResponse(h);
+        assertEq(NOTHING, eh);
     }
 
     compareSoapMsgs(string assert, hash h1, hash h2) {
@@ -206,8 +229,8 @@ class SoapTest inherits QUnit::Test {
         NsMap nh1 = SoapTest::getNamespaceMap(h1);
         NsMap nh2 = SoapTest::getNamespaceMap(h2);
 
-        hash b1 = SoapTest::getValue(h1, nh1.se, "Envelope", "Body");
-        hash b2 = SoapTest::getValue(h2, nh2.se, "Envelope", "Body");
+        *hash b1 = SoapTest::getValue(h1, nh1.se, "Envelope", "Body");
+        *hash b2 = SoapTest::getValue(h2, nh2.se, "Envelope", "Body");
 
         compareSoapValue(assert, "Envelope.Body", b1, b2, nh1, nh2);
     }

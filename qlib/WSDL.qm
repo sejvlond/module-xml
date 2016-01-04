@@ -638,10 +638,33 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
                 break;
             }
 
-            case "positiveInteger":
-                if (val <= 0)
-                    throw SOAP_SERIALIZATION_ERROR, sprintf("type %y only accepts positive values (value supplied: %d)", type, val);
+            case "negativeInteger": {
+                int v = int(val);
+                if (v >= 0)
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("type %y only accepts negative values (value supplied: %d)", name, v);
                 break;
+            }
+
+            case "nonNegativeInteger": {
+                int v = int(val);
+                if (v < 0)
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("type %y only accepts non-negative values (value supplied: %d)", name, v);
+                break;
+            }
+
+            case "nonPositiveInteger": {
+                int v = int(val);
+                if (v > 0)
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("type %y only accepts non-positive values (value supplied: %d)", name, v);
+                break;
+            }
+
+            case "positiveInteger": {
+                int v = int(val);
+                if (v <= 0)
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("type %y only accepts positive values (value supplied: %d)", type, v);
+                break;
+            }
 
             case "date":
                 val = format_date("YYYY-MM-DD", date(val));
@@ -709,9 +732,12 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
         switch (type) {
             case "string":
             case "anyURI":
-            # note that we do not convert xsd:integer to a qore integer to avoid losing precision
-            case "integer":
-                return val;
+
+            case "integer": {
+                # note that we do not convert xsd:integer to a qore integer if we would lose precision
+                int v = int(val);
+                return v == val ? v : val;
+            }
 
             case "byte":
                 val = int(val);
@@ -761,6 +787,21 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
             case "unsignedLong":
                 if (val < 0)
                     throw SOAP_DESERIALIZATION_ERROR, sprintf("type %y does not accept negative values (value supplied: %d)", name, val);
+                return int(val);
+
+            case "negativeInteger":
+                if (val >= 0)
+                    throw SOAP_DESERIALIZATION_ERROR, sprintf("type %y only accepts negative values (value supplied: %d)", name, val);
+                return int(val);
+
+            case "nonNegativeInteger":
+                if (val < 0)
+                    throw SOAP_DESERIALIZATION_ERROR, sprintf("type %y only accepts non-negative values (value supplied: %d)", name, val);
+                return int(val);
+
+            case "nonPositiveInteger":
+                if (val > 0)
+                    throw SOAP_DESERIALIZATION_ERROR, sprintf("type %y only accepts non-positive values (value supplied: %d)", name, val);
                 return int(val);
 
             case "positiveInteger":
@@ -1619,22 +1660,24 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         nsc = n_nsc;
         usedocns = n_usedocns;
 
-        hash msghash = processNSValue(p.input."^attributes^");
+        if (p.input) {
+            hash msghash = processNSValue(p.input."^attributes^");
 
-        *WSMessage msg = messages.(msghash.message.val);
-        if (!msg)
-            throw WSDL_ERROR, sprintf("missing definition for input message %y required by operation %y", msghash.name.val, name);
-        input = msg;
+            *WSMessage msg = messages.(msghash.message.val);
+            if (!msg)
+                throw WSDL_ERROR, sprintf("missing definition for input message %y required by operation %y", msghash.name.val, name);
+            input = msg;
 
-        #printf("DBG: WSOperation::constructor() name: %y msghash: %y\n", name, msghash);
-        if (msghash.name)
-            input_name = msghash.name.val ? msghash.name.val : msghash.name;
+            #printf("DBG: WSOperation::constructor() name: %y msghash: %y\n", name, msghash);
+            if (msghash.name)
+                input_name = msghash.name.val ? msghash.name.val : msghash.name;
+        }
 
         if (p.output) {
-            msghash = processNSValue(p.output."^attributes^");
+            hash msghash = processNSValue(p.output."^attributes^");
 
-            msg = messages.(msghash.message.val);
-            if (!exists msg)
+            *WSMessage msg = messages.(msghash.message.val);
+            if (!msg)
                 throw WSDL_ERROR, sprintf("missing definition for output message %y required by operation %y", msghash.name.val, name);
 
             output = msg;
@@ -1703,12 +1746,17 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             mpm = new MultiPartRelatedMessage();
 
         #printf("DEBUG: docstyle: %y\n", docstyle);
-        if (docstyle)
-            rh."soapenv:Envelope"."soapenv:Body" = input.serializeDocument(NOTHING, inp, mpm, h, usedocns);
-        else {
-            string mname = input_name ? input_name : name;
-            rh."soapenv:Envelope"."soapenv:Body" = input.serialize(inp, mpm, mname, h);
+        if (input) {
+            if (docstyle)
+                rh."soapenv:Envelope"."soapenv:Body" = input.serializeDocument(NOTHING, inp, mpm, h, usedocns);
+            else {
+                string mname = input_name ? input_name : name;
+                if (input)
+                    rh."soapenv:Envelope"."soapenv:Body" = input.serialize(inp, mpm, mname, h);
+            }
         }
+        else if (exists h)
+            throw SOAP_SERIALIZATION_ERROR, sprintf("request value provided for operation %y with no input message (%y)", name, h);
 
         string body = make_xml(rh, xml_opts, enc);
 
@@ -1788,12 +1836,16 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             mpm = new MultiPartRelatedMessage();
 
         #printf("DEBUG: docstyle: %y\n", docstyle);
-        if (docstyle)
-            rh."soapenv:Envelope"."soapenv:Body" = output.serializeDocument(NOTHING, outp, mpm, h, usedocns);
-        else {
-            string mname = input_name ? input_name : name + "Response";
-            rh."soapenv:Envelope"."soapenv:Body" = output.serialize(outp, mpm, mname, h);
+        if (output) {
+            if (docstyle)
+                rh."soapenv:Envelope"."soapenv:Body" = output.serializeDocument(NOTHING, outp, mpm, h, usedocns);
+            else {
+                string mname = input_name ? input_name : name + "Response";
+                rh."soapenv:Envelope"."soapenv:Body" = output.serialize(outp, mpm, mname, h);
+            }
         }
+        else if (exists h)
+            throw SOAP_SERIALIZATION_ERROR, sprintf("response value provided for operation %y with no outut message (%y)", name, h);
 
         string body = make_xml(rh, xml_opts, enc);
 
@@ -1871,7 +1923,15 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         WSDL::XsdBase::removeNS(\o);
         WSDL::XsdBase::removeNS(\o.Envelope);
 
-        hash body = o.Envelope.Body;
+        *hash body = o.Envelope.Body;
+
+        if (!input) {
+            if (exists body)
+                throw SOAP_DESERIALIZATION_ERROR, sprintf("request body value given for operation %y with no input message: %y", name, body);
+            return;
+        }
+        else if (!exists body)
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("no request body value given for operation %y", name);
 
         my (*hash mrh, hash msg) = processMultiRef(body);
 
@@ -1899,7 +1959,15 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         WSDL::XsdBase::removeNS2(\o);
         WSDL::XsdBase::removeNS2(\o.Envelope);
 
-        hash body = o.Envelope.Body;
+        *hash body = o.Envelope.Body;
+
+        if (!output) {
+            if (exists body)
+                throw SOAP_DESERIALIZATION_ERROR, sprintf("response value given for operation %y with no output message: %y", name, body);
+            return;
+        }
+        else if (!exists body)
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("no response body value given for operation %y", name);
 
         my (*hash mrh, hash msg) = processMultiRef(body);
 
@@ -2308,29 +2376,33 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                 op.setDocStyle(\idocmap);
             }
 
-            my WSDL::WSMessage input = op.input;
+            if (op.input) {
+                WSDL::WSMessage input = op.input;
 
-            WSDL::XsdBase::removeNS(\ophash.input);
-            if (exists ophash.input.body) {
-                if (ophash.input.body."^attributes^".use == "encoded") {
-                    input.encoded = True;
-                    #printf("DEBUG: setting encoding = True for %y.%y input\n", data.name, opname);
+                WSDL::XsdBase::removeNS(\ophash.input);
+                if (exists ophash.input.body) {
+                    if (ophash.input.body."^attributes^".use == "encoded") {
+                        input.encoded = True;
+                        #printf("DEBUG: setting encoding = True for %y.%y input\n", data.name, opname);
+                    }
                 }
-            }
-            else if (exists ophash.input.multipartRelated) {
-                op.setInputMultipart(Mime::MPT_RELATED);
-                WSDL::XsdBase::removeNS(\ophash.input.multipartRelated);
+                else if (exists ophash.input.multipartRelated) {
+                    op.setInputMultipart(Mime::MPT_RELATED);
+                    WSDL::XsdBase::removeNS(\ophash.input.multipartRelated);
 
-                if (!exists ophash.input.multipartRelated.part)
-                    throw WSDL_ERROR, sprintf("missing part definition(s) in input message definition for operation %y: %y", opname, ophash);
+                    if (!exists ophash.input.multipartRelated.part)
+                        throw WSDL_ERROR, sprintf("missing part definition(s) in input message definition for operation %y: %y", opname, ophash);
 
-                foreach any part in (ophash.input.multipartRelated.part) {
-                    WSDL::XsdBase::removeNS(\part);
-                    op.addInputPart(part);
+                    foreach any part in (ophash.input.multipartRelated.part) {
+                        WSDL::XsdBase::removeNS(\part);
+                        op.addInputPart(part);
+                    }
                 }
+                else
+                    throw WSDL_ERROR, sprintf("cannot parse input message definition for operation %y: %y", opname, ophash);
             }
-            else
-                throw WSDL_ERROR, sprintf("cannot parse input message definition for operation %y: %y", opname, ophash);
+            else if (ophash.input.body || ophash.input.multipartRelated)
+                throw WSDL_ERROR, sprintf("cannot parse input message definition for operation %y with no input: %y", opname, ophash);
 
             # check for header
             foreach hash hh in (ophash.input.header) {
@@ -2354,26 +2426,30 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
             }
 
             WSDL::XsdBase::removeNS(\ophash.output);
-            if (exists ophash.output.body) {
-                if (ophash.output.body."^attributes^".use == "encoded") {
-                    op.output.encoded = True;
-                    #printf("DEBUG: setting encoding = True for %y.%y output\n", data.name, opname);
+            if (op.output) {
+                if (exists ophash.output.body) {
+                    if (ophash.output.body."^attributes^".use == "encoded") {
+                        op.output.encoded = True;
+                        #printf("DEBUG: setting encoding = True for %y.%y output\n", data.name, opname);
+                    }
                 }
-            }
-            else if (exists ophash.output.multipartRelated) {
-                op.setOutputMultipart(Mime::MPT_RELATED);
-                WSDL::XsdBase::removeNS(\ophash.output.multipartRelated);
+                else if (exists ophash.output.multipartRelated) {
+                    op.setOutputMultipart(Mime::MPT_RELATED);
+                    WSDL::XsdBase::removeNS(\ophash.output.multipartRelated);
 
-                if (!exists ophash.output.multipartRelated.part)
-                    throw WSDL_ERROR, sprintf("missing part definition(s) in output message definition for operation %y: %y", opname, ophash);
+                    if (!exists ophash.output.multipartRelated.part)
+                        throw WSDL_ERROR, sprintf("missing part definition(s) in output message definition for operation %y: %y", opname, ophash);
 
-                foreach any part in (ophash.output.multipartRelated.part) {
-                    WSDL::XsdBase::removeNS(\part);
-                    op.addOutputPart(part);
+                    foreach any part in (ophash.output.multipartRelated.part) {
+                        WSDL::XsdBase::removeNS(\part);
+                        op.addOutputPart(part);
+                    }
                 }
+                else
+                    throw WSDL_ERROR, sprintf("cannot parse output message definition for operation %y: %y", opname, ophash);
             }
-            else
-                throw WSDL_ERROR, sprintf("cannot parse output message definition for operation %y: %y", opname, ophash);
+            else if (exists ophash.output.body || exists ophash.output.multipartRelated)
+                throw WSDL_ERROR, sprintf("cannot parse input message definition for operation %y with no input: %y", opname, ophash);
         }
 
         #binding = data;
