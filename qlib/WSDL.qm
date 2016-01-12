@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file WSDL.qm WSDL: Web Services Description Language: http://www.w3.org/TR/wsdl
 
-/*  WSDL.qm Copyright (C) 2012 - 2015 David Nichols
+/*  WSDL.qm Copyright (C) 2012 - 2016 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -2522,7 +2522,9 @@ public class WSDL::Namespaces {
             );
 
         #! hash for valid XSD namespaces, maps input namespace prefixes -> True if it refers to an XSD schema
-        hash xml_schema;
+        hash xsd_schema = (
+            "xsd": True,
+            );
 
         #! hash mapping input namespace prefixes to namespaces URIs
         hash imap = (
@@ -2567,9 +2569,8 @@ public class WSDL::Namespaces {
         if (nsh.xmlns)
             default_ns = nsh.xmlns;
 
-        #printf("*** DEBUG: Namespaces::constructor() %y\n", nsh);
+        #printf("*** DEBUG: Namespaces::constructor() nsh: %y imap: %y\n", nsh, imap);
         addNamespaces(nsh);
-
         #printf("*** DEBUG: Namespaces::constructor() imap: %y\n", imap);
     }
 
@@ -2594,7 +2595,7 @@ public class WSDL::Namespaces {
                     if (imapr{ov} == target_ns)
                         remove imapr{ov};
                     if (nsh{ns} == XSD_NS)
-                        remove xml_schema{ns};
+                        remove xsd_schema{ns};
                     nph.save(ns, ov);
                 }
                 else
@@ -2615,7 +2616,7 @@ public class WSDL::Namespaces {
             imapr{val} = ns;
 
         if (val == XSD_NS)
-            xml_schema{ns} = True;
+            xsd_schema{ns} = True;
 
         if (!hassoap11 && val == SOAP_11_NS)
             hassoap11 = True;
@@ -2755,7 +2756,7 @@ public class WSDL::Namespaces {
 
     #! returns True if if the input namespace prefix refers to the XSD namespace URI
     *bool isSchema(string ns) {
-        return xml_schema{ns};
+        return xsd_schema{ns};
     }
 
     #! returns the input namespace URI from the input namespace prefix
@@ -2778,7 +2779,7 @@ public class WSDL::Namespaces {
         }
 
         # if this is in the XML Schema namespace, then it's a base type
-        if (xml_schema{ns})
+        if (xsd_schema{ns})
             return new XsdBaseType(type, self, getTargetNamespaceInputPrefix());
 
         return ("ns": getOutputNamespacePrefix(getInputNamespaceUri(ns)), "val": type);
@@ -2961,6 +2962,10 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             return base_type{t};
 
         return base_type{t} = new XsdBaseType(t, nsc);
+    }
+
+    private resolveType(XsdSimpleType t) {
+        throw "WSDL-TYPE-ERROR", sprintf("cannot resolve simpleType: %y type %y", t.name, t.type);
     }
 
     private resolveType(XsdElement xe) {
