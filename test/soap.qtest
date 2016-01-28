@@ -85,7 +85,7 @@ class SoapTest inherits QUnit::Test {
             ),
             );
 
-        const SoapUiReq_1 = "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:sim=\"http://qore.org/simpletest\" xmlns:sim1=\"http://qore.org/simpletest1\">
+        const SoapUiReq_1 = "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:sim=\"http://qore.org/simpletest\" xmlns:sim1=\"http://qore.org/simpletest1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">
    <soap:Header/>
    <soap:Body>
       <sim:setInfo>
@@ -107,6 +107,9 @@ class SoapTest inherits QUnit::Test {
          <sim:issue97>
             <sim:i97list/>
          </sim:issue97>
+         <sim:issue468>
+            <sim:issue468_1 xsi:nil=\"true\"/>
+         </sim:issue468>
          <logo>dGVzdA==</logo>
       </sim:setInfo>
    </soap:Body>
@@ -144,6 +147,9 @@ class SoapTest inherits QUnit::Test {
             ),
             "issue97": (
                 "i97list": NOTHING,
+            ),
+            "issue468": (
+                "issue468_1": NOTHING,
             ),
             "logo": binary("test"),
             );

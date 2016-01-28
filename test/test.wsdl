@@ -79,6 +79,14 @@
 	  </s:all>
 	</s:complexType>
       </s:element>
+      <s:element name="issue468">
+	<s:complexType>
+	  <s:sequence>
+	    <s:element name="issue468_1" nillable="true"
+		       type="s:string"/>
+	  </s:sequence>
+	</s:complexType>
+      </s:element>
     </s:schema>
     <s:schema xmlns:tns1="http://qore.org/simpletest1" elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest1">
       <s:element name="issue86" type="tns1:issue86_1"/>
@@ -106,6 +114,7 @@
     <wsdl:part name="issue86" element="tns:issue86"/>
     <wsdl:part name="issue87" element="tns:issue87"/>
     <wsdl:part name="issue97" element="tns:issue97"/>
+    <wsdl:part name="issue468" element="tns:issue468"/>
     <wsdl:part name="logo" type="s:base64Binary"/>
   </wsdl:message>
 
