@@ -1073,10 +1073,11 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
     }
 
     any deserialize(*TypeMap tmap, *hash mrh, any val, bool present) {
-        any a = val."^attributes^";
-        WSDL::XsdBase::removeNS(\a);
+        *hash a = val."^attributes^";
+        if (a)
+            WSDL::XsdBase::removeNS(\a);
 
-        if ((!exists val || a.nil == "true") && !present) {
+        if ((!exists val && !present) || a.nil == "true") {
             if (nillable || type.isNillable() || !minOccurs)
                 return;
             throw SOAP_DESERIALIZATION_ERROR, sprintf("NOTHING passed for element %y type %y, but nillable=False and minOccurs: %d", name, type.getName(), minOccurs);
