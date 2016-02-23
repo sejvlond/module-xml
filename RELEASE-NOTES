@@ -26,6 +26,8 @@ version 1.3
   + XSD "integer" types are returned as integers when possible
   + fixed XSD namespace handling
   + fixed a bug deserializing nil elements (bug 468)
+  + fixed a bug handling types with more than two levels of nested references
+    (bug 560)
 * SoapClient fixes:
   + fixed URI request path
   + fixed agent string
