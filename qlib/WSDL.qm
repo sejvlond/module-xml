@@ -1168,8 +1168,8 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         any array;
         any restriction;
         *string extension;
-        *hash elementmap;
 
+        *hash elementmap;
         bool anyAttribute = False;
 
         bool nillable = False;
@@ -1192,6 +1192,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
     }
 
     private {
+
         #! type of complexType object
         string cx_type;
 
@@ -1215,7 +1216,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 any base = d.restriction."^attributes^".base;
 
                 # FIXME: handle namespace
-                my (any ns, any tn) = base =~ x/(\w+):(\w+)/;
+                my (*string ns, *string tn) = base =~ x/(\w+):(\w+)/;
                 if (exists tn) {
                     if (tn == "Array") {
                         # FIXME check that namespace is SOAP encoding
@@ -1225,7 +1226,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                             throw WSDL_ERROR, sprintf("cannot parse complexType restriction: %y", d.restriction);
 
                         # FIXME: handle multiple dimensions?
-                        my (any ans, any atn) = aa.arrayType =~ x/(\w+):(\w+)\[\]$/;
+                        my (*string ans, *string atn) = aa.arrayType =~ x/(\w+):(\w+)\[\]$/;
                         if (exists atn) {
                             array.val = atn;
                             array.ns  = ans;
@@ -1247,7 +1248,11 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 parseData(d.restriction, unresolved);
             }
             else if (d.extension) {
+                #any etype = nsc.doType(d.extension."^attributes^".base);
+                #if (!(etype instanceof XsdAbstractType))
+                #    unresolved.add(self);
                 extension = d.extension."^attributes^".base;
+
                 # FIXME: check for soap encoding namespace
                 extension =~ s/(.*:)(.*)/$2/;
                 delete d.extension."^attributes^";
@@ -1284,6 +1289,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             XsdAbstractType t = tmap.get(restriction);
             if (!(t instanceof XsdComplexType))
                 throw WSDL_ERROR, sprintf("cannot restrict complexType %y with type %y", name, t.name);
+            cast<XsdComplexType>(t).finalize(tmap, nsc);
             elementmap = cast<XsdComplexType>(t).elementmap + elementmap;
             #printf("DEBUG: extended %s with %s (%y)\n", name, restriction, cast<XsdComplexType>(t).elementmap.keys());
         }
@@ -1292,9 +1298,10 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             XsdAbstractType t = tmap.get(extension);
             if (!(t instanceof XsdComplexType))
                 throw WSDL_ERROR, sprintf("cannot extend complexType %y with type %y", name, t.name);
+            cast<XsdComplexType>(t).finalize(tmap, nsc);
             # combine base type and new type
             elementmap = cast<XsdComplexType>(t).elementmap + elementmap;
-            #printf("DEBUG: extended %s with %s (%y) elements: %y\n", name, extension, cast<XsdComplexType>(t).elementmap.keys(), elementmap.keys());
+            #printf("DEBUG: extended %s (%s) with %s (%y) elements: %y\n", name, self.uniqueHash(), extension, cast<XsdComplexType>(t).elementmap.keys(), elementmap.keys());
         }
 
         # process array info

@@ -110,6 +110,11 @@ class SoapTest inherits QUnit::Test {
          <sim:issue468>
             <sim:issue468_1 xsi:nil=\"true\"/>
          </sim:issue468>
+         <sim:issue560>
+            <sim:issue560_1>A</sim:issue560_1>
+            <sim:issue560_2>A</sim:issue560_2>
+            <sim:issue560_3>A</sim:issue560_3>
+         </sim:issue560>
          <logo>dGVzdA==</logo>
       </sim:setInfo>
    </soap:Body>
@@ -150,6 +155,11 @@ class SoapTest inherits QUnit::Test {
             ),
             "issue468": (
                 "issue468_1": NOTHING,
+            ),
+            "issue560": (
+                "issue560_1": "A",
+                "issue560_2": "A",
+                "issue560_3": "A",
             ),
             "logo": binary("test"),
             );
