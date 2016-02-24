@@ -48,6 +48,7 @@ class SoapTest inherits QUnit::Test {
                 "xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
                 "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
                 "xmlns:st": "http://qore.org/simpletest",
+                "xmlns:st1": "http://qore.org/simpletest1",
             ),
             );
 
@@ -72,7 +73,7 @@ class SoapTest inherits QUnit::Test {
                             "^value^": "test",
                         ),
                         "st:issue86": (
-                            "st:issue86_1_1": "i86_1",
+                            "st1:issue86_1_1": "i86_1",
                             "st:issue86_1_2": "i86_2",
                         ),
                         "st:issue87": (

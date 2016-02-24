@@ -28,6 +28,8 @@ version 1.3
   + fixed a bug deserializing nil elements (bug 468)
   + fixed a bug handling types with more than two levels of nested references
     (bug 560)
+  + fixed namespace prefix generation with elements in different schemas and
+    for elements based on references (bug 561)
 * SoapClient fixes:
   + fixed URI request path
   + fixed agent string
