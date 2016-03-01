@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file SoapClient.qm SOAP Client module implementation based on the WSDL classes
 
-/*  SoapClient.qm Copyright (C) 2012 - 2015 David Nichols
+/*  SoapClient.qm Copyright (C) 2012 - 2016 David Nichols
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -118,7 +118,7 @@ public namespace SoapClient {
         #! @cond nodoc
         private {
             WSDL::WebService wsdl;  # web service definition
-            string portType;   # service name
+            string svc;   # service name
 
             *code logc;
             *code dbglogc;
@@ -138,7 +138,7 @@ public namespace SoapClient {
             - \c wsdl: the URL of the web service or a @ref WSDL::WebService "WebService" object itself
             - \c wsdl_file: a path to use to load the %WSDL and create the @ref WSDL::WebService "WebService" object
             - \c url: override the target URL given in the %WSDL
-            - [\c portType]: in case multiple portType entries are found in the WSDL, give the one to be used here
+            - [\c service]: in case multiple service entries are found in the WSDL, give the one to be used here
             - [\c port]: in case multiple port entries are found in the WSDL, give the one to be used here
             - [\c log]: a log closure or call reference taking a single string giving the log message
             - [\c dbglog]: a log closure or call reference taking a single string giving the debug log message
@@ -152,65 +152,31 @@ public namespace SoapClient {
                 setEventQueue(h.event_queue);
 
             *string def_path;
-            any wsdl;
+            any twsdl;
             # get web service definition
             if (exists h.wsdl_file)
-                wsdl = WSDLLib::getWSDL(h.wsdl_file, self, h.headers, \def_path);
+                twsdl = WSDLLib::getWSDL(h.wsdl_file, self, h.headers, \def_path);
             else if (exists h.wsdl)
-                wsdl = WSDLLib::getWSDL(h.wsdl, self, h.headers, \def_path);
+                twsdl = WSDLLib::getWSDL(h.wsdl, self, h.headers, \def_path);
             else
                 throw "SOAP-CLIENT-ERROR", "neither one of required 'wsdl' or 'wsdl_file' keys is present in the hash argument to SoapClient::constructor()";
 
-            if (!exists wsdl)
+            if (!exists twsdl)
                 throw "SOAP-CLIENT-ERROR", "missing wsdl in SoapClient::constructor()";
 
-            self.wsdl = wsdl = wsdl instanceof WebService ? wsdl : new WebService(wsdl, ("http_client" : self, "http_headers" : h.headers, "def_path": def_path) + h.wsdl_opt);
+            wsdl = twsdl = twsdl instanceof WebService ? twsdl : new WebService(twsdl, ("http_client" : self, "http_headers" : h.headers, "def_path": def_path) + h.wsdl_opt);
 
             # set service
             # get list of services in this wsdl
-            list portTypes = keys wsdl.portType;
-            if (elements portTypes > 1 && !exists h.portType)
-                throw "SOAP-CLIENT-ERROR", sprintf("no 'portType' key passed in the option hash argument to SoapClient::constructor() (WSDL defines the following services: %y)", portTypes);
+            list svcl = wsdl.listServices();
+            if (svcl.size() > 1 && !h.service)
+                throw "SOAP-CLIENT-ERROR", sprintf("no 'service' key passed in the option hash argument to SoapClient::constructor() (WSDL defines the following services: %y)", (map $1.name, svcl));
 
-            if (exists h.portType) {
-                if (!inlist(h.portType, portTypes))
-                    throw "SOAP-CLIENT-ERROR", sprintf("portType %y is not defined by this WSDL (valid portTypes: %y)", h.portType, portTypes);
-                portType = h.portType;
-            }
-            else
-                portType = portTypes[0];
+            svc = h.service ?? svcl[0].name;
 
-            if (exists h.url)
-                url = h.url;
-            else {
-                string port;
-                if (!wsdl.services.port)
-                    throw "SOAP-CLIENT-ERROR", sprintf("cannot find any port definitions in WSDL");
+            hash svch = wsdl.getService(svc);
 
-                if (elements wsdl.services.port > 1) {
-                    if (exists h.binding) {
-                        foreach string p in (wsdl.services.port.keyIterator()) {
-                            #printf("b=%y == %y\n", wsdl.services.port{p}.binding.val, h.binding);
-                            if (wsdl.services.port{p}.binding.val === h.binding) {
-                                port = p;
-                                break;
-                            }
-                        }
-                        if (!exists port)
-                            throw "SOAP-CLIENT-ERROR", sprintf("cannot find any port with binding: %y (valid ports: %y)", h.binding, keys wsdl.services.port);
-                    }
-                    else if (h.port) {
-                        if (!exists wsdl.services.port.(h.port))
-                            throw "SOAP-CLIENT-ERROR", sprintf("cannot find any port %y (valid ports: %y)", h.port, keys wsdl.services.port);
-                        port = h.port;
-                    }
-                }
-
-                if (!port)
-                    port = (wsdl.services.port).firstKey();
-
-                url = wsdl.services.port{port}.address;
-            }
+            url = h.url ?? svch.port.firstValue().address;
 
             headers += h.headers;
             # setup default headers
@@ -239,11 +205,7 @@ public namespace SoapClient {
             @throw SOAP-CLIENT-ERROR the operation is not defined in the WSDL
         */
         hash getMsg(string operation, any args, *hash header, reference op, *hash nsh) {
-            if (!exists wsdl.portType{portType}.operations{operation})
-                throw "SOAP-CLIENT-ERROR", sprintf("operation %y does not exist (operations defined by WSDL port %y: %y)",
-                                                   operation, portType, wsdl.portType{portType}.operations.keys());
-
-            op = wsdl.portType{portType}.operations{operation};
+            op = wsdl.getOperation(operation);
             hash msg = op.serializeRequest(args, header, getEncoding(), nsh);
             if (msg.hdr."Content-Type" !~ /charset=/i)
                 msg.hdr."Content-Type" += ";charset=" + getEncoding();
