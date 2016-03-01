@@ -73,6 +73,7 @@ module SoapHandler {
     - added support for matching requests with soap action values
     - added the err_func argument so SOAP response serialization errors can be logged at the source
     - added support for debugging (verbose exception info/logging)
+    - fixes to service creation and GET WSDL handling
 
     @subsection soaphandler_0_2_4 SoapHandler 0.2.4
     - updated to a user module
@@ -104,19 +105,22 @@ public namespace SoapHandler {
         private {
             hash methods;
 
-            # path -> WebService objects
+            # service name -> WebService objects
             hash wsh;
 
-            # operation names -> WebService object
+            # operation name -> WebService object
             hash owsh;
 
-            # path -> top-level-method-name -> method
-            hash pathmethods;
+            # lookup service name -> alternate paths
+            hash plh;
+
+            # lookup alt path -> WebService object
+            hash wsph;
 
             # soapaction map: action -> operation
             hash sam;
 
-            # path -> soapaction
+            # service -> soapaction
             hash psam;
 
             int loglevel;
@@ -152,10 +156,11 @@ public namespace SoapHandler {
             @param help optional help text for the method
             @param logopt log options which can be used by a custom logger (see the \a getLogMessage parameter in the constructor)
             @param cmark an optional "context marker" for the method
-            @param path an optional path for the method
+            @param path an optional path for the method (assumed to be the name of the service)
             @param err_func a call reference, a closure, or a string function name to call with error information if an exception is thrown with SOAP data
+            @param altpath an alternate path for the service / WSDL
          */
-        addMethod(WebService ws, WSOperation op, any func, *string help, *int logopt, any cmark, *string path, any err_func) {
+        addMethod(WebService ws, WSOperation op, any func, *string help, *int logopt, any cmark, *string path, any err_func, *string altpath) {
             if (!func)
                 throw "SOAP-SERVER-ADDMETHOD-PARAMETER-ERROR", sprintf("second argument is not a function name or callable value type (got: %y)", func);
 
@@ -168,6 +173,7 @@ public namespace SoapHandler {
                                   "logopt"    : logopt,
                                   "cmark"     : cmark,
                                   "path"      : path,
+                                  "altpath"   : altpath,
                                 ));
             #printf("methods=%N\n", methods);
         }
@@ -182,33 +188,34 @@ public namespace SoapHandler {
             return debug;
         }
 
-        #! call to remove all service mappings for services with the given path
-        removeServicesWithPath(string path) {
+        #! call to remove the given service
+        removeService(string name) {
             rwl.writeLock();
             on_exit rwl.writeUnlock();
 
-            if (wsh{path}) {
+            if (wsh{name}) {
                 # remove all operations for the given web service
-                map delete owsh{$1.operation.name}, wsh{path}.listOperations();
+                map delete owsh{$1.operation.name}, wsh{name}.listOperations();
+
+                # remove alternate path mappings
+                map delete wsph{$1}, plh{name}.keyIterator();
+                delete plh{name};
 
                 # remove webservice mappings
-                delete wsh{path};
+                delete wsh{name};
             }
 
-            # remove path/method mappings
-            delete pathmethods{path};
-
             # remove soapaction mappings
-            map delete sam.$1, psam{path}.keyIterator();
+            map delete sam.$1, psam{name}.keyIterator();
 
             # remove path soapaction mappings
-            delete psam{path};
+            delete psam{name};
 
             # remove method link mappings
-            map delete methods.$1, th{path}.keyIterator();
+            map delete methods.$1, th{name}.keyIterator();
 
             # remove path method mapping
-            delete th{path};
+            delete th{name};
         }
 
         #! @cond nodoc
@@ -244,11 +251,14 @@ public namespace SoapHandler {
                 if (!wsh{path})
                     wsh{path} = ws;
 
-                # add a link for each operation as well
-                map owsh{$1.operation.name} = ws, ws.listOperations();
+                if (method.altpath && !wsph{method.altpath}) {
+                    # add lookup for altpath
+                    plh{path}.(method.altpath) = True;
+                    wsph{method.altpath} = ws;
+                }
 
-                if (!pathmethods{path}{rn})
-                    pathmethods{path}{rn} = method;
+                # add a link for each operation as well
+                map owsh{$1.operation.name} = ws, ws.listOperations(), !owsh{$1.operation.name};
 
                 # add method link if it doesn't already exist
                 if (!methods{rn}) {
@@ -276,14 +286,6 @@ public namespace SoapHandler {
                 if (methods{cmd}.params)
                     h{cmd}.params = methods{cmd}.params;
             }
-            foreach string path in (pathmethods.keyIterator()) {
-                foreach string cmd in (pathmethods{path}.keyIterator()) {
-                    h{cmd}.description = methods{cmd}.help;
-                    if (pathmethods{path}{cmd}.params)
-                        h{path}{cmd}.params = pathmethods{path}{cmd}.params;
-                }
-            }
-
             return h;
         }
 
@@ -335,19 +337,7 @@ public namespace SoapHandler {
                     #printf("DEBUG: request matched with SoapAction %y\n", soapaction);
                 }
                 else {
-                    if (cx.url.path) {
-                        string path = cx.url.path;
-                        # prepend "/" if it's not already there
-                        if (path !~ /^\//)
-                            path =~ s/(.*)/\/$1/;
-
-                        method = pathmethods{path}{element};
-                        #printf("DEBUG: SoapHandler::callOperation() path: %y method exists: %y (%y)\n", path, exists method, keys pathmethods);
-                        #printf("DEBUG: SoapHandler::callOperation() cx: %y\n", cx);
-                    }
-
-                    if (!method)
-                        method = methods{element};
+                    method = methods{element};
 
                     #printf("DEBUG: found element %N method %N\n", element, method);
                     if (!method) {
@@ -473,12 +463,10 @@ public namespace SoapHandler {
             if (hdr.method == "GET") {
                 *string path = cx.url.path;
 
-                # prepend "/" if it's not already there
-                if (path !~ /^\//)
-                    path = "/" + path;
-
-                # remove ?wsdl if there
-                path =~ s/\?wsdl$//i;
+                # remove query args if present
+                path =~ s/\?.*$//;
+                # remove leading / in path, if any
+                path =~ s/^\///;
 
                 #printf("DEBUG: PATH=%N (%n %n)\n", path, exists wsh{path}, keys wsh);
 
@@ -491,21 +479,43 @@ public namespace SoapHandler {
                 rwl.readLock();
                 on_exit rwl.readUnlock();
 
-                *WebService ws = wsh{path};
-                if (!ws)
-                    ws = owsh{path};
+                *WebService ws = tryMatch(path);
+                if (!ws && cx.root_path && path.equalPartialPath(cx.root_path)) {
+                    path = path.substr(cx.root_path.size());
+                    # remove leading / in path, if any
+                    path =~ s/^\///;
+                    ws = tryMatch(path);
+                }
+                if (!ws) {
+                    # try a match with the last component of the path, if any
+                    path =~ s/.*\///g;
+                    if (path)
+                        ws = tryMatch(path);
+                }
 
                 if (!ws) {
-                    printf("cx: %N\n", cx);
                     return (
                         "code": 501,
-                        "body": sprintf("invalid HTTP GET: no WebService object for path %y; known services: %y; known operations: %y", path, wsh.keys(), owsh.keys()),
+                        "body": sprintf("invalid HTTP GET: no WebService object for path %y; known paths / services: %y; known operations: %y; known alt paths: %y", path, wsh.keys(), owsh.keys(), wsph.keys()),
                         );
                 }
 
+                # get URL for service
+                string host = cx."socket-info".hostname;
+                if (host == "::")
+                    host = gethostname();
+                string base_url = sprintf("http%s://%s", cx.ssl ? "s" : "", host);
+                int port = cx."socket-info".port;
+                if (cx.ssl) {
+                    if (port != 443)
+                        base_url += ":" + port;
+                }
+                else if (port != 80)
+                    base_url += ":" + port;
+
                 return (
                     "code": 200,
-                    "body": ws.getWSDL(),
+                    "body": ws.getWSDL(base_url),
                     "hdr": ("Content-Type": "text/xml"),
                     );
             }
@@ -593,6 +603,16 @@ public namespace SoapHandler {
                     "hdr": ("Content-Type" : MimeTypeSoapXml)
                     );
             }
+        }
+
+        private *WebService tryMatch(string path) {
+            *WebService ws = wsh{path};
+            if (!ws) {
+                ws = owsh{path};
+                if (!ws)
+                    ws = wsph{path};
+            }
+            return ws;
         }
         #! @endcond
     }

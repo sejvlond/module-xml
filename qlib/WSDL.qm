@@ -2358,13 +2358,24 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
         bool docStyle = False;
     }
 
+    private {
+        string port;
+    }
+
     constructor(hash data, Namespaces nsc, hash opmap, reference idocmap, *hash messages) : XsdNamedData(\data) {
         # get binding attributes
-        #*hash ba = data."^attributes^";
+        {
+            *hash ba = data."^attributes^";
 
-        if (exists data.binding) {
+            (*string ns, *string prt) = ba.type =~ x/(?:(\w+):)?(\w+)/;
+            if (!prt)
+                throw WSDL_ERROR, sprintf("missing port type for binding %y", name);
+            port = prt;
+        }
+
+        if (data.binding) {
             *hash bba = data.binding."^attributes^";
-            if (exists bba.transport && !SOAP_TRANSPORT.(bba.transport))
+            if (bba.transport && !SOAP_TRANSPORT.(bba.transport))
                 throw WSDL_ERROR, sprintf("unsupported transport %y in binding %y (known transports: %y)", bba.transport, name, SOAP_TRANSPORT.keys());
             if (bba.style == "document")
                 docStyle = True;
@@ -2466,6 +2477,10 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
         }
 
         #binding = data;
+    }
+
+    string getPort() {
+        return port;
     }
 }
 
@@ -2873,11 +2888,9 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         Namespaces nsc;
 
         hash base_type;
-        hash services;
         list wsdl_services = ();
         hash idocmap;
         hash opmap;
-        hash binding;
         ElementMap emap();
         hash messages;
         TypeMap tmap();
@@ -2886,6 +2899,14 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         *code try_import;
         #! default path for retrieving XSD references
         *string def_path;
+    }
+
+    private {
+        # service definitions; name -> service hash
+        hash services;
+
+        # service bindings; name -> hash
+        hash binding;
     }
 
     #! creates the WebService object
@@ -2967,24 +2988,51 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         return l;
     }
 
+    #! return a @ref WSDL::Binding object describing the requested binding
+    /** @param name the name of the binding
+
+        @return a @ref WSDL::Binding object
+
+        @throw WSDL-BINDING-ERROR unknown binding
+     */
+    WSDL::Binding getBinding(string name) {
+        *Binding b = binding{name};
+        if (!b)
+            throw "WSDL-BINDING-ERROR", sprintf("binding %y is not a known binding; known bindings: %y", name, binding.keys());
+        return b;
+    }
+
+    #! returns a list of services defined in the WSDL
+    /** @return a list of hashes of services defined in the WSDL; each hash has the following keys:
+        - \c "name": the name of the service
+        - \c "port": a hash of port information; the keys are port names and the values have the following keys:
+          - \c "address": the location of the port
+          - \c "binding": the binding of the port
+     */
+    list listServices() {
+        return services.values();
+    }
+
+    #! returns a hash describing the requested service
+    /** @param name the name of the service
+        @return a hash describing the service with the following keys:
+        - \c "name": the name of the service
+        - \c "port": a hash of port information; where each hash is keyed by port name and the values have the following keys:
+          - \c "address": the location of the port
+          - \c "binding": the binding of the port
+
+        @throw WSDL-SERVICE-ERROR the service is not known
+     */
+    hash getService(string name) {
+        *hash h = services{name};
+        if (!h)
+            throw "WSDL-SERVICE-ERROR", sprintf("service %y is not a known service; known services: %y", name, services.keys());
+        return h;
+    }
+
     hash getType(string name, any v) {
         #printf("DBG getType() %y: %Y\n", name, tmap);
         return ("^type^": tmap.get(name), "^val^": v);
-    }
-
-    #! returns a map of top-level element names to WSOperation objects
-    /** @return a map of top-level element names to WSOperation objects
-    */
-    *hash getOperationMap(any name) {
-        if (!exists name) {
-            if (elements wsdl_services > 2)
-                throw "WSDL-GET-INPUT-OPERATION-MAP-ERROR", sprintf("no service argument passed to WSDL::getOperationMap() but the WSDL defines more than one service (%y)", keys (services - "port"));
-            #name = wsdl_services[0];
-        }
-        else if (!inlist(name, (services - "port")))
-            throw "WSDL-GET-INPUT-OPERATION-MAP-ERROR", sprintf("service argument %y passed to WSDL::getOperationMap() is not defined by this WSDL (vaild services: %y)", name, keys (services - "port"));
-
-        return idocmap;
     }
 
     private XsdBaseType getBaseType(string t) {
@@ -3172,23 +3220,36 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         }
     }
 
-    private parseService(any svc) {
-        WSDL::XsdBase::removeNS(\svc);
-        services.name = svc."^attributes^".name;
-        foreach any port in (svc.port) {
-            WSDL::XsdBase::removeNS(\port);
-            string name = port."^attributes^".name;
-            services.port{name} = port."^attributes^";
-            services.port{name} += (
-                "address": port.address."^attributes^".location,
-                "binding": nsc.doType(services.port{name}.binding),
-                );
+    private parseService(*softlist svcs) {
+        foreach hash svc in (svcs) {
+            WSDL::XsdBase::removeNS(\svc);
+            string svcname = svc."^attributes^".name;
+            foreach hash port in (svc.port) {
+                WSDL::XsdBase::removeNS(\port);
+                hash pa = port."^attributes^";
+                string name = pa.name;
+                services{svcname}.name = svcname;
+                services{svcname}.port{name} = pa;
+                services{svcname}.port{name}.address = port.address."^attributes^".location;
+
+                if (!pa.binding)
+                    throw WSDL_ERROR, sprintf("service %y port %y has no binding", svcname, name);
+
+                (*string ns, *string bind) = pa.binding =~ x/(?:(\w+):)?(\w+)/;
+                if (!bind)
+                    throw WSDL_ERROR, sprintf("cannot parse service %y port %y binding: %y", svcname, name, pa.binding);
+
+                if (!binding{bind})
+                    throw WSDL_ERROR, sprintf("service %y port %y refers to non-existant binding %y; known bindings: %y", svcname, name, bind, binding.keys());
+
+                services{svcname}.port{name}.binding = binding{bind};
+            }
         }
     }
 
-    private parsePortType(any data) {
+    private parsePortType(*softlist data) {
         # setup list of services defined in this WSDL
-        foreach any port in (data) {
+        foreach hash port in (data) {
             WSDL::XsdBase::removeNS(\port);
             #printf("DEBUG: portType: %Y\n", port);
             string name = port."^attributes^".name;
@@ -3202,9 +3263,9 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         }
     }
 
-    private parseBinding(any bindings) {
+    private parseBinding(*softlist bindings) {
         foreach hash data in (bindings) {
-            my WSDL::Binding b(data, nsc, opmap, \idocmap, messages);
+            WSDL::Binding b(data, nsc, opmap, \idocmap, messages);
 
             binding.(b.getName()) = b;
         }
@@ -3222,5 +3283,20 @@ public class WSDL::WebService inherits WSDL::XsdBase {
     */
     string getWSDL() {
         return wsdl;
+    }
+
+    #! returns the XML string for the WSDL, adjusting the URLs for binding locations depending on the caller
+    /** @return the XML string for the WSDL
+    */
+    string getWSDL(string base_url) {
+        string wstr = wsdl;
+
+        foreach hash sh in (services.iterator()) {
+            foreach hash ph in (sh.port.iterator()) {
+                wstr = replace(wstr, ph.address, base_url + "/" + sh.name);
+            }
+        }
+
+        return wstr;
     }
 }

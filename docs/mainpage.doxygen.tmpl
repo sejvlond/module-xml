@@ -277,9 +277,10 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - implemented support for operations with either a missing input or output message
       - XSD \c "integer" types are returned as integers when possible
       - fixed a bug in XSD namespace handling
-      - fixed bugs deserializing xml nil elements (<a href="https://github.com/qorelanguage/qore/issues/468">bug 468</a>)
-      - fixed a bug handling types with more than two levels of nested references (<a href="https://github.com/qorelanguage/qore/issues/560">bug 560</a>)
-      - fixed namespace prefix generation with elements in different schemas and for elements based on references (<a href="https://github.com/qorelanguage/qore/issues/561">bug 561</a>)
+      - fixed bugs deserializing xml nil elements (<a href="https://github.com/qorelanguage/qore/issues/468">issue 468</a>)
+      - fixed a bug handling types with more than two levels of nested references (<a href="https://github.com/qorelanguage/qore/issues/560">issue 560</a>)
+      - fixed namespace prefix generation with elements in different schemas and for elements based on references (<a href="https://github.com/qorelanguage/qore/issues/561">issue 561</a>)
+      - new APIs for WebService introspection and WSDL retrieving (<a href="https://github.com/qorelanguage/qore/issues/571">issue 571</a>)
     - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes:
       - fixed URI request path
       - fixed agent string
@@ -288,12 +289,16 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - fixed parsing messages with multiple input parts
       - required modules are now reexported
       - added the SoapClient::getWebService() method
+      - updated for new WebService APIs
     - <a href="../../SoapHandler/html/index.html">SoapHandler</a> changes:
       - allow SOAP serialization errors to be logged at the source
       - added support for matching requests by soap action values
       - allow \c "^header^" key in top-level hash response to specify SOAP headers in the response message
       - 500 HTTP response code returned with SOAP faults
       - added support for debugging (verbose exception info/logging)
+      - updated for new WebService APIs; improved URL matching
+      - improved service URL generation
+      - WSDLs are now returned with the correct service URLs (<a href="https://github.com/qorelanguage/qore/issues/568">issue 568</a>, <a href="https://github.com/qorelanguage/qore/issues/571">issue 571</a>)
     - user modules moved to top-level qore module directory from version-specific module directory since they are valid for multiple versions of qore
     - implemented the following non-camel-case functions as replacements for old camel-case functions (the following camel-case function names are now deprecated):
       - make_xml(): replaced:
