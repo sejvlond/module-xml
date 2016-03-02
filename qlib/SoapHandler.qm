@@ -502,7 +502,7 @@ public namespace SoapHandler {
 
                 # get URL for service
                 string host = cx."socket-info".hostname;
-                if (host == "::")
+                if (host == "::" || host == "0.0.0.0")
                     host = gethostname();
                 string base_url = sprintf("http%s://%s", cx.ssl ? "s" : "", host);
                 int port = cx."socket-info".port;
