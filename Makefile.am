@@ -57,8 +57,7 @@ docs/qlib/SoapClient.qm.dox.h: qlib/SoapClient.qm
 
 docs/SoapClient/html: docs/qlib/SoapClient.qm.dox.h docs/qlib/Doxyfile.SoapClient
 	cd docs; $(DOXYGEN_CMD) qlib/Doxyfile.SoapClient
-	$(QDX) --post docs/SoapClient/html/*html
-	$(QDX) --post docs/SoapClient/html/search/*html
+	$(QDX) --post docs/SoapClient/html docs/SoapClient/html/search
 
 docs/qlib/Doxyfile.SoapHandler: docs/qlib/Doxyfile.tmpl
 	$(QDX) -M=qlib/SoapHandler.qm:qlib/SoapHandler.qm.dox.h $< $@
@@ -68,8 +67,7 @@ docs/qlib/SoapHandler.qm.dox.h: qlib/SoapHandler.qm
 
 docs/SoapHandler/html: docs/qlib/SoapHandler.qm.dox.h docs/qlib/Doxyfile.SoapHandler
 	cd docs; $(DOXYGEN_CMD) qlib/Doxyfile.SoapHandler
-	$(QDX) --post docs/SoapHandler/html/*html
-	$(QDX) --post docs/SoapHandler/html/search/*html
+	$(QDX) --post docs/SoapHandler/html docs/SoapHandler/html/search
 
 docs/qlib/Doxyfile.WSDL: docs/qlib/Doxyfile.tmpl
 	$(QDX) -M=qlib/WSDL.qm:qlib/WSDL.qm.dox.h $< $@
@@ -79,8 +77,7 @@ docs/qlib/WSDL.qm.dox.h: qlib/WSDL.qm
 
 docs/WSDL/html: docs/qlib/WSDL.qm.dox.h docs/qlib/Doxyfile.WSDL
 	cd docs; $(DOXYGEN_CMD) qlib/Doxyfile.WSDL
-	$(QDX) --post docs/WSDL/html/*html
-	$(QDX) --post docs/WSDL/html/search/*html
+	$(QDX) --post docs/WSDL/html docs/WSDL/html/search
 
 docs/qlib/Doxyfile.XmlRpcHandler: docs/qlib/Doxyfile.tmpl
 	$(QDX) -M=qlib/XmlRpcHandler.qm:qlib/XmlRpcHandler.qm.dox.h $< $@
@@ -90,13 +87,11 @@ docs/qlib/XmlRpcHandler.qm.dox.h: qlib/XmlRpcHandler.qm
 
 docs/XmlRpcHandler/html: docs/qlib/XmlRpcHandler.qm.dox.h docs/qlib/Doxyfile.XmlRpcHandler
 	cd docs; $(DOXYGEN_CMD) qlib/Doxyfile.XmlRpcHandler
-	$(QDX) --post docs/XmlRpcHandler/html/*html
-	$(QDX) --post docs/XmlRpcHandler/html/search/*html
+	$(QDX) --post docs/XmlRpcHandler/html docs/XmlRpcHandler/html/search
 
 docs/xml/html: $(DOXYFILES)
 	cd docs; $(DOXYGEN_CMD) doxyfile;
-	$(QDX) --post docs/xml/html/*html
-	$(QDX) --post docs/xml/search/*html
+	$(QDX) --post docs/xml/html docs/xml/search
 
 docs/mainpage.doxygen: docs/mainpage.doxygen.tmpl
 	$(QDX) -d $< $@
