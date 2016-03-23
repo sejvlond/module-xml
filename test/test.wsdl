@@ -111,6 +111,23 @@
 	</s:sequence>
       </s:complexType>
       <s:element name="issue560" type="tns:issue560_1"/>
+      <s:element name="issue663" type="tns:issue663"/>
+      <s:complexType name="issue663">
+        <s:sequence>
+          <s:element name="i663list" type="tns:i663list" maxOccurs="1" minOccurs="1"/>
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="i663list">
+        <s:sequence>
+          <s:element maxOccurs="unbounded" minOccurs="0" name="i663element" type="tns:i663element"/>
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="i663element">
+        <s:sequence>
+          <s:element maxOccurs="1" minOccurs="1" name="i663element_2" type="s:string"/>
+          <s:element maxOccurs="1" minOccurs="1" name="i663element_3" type="s:string"/>
+        </s:sequence>
+      </s:complexType>
     </s:schema>
     <s:schema xmlns:tns1="http://qore.org/simpletest1" elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest1">
       <s:element name="issue86" type="tns1:issue86_1"/>
@@ -145,6 +162,7 @@
 
   <wsdl:message name="m4">
     <wsdl:part name="body" element="tns:SetInfoResult"/>
+    <wsdl:part name="issue663" element="tns:issue663"/>
   </wsdl:message>
 
   <wsdl:portType name="pt1">
