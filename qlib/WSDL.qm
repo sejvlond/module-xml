@@ -1027,10 +1027,11 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
 
     private any serializeAsIntern(XsdAbstractType type, any h, *softbool omit_type, *softbool omit_ns, string key, string typename) {
         #printf("DEBUG: XsdElement::serializeAsIntern() name: %y h: %y key: %y typename: %y (%y) minOccurs: %y nillable: %y (%y %y)\n", name, h, key, typename, type.getName(), minOccurs, nillable, !exists h, !minOccurs);
-        if (h.typeCode() == NT_LIST && h.size() == 1)
+        int tc = h.typeCode();
+        if (tc == NT_LIST && h.size() == 1)
             h = h[0];
 
-        if (!exists h) {
+        if (!exists h || (tc == NT_LIST && h.empty())) {
             if (!minOccurs)
                 return;
 
@@ -1051,12 +1052,13 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
         if (omit_type && type != type)
             pf = ("^attributes^": ("xsi:type": omit_ns ? type.getName() : type.getNameWithNS()));
 
-        if (h.typeCode() == NT_LIST) {
-            if (maxOccurs == 1)
-                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize element %y of type %y from a list because maxOccurs = 1", name, type.getName());
-            if (elements h > maxOccurs && maxOccurs > 0)
+        if (tc == NT_LIST) {
+            int len = h.size();
+            if (maxOccurs == 1 && len > 1)
+                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize element %y of type %y from a list with %d elements because maxOccurs = 1", name, type.getName(), len);
+            if (len > maxOccurs && maxOccurs > 0)
                 throw SOAP_SERIALIZATION_ERROR, sprintf("list for element %y of type %y has %d element%s, but maxOccurs = %d", name, type.getName(), elements h, elements h == 1 ? "" : "s", maxOccurs);
-            if (elements h < minOccurs)
+            if (len < minOccurs)
                 throw SOAP_SERIALIZATION_ERROR, sprintf("list for element %y of type %y has %d element%s, but minOccurs = %d", name, type.getName(), elements h, elements h == 1 ? "" : "s", minOccurs);
 
             list l = ();
@@ -1073,6 +1075,7 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
     }
 
     any deserialize(*TypeMap tmap, *hash mrh, any val, bool present) {
+        #printf("XsdElement::deserialize() name: %y type: %y (nillable: %y) val: %y present: %y\n", name, type.getName(), type.isNillable(), val, present);
         *hash a = val."^attributes^";
         if (a)
             WSDL::XsdBase::removeNS(\a);
@@ -1585,6 +1588,8 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         }
 
         if (cx_type == XET_SIMPLE) {
+            if (!exists val && !required)
+                return;
             any sv = simpleType.deserialize(name, tmap, mrh, val);
             if (sv.typeCode() == NT_HASH)
                 rh = sv;
@@ -1596,6 +1601,13 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 throw SOAP_DESERIALIZATION_ERROR, sprintf("cannot deserialize element %y type %y from qore type %y (expecting hash)", en, getName(), val.type());
 
             if (cx_type == XET_SEQUENCE || cx_type == XET_ALL) {
+                #printf("XsdComplexType::deserialize() name: %y val: %y required: %y\n", getName(), val, required);
+                # if we have one element
+                if (elementmap.size() == 1 && val.size() == 1
+                    && val.firstKey() == elementmap.firstKey()
+                    && !exists val{elementmap.firstKey()} && !required && !choices)
+                    return;
+
                 foreach string p in (elementmap.keyIterator()) {
                     #printf("element %y\n", p);
                     rh{p} = elementmap{p}.deserialize(tmap, mrh, getValue(mrh, val{p}), val.hasKey(p));
@@ -1962,7 +1974,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
     #! parses a hash representing a parsed XML response (parsed with parse_xml()) for the operation and returns the corresponding Qore data structure
     /** @param o the parsed XML response (parsed with parse_xml()) for the operation
-    @return the Qore data structure corresponding to the response data
+        @return the Qore data structure corresponding to the response data
     */
     any deserializeResponse(hash o) {
         WSDL::XsdBase::removeNS2(\o);

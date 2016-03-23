@@ -31,6 +31,7 @@ version 1.3
   + fixed namespace prefix generation with elements in different schemas and
     for elements based on references (issue 561)
   + added new APIs for WebService introspection and WSDL retrieving (issue 571)
+  + fixed a bug handling empty lists for optional elements (issue 663)
 * SoapClient fixes:
   + fixed URI request path
   + fixed agent string

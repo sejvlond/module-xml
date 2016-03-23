@@ -86,6 +86,13 @@ class SoapTest inherits QUnit::Test {
             ),
             );
 
+        const Res_1 = (
+            "SetInfoResult": "test",
+            "issue663": (
+                "i663list": (),
+            ),
+            );
+
         const SoapUiReq_1 = "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:sim=\"http://qore.org/simpletest\" xmlns:sim1=\"http://qore.org/simpletest1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">
    <soap:Header/>
    <soap:Body>
@@ -126,6 +133,20 @@ class SoapTest inherits QUnit::Test {
             );
 
         const EmptyRes = EmptyReq;
+
+        const TestRes = EmptyReq + (
+            "soap:Body": (
+                "sim:SetInfoResult": "test",
+                "sim:issue663": (
+                    "sim:i663list": NOTHING,
+                ),
+            ),
+            );
+
+        const RMap = (
+            "body": "SetInfoResult",
+            "issue663": "issue663",
+            );
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
@@ -226,11 +247,21 @@ class SoapTest inherits QUnit::Test {
 
         testAssertionValue("attr-deser-soapui", h, req);
 
+        h = op.serializeResponse(Res_1);
+        xh = parse_xml(h.body);
+        compareSoapMsgs("output", xh, TestRes);
+        *hash eh = op.deserializeResponse(xh);
+        # map message part names to element names
+        eh = map {RMap{$1.key}: $1.value}, eh.pairIterator();
+        if (!exists eh.issue663.i663list)
+            eh.issue663.i663list = ();
+        assertEq(Res_1, eh);
+
         op = ws.getOperation("noInput");
         h = op.serializeRequest();
         xh = parse_xml(h.body);
         compareSoapMsgs("no-input", xh, EmptyReq);
-        *hash eh = op.deserializeRequest(h);
+        eh = op.deserializeRequest(h);
         assertEq(NOTHING, eh);
 
         op = ws.getOperation("noOutput");
