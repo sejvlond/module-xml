@@ -501,17 +501,28 @@ public namespace SoapHandler {
                 }
 
                 # get URL for service
-                string host = cx."socket-info".hostname;
-                if (host == "::" || host == "0.0.0.0")
-                    host = gethostname();
+                # note that "socket-info".hostname is not returned for UNIX sockets
+                string host;
+                hash sih = cx."socket-info";
+                if (sih.family == AF_UNIX) {
+                    host = sprintf("socket=%s", encode_url(sih.address, True));
+                }
+                else {
+                    host = sih.hostname;
+                    if (host == "::" || host == "0.0.0.0")
+                        host = gethostname();
+                }
+
                 string base_url = sprintf("http%s://%s", cx.ssl ? "s" : "", host);
-                int port = cx."socket-info".port;
-                if (cx.ssl) {
-                    if (port != 443)
+                if (sih.port) {
+                    int port = sih.port;
+                    if (cx.ssl) {
+                        if (port != 443)
+                            base_url += ":" + port;
+                    }
+                    else if (port != 80)
                         base_url += ":" + port;
                 }
-                else if (port != 80)
-                    base_url += ":" + port;
 
                 return (
                     "code": 200,
