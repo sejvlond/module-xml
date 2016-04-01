@@ -1,28 +1,23 @@
 #!/usr/bin/env qore
 # -*- mode: qore; indent-tabs-mode: nil -*-
 
-# require the xml module
-%requires xml
+# make sure we have the right version of qore
+%requires qore >= 0.8.12
 
-# require all global variables to be declared with "our"
-%require-our
-# enable all warnings
-%enable-all-warnings
-# child programs do not inherit parent's restrictions
-%no-child-restrictions
-# require types to be declared
-%require-types
-# do not use $ for vars
 %new-style
+%require-types
+%strict-args
+%enable-all-warnings
+%no-child-restrictions
+%require-our
 
 # test deprecated functions as well
 %disable-warning deprecated
 
-# make sure we have the right version of qore
-%requires qore >= 0.8.12
-
 %requires QUnit
+
 %requires Util
+%requires xml
 
 %exec-class XmlTest
 
