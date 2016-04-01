@@ -4,7 +4,7 @@
 
   Qore Programming Language
 
-  Copyright (C) 2003 - 2014 David Nichols
+  Copyright (C) 2003 - 2016 David Nichols
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -57,22 +57,20 @@ public:
    }
 
    DLLLOCAL AbstractQoreNode* getReferencedValue(ExceptionSink* xsink) {
-      SimpleRefHolder<QoreStringNode> holder(getInnerXml());
+      SimpleRefHolder<QoreStringNode> holder(getOuterXml());
       if (!holder)
          return 0;
       TempEncodingHelper str(*holder, QCS_UTF8, xsink);
       if (*xsink)
          return 0;
       str.makeTemp();
-      ((QoreString*)(*str))->prepend("<a>");
-      ((QoreString*)(*str))->concat("</a>");
 
       QoreXmlReader reader(*str, QORE_XML_PARSER_OPTIONS, xsink);
       if (!reader)
          return 0;
 
       ReferenceHolder<QoreHashNode> h(reader.parseXmlData(QCS_UTF8, XPF_NONE, xsink), xsink);
-      AbstractQoreNode* n = h->getKeyValue("a");
+      AbstractQoreNode* n = h->getKeyValue(element_name.c_str());
       return n ? n->refSelf() : 0;
    }
 
