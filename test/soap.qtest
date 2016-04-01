@@ -11,10 +11,10 @@
 
 %requires QUnit
 
-%exec-class SoapTest
-
 %requires ../qlib/WSDL.qm
 %requires xml
+
+%exec-class SoapTest
 
 # maps from namespace prefixes to URIs and vice-versa
 class NsMap {
