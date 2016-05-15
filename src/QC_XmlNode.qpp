@@ -22,7 +22,11 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <libxml/xmlreader.h>
+
 #include "qore-xml-module.h"
+#include "QC_XmlNode.h"
+#include "ql_xml.h"
 
 static QoreObject* doObject(QoreXmlNodeData *data) {
    return data ? new QoreObject(QC_XMLNODE, getProgram(), data) : 0;

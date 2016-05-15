@@ -1,21 +1,21 @@
 /* -*- mode: c++; indent-tabs-mode: nil -*- */
 /*
  QoreXmlReader.h
- 
+
  Qore Programming Language
- 
+
  Copyright (C) 2003 - 2014 David Nichols
- 
+
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
  License as published by the Free Software Foundation; either
  version 2.1 of the License, or (at your option) any later version.
- 
+
  This library is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  Lesser General Public License for more details.
- 
+
  You should have received a copy of the GNU Lesser General Public
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -59,7 +59,7 @@ protected:
       xs = xsink;
    }
 
-   DLLLOCAL AbstractQoreNode* getXmlData(const QoreEncoding* data_ccsid, bool as_data, ExceptionSink* xsink, int min_depth = -1);
+   DLLLOCAL AbstractQoreNode* getXmlData(ExceptionSink* xsink, const QoreEncoding* data_ccsid, int pflags = XPF_NONE, int min_depth = -1);
 
    DLLLOCAL void init(const QoreString* n_xml, int options, ExceptionSink* xsink) {
       xml = n_xml;
@@ -70,7 +70,7 @@ protected:
 	 xsink->raiseException("XML-READER-ERROR", "could not create XML reader");
 	 return;
       }
-	 
+
       xmlTextReaderSetErrorHandler(reader, (xmlTextReaderErrorFunc)qore_xml_error_func, this);
    }
 
@@ -148,9 +148,9 @@ protected:
 
    DLLLOCAL void init(ExceptionSink* xsink, const QoreString* n_xml, int options, xmlDocPtr doc) {
       assert(!xs);
-      
+
       if (n_xml) {
-         assert(!doc);         
+         assert(!doc);
          init(n_xml, options, xsink);
       }
       else {
@@ -201,7 +201,7 @@ public:
    DLLLOCAL int read() {
       return xmlTextReaderRead(reader);
    }
- 
+
    DLLLOCAL int readSkipWhitespace() {
       int rc;
       while (true) {
@@ -267,7 +267,7 @@ public:
    DLLLOCAL const char* constName() {
       return (const char*)xmlTextReaderConstName(reader);
    }
-      
+
    DLLLOCAL const char* constValue() {
       return (const char*)xmlTextReaderConstValue(reader);
    }
@@ -315,7 +315,7 @@ public:
    DLLLOCAL QoreStringNode* getValue(const QoreEncoding* id, ExceptionSink* xsink) {
       if (id == QCS_UTF8)
 	 return new QoreStringNode(constValue(), QCS_UTF8);
-      
+
       return QoreStringNode::createAndConvertEncoding(constValue(), QCS_UTF8, id, xsink);
    }
 
@@ -453,7 +453,7 @@ public:
    }
 #endif
 
-   DLLLOCAL QoreHashNode* parseXMLData(const QoreEncoding* data_ccsid, bool as_data, ExceptionSink* xsink);
+   DLLLOCAL QoreHashNode* parseXmlData(const QoreEncoding* data_ccsid, int pflags, ExceptionSink* xsink);
 };
 
 #endif
