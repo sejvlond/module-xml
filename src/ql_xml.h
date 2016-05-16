@@ -6,7 +6,7 @@
 
   Qore Programming Language
 
-  Copyright 2003 - 2010 David Nichols
+  Copyright 2003 - 2015 David Nichols
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -29,20 +29,22 @@
 #include <libxml/xmlschemas.h>
 #include <libxml/relaxng.h>
 
+#include <qore/Qore.h>
+
 DLLLOCAL void init_xml_constants(QoreNamespace& ns);
 
-DLLLOCAL QoreStringNode *makeXMLString(const QoreEncoding *enc, const QoreHashNode &h, bool format, ExceptionSink *xsink);
-DLLLOCAL QoreStringNode *makeXMLRPCCallString(const QoreEncoding *ccs, int offset, const QoreListNode *args, ExceptionSink *xsink);
-DLLLOCAL QoreStringNode *makeXMLRPCCallStringArgs(const QoreEncoding *ccs, int offset, const QoreListNode *args, ExceptionSink *xsink);
+DLLLOCAL QoreStringNode* make_xml(ExceptionSink* xsink, const QoreEncoding* enc, const QoreHashNode& h, int flags = XGF_NONE);
+DLLLOCAL QoreStringNode* make_xmlrpc_call(ExceptionSink* xsink, const QoreEncoding* ccs, int offset, const QoreValueList* args, int flags = 0);
+DLLLOCAL QoreStringNode* make_xmlrpc_call_args(ExceptionSink* xsink, const QoreEncoding* ccs, int offset, const QoreValueList* args, int flags = 0);
 // ccsid is the output encoding for strings
-DLLLOCAL QoreHashNode *parseXMLRPCResponse(const QoreString *msg, const QoreEncoding *ccsid, ExceptionSink *xsink);
+DLLLOCAL QoreHashNode* parse_xmlrpc_response(ExceptionSink* xsink, const QoreString* msg, const QoreEncoding* ccsid, int flags = 0);
 DLLLOCAL void init_xml_functions(QoreNamespace& ns);
 
 // returns the string corresponding to the element type
-DLLLOCAL const char *get_xml_element_type_name(int t);
+DLLLOCAL const char* get_xml_element_type_name(int t);
 
 // returns the string corresponding to the node type
-DLLLOCAL const char *get_xml_node_type_name(int t);
+DLLLOCAL const char* get_xml_node_type_name(int t);
 
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA
 class QoreXmlSchemaContext {
@@ -55,7 +57,7 @@ protected:
    }
 
 public:
-   DLLLOCAL QoreXmlSchemaContext(const char *xsd, int size, ExceptionSink *xsink);
+   DLLLOCAL QoreXmlSchemaContext(const char* xsd, int size, ExceptionSink* xsink);
    DLLLOCAL ~QoreXmlSchemaContext() {
       if (schema)
 	 xmlSchemaFree(schema);
@@ -76,7 +78,7 @@ protected:
    }
 
 public:
-   DLLLOCAL QoreXmlSchemaValidContext(QoreXmlSchemaContext &c) : ptr(c.getValidCtxtPtr()) {
+   DLLLOCAL QoreXmlSchemaValidContext(QoreXmlSchemaContext& c) : ptr(c.getValidCtxtPtr()) {
       assert(ptr);
    }
    DLLLOCAL ~QoreXmlSchemaValidContext() {
@@ -102,7 +104,7 @@ protected:
    }
 
 public:
-   DLLLOCAL QoreXmlRelaxNGContext(const char *rng, int size, ExceptionSink *xsink);
+   DLLLOCAL QoreXmlRelaxNGContext(const char* rng, int size, ExceptionSink* xsink);
    DLLLOCAL ~QoreXmlRelaxNGContext() {
       if (schema)
 	 xmlRelaxNGFree(schema);
@@ -123,7 +125,7 @@ protected:
    }
 
 public:
-   DLLLOCAL QoreXmlRelaxNGValidContext(QoreXmlRelaxNGContext &c) : ptr(c.getValidCtxtPtr()) {
+   DLLLOCAL QoreXmlRelaxNGValidContext(QoreXmlRelaxNGContext& c) : ptr(c.getValidCtxtPtr()) {
       assert(ptr);
    }
    DLLLOCAL ~QoreXmlRelaxNGValidContext() {

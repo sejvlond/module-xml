@@ -30,6 +30,8 @@
 DLLEXPORT extern qore_classid_t CID_XMLDOC;
 DLLLOCAL QoreClass *initXmlDocClass(QoreNamespace& ns);
 
+DLLLOCAL extern QoreClass* QC_XMLDOC;
+
 class QoreXmlNodeData;
 
 class QoreXmlDocData : public AbstractPrivateData, public QoreXmlDoc {

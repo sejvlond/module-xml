@@ -48,11 +48,7 @@ DLLEXPORT int qore_module_api_minor = QORE_MODULE_API_MINOR;
 DLLEXPORT qore_module_init_t qore_module_init = xml_module_init;
 DLLEXPORT qore_module_ns_init_t qore_module_ns_init = xml_module_ns_init;
 DLLEXPORT qore_module_delete_t qore_module_delete = xml_module_delete;
-#ifdef _QORE_HAS_QL_MIT
 DLLEXPORT qore_license_t qore_module_license = QL_MIT;
-#else
-DLLEXPORT qore_license_t qore_module_license = QL_LGPL;
-#endif
 DLLEXPORT char qore_module_license_str[] = "MIT";
 
 QoreNamespace XNS("Xml");
@@ -88,10 +84,12 @@ QoreStringNode *xml_module_init() {
 
    XNS.addSystemClass(initXmlRpcClientClass(XNS));
 
+   init_xml_constants(XNS);
+
    // set up Option namespace for XML options
    QoreNamespace *option = new QoreNamespace("Option");
 
-   init_xml_constants(*option);
+   init_option_constants(*option);
 
    XNS.addInitialNamespace(option);
 

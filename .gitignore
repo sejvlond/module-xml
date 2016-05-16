@@ -29,3 +29,18 @@ src/*.dox.h
 src/qc_*.cpp
 src/ql_*.cpp
 src/QC_*.cpp
+
+# temporary doxygen files
+docs/*.tag
+docs/SoapClient/
+docs/SoapHandler/
+docs/WSDL/
+docs/XmlRpcHandler/
+docs/doxyfile
+docs/*.doxygen
+docs/qlib/Doxyfile.*
+docs/qlib/*.dox.h
+docs/xml/
+
+# cmake build dir
+build/
