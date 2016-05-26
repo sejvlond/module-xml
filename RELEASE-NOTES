@@ -32,6 +32,7 @@ version 1.3
     for elements based on references (issue 561)
   + added new APIs for WebService introspection and WSDL retrieving (issue 571)
   + fixed a bug handling empty lists for optional elements (issue 663)
+  + fixed setting the charset=... value in HTTP headers (issue 906)
 * SoapClient fixes:
   + fixed URI request path
   + fixed agent string
@@ -51,6 +52,9 @@ version 1.3
   + updated for new WebService APIs; improved URL matching
   + improved service URL generation
   + WSDLs are now returned with the correct service URLs (issue 571)
+* SoapClient changes:
+  + added support for configurable content-encoding (message compression)
+    (issue 904)
 * user modules moved to top-level qore module directory from version-specific
   module directory since they are valid for multiple versions of qore
 * camel-case function names deprecated and replaced with new functions with

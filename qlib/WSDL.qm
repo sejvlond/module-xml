@@ -76,6 +76,7 @@ module WSDL {
     - fixed many message serialization and deserialization issues
     - added @ref WSDL::WebService::getOperation()
     - allow for environment variable substitution in WSDLLib::getWSDL() when retrieving files
+    - fixed charset=... header value
 
     @subsection wsdl_0_3_4 WSDL v0.3.4
     - updated to a user module
@@ -1791,7 +1792,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
                 rv.hdr += ("SOAPAction" : soapAction);
             }
 
-            rv.hdr."Content-Type" += sprintf(";charset: %s", exists enc ? enc : get_default_encoding());
+            rv.hdr."Content-Type" += sprintf(";charset=%s", exists enc ? enc : get_default_encoding());
             return rv;
         }
 
@@ -1804,7 +1805,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         else
             ct = MimeTypeXml;
 
-        ct += sprintf(";charset: %s", exists enc ? enc : get_default_encoding());
+        ct += sprintf(";charset=%s", exists enc ? enc : get_default_encoding());
 
         hash rv = ("hdr": ("Content-Type": ct),
                        "body": body );
@@ -1876,7 +1877,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             return mpm.getMsgAndHeaders();
         }
 
-        ct += sprintf(";charset: %s", exists enc ? enc : get_default_encoding());
+        ct += sprintf(";charset=%s", exists enc ? enc : get_default_encoding());
 
         return ( "hdr"  : ( "Content-Type" : ct ),
                  "body" : body );

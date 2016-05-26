@@ -282,6 +282,7 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - fixed namespace prefix generation with elements in different schemas and for elements based on references (<a href="https://github.com/qorelanguage/qore/issues/561">issue 561</a>)
       - new APIs for WebService introspection and WSDL retrieving (<a href="https://github.com/qorelanguage/qore/issues/571">issue 571</a>)
       - fixed a bug handling empty lists for optional elements (<a href="https://github.com/qorelanguage/qore/issues/663">issue 663</a>)
+      - fixed a bug setting the \c "charset=..." value in HTTP headers (<a href="https://github.com/qorelanguage/qore/issues/906">issue 906</a>)
     - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes:
       - fixed URI request path
       - fixed agent string
@@ -289,7 +290,13 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - added SOAP headers to info hash when available
       - fixed parsing messages with multiple input parts
       - required modules are now reexported
-      - added the SoapClient::getWebService() method
+      - added the following methods:
+        - SoapClient::addDefaultHeaders()
+        - SoapClient::getDefaultHeaders()
+        - SoapClient::getSendEncoding()
+        - SoapClient::getWebService()
+        - SoapClient::setContentEncoding()
+        - SoapClient::setSendEncoding()
       - updated for new WebService APIs
     - <a href="../../SoapHandler/html/index.html">SoapHandler</a> changes:
       - allow SOAP serialization errors to be logged at the source
