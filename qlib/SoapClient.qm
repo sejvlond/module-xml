@@ -96,7 +96,13 @@ any result = sc.call("SubmitDocument", msg);
     - handle SOAP fault messages returned with 500-series error codes as Fault messages
     - added optional logging closures, added SOAP headers to info hash when available
     - fixed URI request path, fixed agent string
-    - added the @ref SoapClient::SoapClient::getWebService() method
+    - added the following methods:
+      - @ref SoapClient::SoapClient::addDefaultHeaders()
+      - @ref SoapClient::SoapClient::getDefaultHeaders()
+      - @ref SoapClient::SoapClient::getSendEncoding()
+      - @ref SoapClient::SoapClient::getWebService()
+      - @ref SoapClient::SoapClient::setContentEncoding()
+      - @ref SoapClient::SoapClient::setSendEncoding()
 
     @subsection soapclient_0_2_3 SoapClient v0.2.3
     - updated to a user module
@@ -113,15 +119,20 @@ public namespace SoapClient {
         const Headers = ("Accept": (MimeTypeSoapXml + "," + MimeTypeXml + "," + MimeTypeXmlApp), "User-Agent": ("Qore-Soap-Client/" + SoapClient::Version));
 
         #! option keys passed to the HTTPClient constructor
-        const HTTPOptions = ( "connect_timeout", "http_version", "max_redirects", "proxy", "timeout" );
+        const HTTPOptions = ("connect_timeout", "http_version", "max_redirects", "proxy", "timeout");
 
         #! @cond nodoc
         private {
-            WSDL::WebService wsdl;  # web service definition
-            string svc;   # service name
+            # web service definition
+            WSDL::WebService wsdl;
+            # service name
+            string svc;
 
             *code logc;
             *code dbglogc;
+
+            # send content encoding hash
+            *hash seh;
         }
         #! @endcond
 
@@ -130,6 +141,34 @@ public namespace SoapClient {
             string url;
             #! HTTP headers to use
             hash headers = Headers;
+
+            #! Send content encoding options
+            /** Send content encoding options are as follows:
+                - \c "bzip": use bzip2 compression
+                - \c "gzip": use gzip compression
+                - \c "deflate": use deflate compression
+                - \c "identity": use no content encoding
+             */
+            const EncodingSupport = (
+                "gzip": (
+                    "ce": "gzip",
+                    "func": \gzip(),
+                    ),
+                "bzip2": (
+                    "ce": "bzip2",
+                    "func": \bzip2(),
+                    ),
+                "deflate": (
+                    "ce": "deflate",
+                    "func": \compress(),
+                    ),
+                "identity": (
+                    "ce": NOTHING,
+                    ),
+                );
+
+            #! default threadhold for data compressions; transfers smaller than this size will not be compressed
+            const CompressionThreshold = 1024;
         }
 
         #! creates the object based on a %WSDL which is parsed to a @ref WSDL::WebService "WebService" object which provides the basis for all communication with this object
@@ -138,6 +177,8 @@ public namespace SoapClient {
             - \c wsdl: the URL of the web service or a @ref WSDL::WebService "WebService" object itself
             - \c wsdl_file: a path to use to load the %WSDL and create the @ref WSDL::WebService "WebService" object
             - \c url: override the target URL given in the %WSDL
+            - \c send_encoding: a @ref EncodingSupport "send data encoding option" or the value \c "auto" which means to use automatic encoding; if not present defaults to no content-encoding on sent message bodies
+            - \c content_encoding: for possible values, see @ref EncodingSupport; this sets the send encoding (if the \c "send_encoding" option is not set) and the requested response encoding
             - [\c service]: in case multiple service entries are found in the WSDL, give the one to be used here
             - [\c port]: in case multiple port entries are found in the WSDL, give the one to be used here
             - [\c log]: a log closure or call reference taking a single string giving the log message
@@ -185,6 +226,20 @@ public namespace SoapClient {
             else
                 headers += ("Content-Type": MimeTypeXml);
 
+            if (h.send_encoding)
+                setSendEncoding(h.send_encoding);
+
+            if (h.content_encoding) {
+                if (!h.send_encoding)
+                    setSendEncoding(h.content_encoding);
+                else if (!EncodingSupport.(h.content_encoding))
+                    throw "SOAPCLIENT-ERROR", sprintf("content encoding option %y is unknown; valid options: %y", h.content_encoding, EncodingSupport.keys());
+                h.headers."Accept-Encoding" = h.content_encoding;
+            }
+
+            # unconditionally set the encoding to utf-8
+            setEncoding("utf-8");
+
             # set URL
             setURL(url);
 
@@ -195,20 +250,25 @@ public namespace SoapClient {
         }
 
         #! returns a hash representing the serialized SOAP request for a given @ref WSDL::WSOperation "WSOperation"
-        /** the returned hash can be passed to make_xml() to make the actual SOAP message
-
-            @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying @ref WSDL::WebService "WebService" class, an exception will be thrown
+        /** @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying @ref WSDL::WebService "WebService" class, an exception will be thrown
             @param args the arguments to the SOAP operation
             @param header data structure for the SOAP header, if required by the message
             @param op a reference to return the @ref WSDL::WSOperation "WSOperation" object found
 
+            @return a hash with the following keys:
+            - \c hdr: a hash of message headers
+            - \c body: the serialized message body
+
             @throw SOAP-CLIENT-ERROR the operation is not defined in the WSDL
+
+            @note content encoding is not applied here but rather internally by the call() methods
         */
         hash getMsg(string operation, any args, *hash header, reference op, *hash nsh) {
             op = wsdl.getOperation(operation);
             hash msg = op.serializeRequest(args, header, getEncoding(), nsh);
             if (msg.hdr."Content-Type" !~ /charset=/i)
                 msg.hdr."Content-Type" += ";charset=" + getEncoding();
+
             return msg;
         }
 
@@ -262,8 +322,15 @@ public namespace SoapClient {
                 dbglog("info: %Y", info);
             }
 
+            # apply content encoding here
+            data body = msg.body;
+            if (seh.ce && body.size() > CompressionThreshold) {
+                hdr."Content-Encoding" = seh.ce;
+                body = seh.func(body);
+            }
+
             try {
-                info.response = send(msg.body, "POST", NOTHING, hdr, True, \info);
+                info.response = send(body, "POST", NOTHING, hdr, True, \info);
             }
             catch (hash ex) {
                 # allow fault responses returned with a 500-series status code to be processed as a SOAP fault so that error information is returned in the exception
@@ -296,6 +363,112 @@ public namespace SoapClient {
         #! returns the WSDL::WebService object associated with this object
         WSDL::WebService getWebService() {
             return wsdl;
+        }
+
+        #! change the data content encoding (compression) option for the object; see @ref EncodingSupport for valid options
+        /** @par Example:
+            @code{.py}
+sc.setSendEncoding("gzip");
+            @endcode
+
+            The default is to send requests unencoded/uncompressed.
+
+            @param enc the data content encoding (compression) option for the object; see @ref EncodingSupport for valid options; if the value \c "auto" is passed then \c "gzip" encoding is used
+
+            @throw SOAPCLIENT-ERROR invalid or unsupported data content encoding / compression option
+
+            @see
+            - @ref SoapClient::SoapClient::setContentEncoding() "SoapClient::setContentEncoding()"
+            - @ref SoapClient::SoapClient::getSendEncoding() "SoapClient::getSendEncoding()"
+        */
+        setSendEncoding(string enc = "auto") {
+            if (enc == "auto")
+                seh = EncodingSupport.firstValue();
+            else {
+                if (!EncodingSupport{enc})
+                    throw "SOAPCLIENT-ERROR", sprintf("send content encoding option %y is unknown; valid options: %y", enc, EncodingSupport.keys());
+                seh = EncodingSupport{enc};
+            }
+        }
+
+        #! sets the request and desired response encoding for the object; see @ref EncodingSupport for valid options
+        /** @par Example:
+            @code{.py}
+soap.setContentEncoding("gzip");
+            @endcode
+
+            @param enc the data content encoding (compression) option for requests and the desired response content encoding for the object; see @ref EncodingSupport for valid options; if the value \c "auto" is passed then \c "gzip" encoding is used for outgoing requests and requested for responses
+
+            @throw SOAPCLIENT-ERROR invalid or unsupported data content encoding / compression option
+
+            @see
+            - @ref SoapClient::SoapClient::getSendEncoding() "SoapClient::getSendEncoding()"
+            - @ref SoapClient::SoapClient::setSendEncoding() "SoapClient::setSendEncoding()"
+
+            @since %SoapClient 0.2.4
+        */
+        setContentEncoding(string enc = "auto") {
+            if (enc == "auto")
+                seh = EncodingSupport.firstValue();
+            else
+                setSendEncoding(enc);
+
+            headers."Accept-Encoding" = seh.ce ?? "identity";
+        }
+
+        #! adds default headers to each request; these headers will be sent in all requests but can be overridden in requests as well
+        /** @par Example:
+            @code{.py}
+# disable gzip and bzip encoding in responses
+soap.addDefaultHeaders(("Accept-Encoding": "compress"));
+            @endcode
+
+            @param h a hash of headers to add to the default headers to send on each request
+
+            @note default headers can also be set in the constructor
+
+            @see @ref SoapClient::SoapClient::getDefaultHeaders() "SoapClient::getDefaultHeaders()"
+
+            @since %SoapClient 0.2.4
+        */
+        addDefaultHeaders(hash h) {
+            headers += h;
+        }
+
+        #! returns the hash of default headers to sent in all requests
+        /** @par Example:
+            @code{.py}
+hash h = soap.getDefaultHeaders();
+            @endcode
+
+            @return the hash of default headers to sent in all requests
+
+            @note default headers can be set in the constructor and in addDefaultHeaders()
+
+            @see @ref SoapClient::SoapClient::addDefaultHeaders() "SoapClient::addDefaultHeaders()"
+
+            @since %SoapClient 0.2.4
+        */
+        hash getDefaultHeaders() {
+            return headers;
+        }
+
+        #! returns the current data content encoding (compression) object or @ref nothing if no encoding option is set; see @ref EncodingSupport for valid options
+        /** @par Example:
+            @code{.py}
+*string ce = soap.getSendEncoding();
+            @endcode
+
+            @return the current data content encoding (compression) object or @ref nothing if no encoding option is set; see @ref EncodingSupport for valid options
+
+            @see
+            - @ref SoapClient::SoapClient::setContentEncoding() "SoapClient::setContentEncoding()"
+            - @ref SoapClient::SoapClient::setSendEncoding() "SoapClient::setSendEncoding()"
+
+            @since %SoapClient 0.2.4
+        */
+        *string getSendEncoding() {
+            return seh.ce;
         }
 
         #! sends a log message to the log closure or call reference, if any
