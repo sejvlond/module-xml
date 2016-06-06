@@ -12,12 +12,13 @@ noinst_HEADERS = src/QC_XmlDoc.h \
 	src/QoreXPath.h \
 	src/QoreXmlDoc.h \
 	src/QoreXmlReader.h \
+	src/QoreXmlRpcReader.h \
 	src/ql_xml.h \
 	src/qore-xml-module.h
 
 USER_MODULES = qlib/XmlRpcHandler.qm qlib/WSDL.qm qlib/SoapClient.qm qlib/SoapHandler.qm
 
-EXTRA_DIST = COPYING.LGPL COPYING.MIT ChangeLog AUTHORS README \
+EXTRA_DIST = COPYING.LGPL COPYING.MIT AUTHORS README \
 	RELEASE-NOTES \
 	src/QC_XmlDoc.qpp \
 	src/QC_XmlNode.qpp \
@@ -27,7 +28,9 @@ EXTRA_DIST = COPYING.LGPL COPYING.MIT ChangeLog AUTHORS README \
 	src/QC_FileSaxIterator.qpp \
 	src/ql_xml.qpp \
 	src/qc_option.qpp \
-	test/xml-test.q \
+	test/xml.qtest \
+	test/soap.qtest \
+	test/test.wsdl \
 	examples/xml-rpc-client.q \
 	examples/XmlRpcServerValidation.q \
 	$(USER_MODULES) \
