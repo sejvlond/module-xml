@@ -315,7 +315,7 @@ public class WSDL::WSDLLib {
                 hash hh;
                 foreach string hl in (split("\r\n", substr(m, 2, ie))) {
                     trim hl;
-                    my (string hi, any ignore, string ha) = hl =~ x/^(.*):([ \t])*(.*)$/;
+                    (string hi, any ignore, string ha) = hl =~ x/^(.*):([ \t])*(.*)$/;
                     hi = tolower(hi);
                     #printf("hl: %y hi: %y ha: %y\n", hl, hi, ha);exit();
                     hh{hi} = ha;
@@ -414,7 +414,7 @@ public class WSDL::XsdBase {
     /*
     static private hash doType(string t) {
         #printf("DEBUG: XsdBase::doType(%y)\n", t);
-        my (*string ns, *string type) = t =~ x/(\w+):(\w+)/;
+        (*string ns, *string type) = t =~ x/(\w+):(\w+)/;
         return !exists type ? ("val": t) : ("ns": ns, "val": type);
     }
     */
@@ -422,7 +422,7 @@ public class WSDL::XsdBase {
     static removeNS(reference v) {
         foreach hash h in (\v) {
             foreach string k in (h.keyIterator()) {
-                my (*string ns, *string name) = k =~ x/(\w+):(\w+)/;
+                (*string ns, *string name) = k =~ x/(\w+):(\w+)/;
                 if (ns) {
                     if (h{k}.typeCode() == NT_HASH)
                         h{k}.ns = ns;
@@ -441,7 +441,7 @@ public class WSDL::XsdBase {
     static removeNS2(reference v) {
         foreach hash h in (\v) {
             foreach string k in (h.keyIterator()) {
-                my (*string ns, *string name) = k =~ x/(\w+):(\w+)/;
+                (*string ns, *string name) = k =~ x/(\w+):(\w+)/;
                 if (ns) {
                     if (h{k}.typeCode() == NT_HASH)
                         h{k}.".ns" = ns;
@@ -494,7 +494,7 @@ public class WSDL::XsdNamedData inherits WSDL::XsdData {
             name = a.name;
         else if (a.ref) {
             # remove namespace
-            my (*string ns, *string n_name) = a.ref =~ x/(\w+):(\w+)/;
+            (*string ns, *string n_name) = a.ref =~ x/(\w+):(\w+)/;
             name = n_name ?? a.ref;
         }
         else
@@ -1220,7 +1220,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 any base = d.restriction."^attributes^".base;
 
                 # FIXME: handle namespace
-                my (*string ns, *string tn) = base =~ x/(\w+):(\w+)/;
+                (*string ns, *string tn) = base =~ x/(\w+):(\w+)/;
                 if (exists tn) {
                     if (tn == "Array") {
                         # FIXME check that namespace is SOAP encoding
@@ -1230,7 +1230,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                             throw WSDL_ERROR, sprintf("cannot parse complexType restriction: %y", d.restriction);
 
                         # FIXME: handle multiple dimensions?
-                        my (*string ans, *string atn) = aa.arrayType =~ x/(\w+):(\w+)\[\]$/;
+                        (*string ans, *string atn) = aa.arrayType =~ x/(\w+):(\w+)\[\]$/;
                         if (exists atn) {
                             array.val = atn;
                             array.ns  = ans;
@@ -1564,7 +1564,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             # ensure types match
             *string tn = attr."xsi:type";
             if (exists tn) {
-                my (*string ns, *string name) = tn =~ x/(.*):(.*)/;
+                (*string ns, *string name) = tn =~ x/(.*):(.*)/;
                 if (exists name)
                     tn = name;
                 if (tn != name) {
@@ -1955,7 +1955,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         else if (!exists body)
             throw SOAP_DESERIALIZATION_ERROR, sprintf("no request body value given for operation %y", name);
 
-        my (*hash mrh, hash msg) = processMultiRef(body);
+        (*hash mrh, hash msg) = processMultiRef(body);
 
         #any ns = msg.".ns";
         msg -= ("ns", ".ns");
@@ -1991,7 +1991,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         else if (!exists body)
             throw SOAP_DESERIALIZATION_ERROR, sprintf("no response body value given for operation %y", name);
 
-        my (*hash mrh, hash msg) = processMultiRef(body);
+        (*hash mrh, hash msg) = processMultiRef(body);
 
         # check for Soap Fault, if so raise an exception immediately with the fault info
         WSDL::XsdBase::removeNS2(\body);
@@ -2041,7 +2041,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
     private hash processNSValue(hash h) {
         foreach string k in (keys h) {
-            my (*string ns, *string name) = h{k} =~ x/(\w+):(\w+)/;
+            (*string ns, *string name) = h{k} =~ x/(\w+):(\w+)/;
             if (!name)
                 h{k}.val = h{k};
             else {
@@ -2158,7 +2158,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         foreach any p in (m.part) {
             any arg = p."^attributes^";
             if (arg.element) {
-                my (*string ns, *string name) = arg.element =~ x/(\w+):(\w+)/;
+                (*string ns, *string name) = arg.element =~ x/(\w+):(\w+)/;
                 if (!name)
                     name = arg.element;
 
@@ -2361,7 +2361,23 @@ class WSDL::XsdLateResolverHelper {
     }
 
     clearResolved() {
-        l = map $1, l, !($1.type instanceof XsdData);
+        l = map $1, l, !isResolved($1);
+    }
+
+    bool isResolved(XsdSimpleType t) {
+        return t.type instanceof XsdData;
+    }
+
+    bool isResolved(XsdTypedData t) {
+        return t.type instanceof XsdData;
+    }
+
+    bool isResolved(XsdComplexType t) {
+        return t.simpleType instanceof XsdData;
+    }
+
+    bool isResolved(any t) {
+        return False;
     }
 }
 
@@ -3062,7 +3078,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
     private resolveType(XsdElement xe) {
         if (xe.ref) {
             # find element
-            my (*string ns, string name) = (xe.ref =~ x/^(?:(\w+):)(\w+)$/);
+            (*string ns, string name) = (xe.ref =~ x/^(?:(\w+):)(\w+)$/);
             XsdElement e = emap.get(nsc.getNamespaceUri(ns), name);
             if (e.type.typeCode() == NT_HASH)
                 resolveType(e);
