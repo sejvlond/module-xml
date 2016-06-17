@@ -1,4 +1,12 @@
 ***********
+version 1.4
+***********
+
+* WSDL module fixes and enhancements
+  + fixed a bug in late resolution of complexTypes (issue 975)
+
+
+***********
 version 1.3
 ***********
 
