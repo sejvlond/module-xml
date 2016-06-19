@@ -156,6 +156,21 @@
         </s:sequence>
       </s:complexType>
       <s:element name="issue984" type="tns:i984"/>
+      <s:complexType name="i985_2">
+	<s:complexContent>
+          <s:extension base="tns:i985_1">
+            <s:sequence>
+              <s:element maxOccurs="1" minOccurs="1" name="i985_e2" type="s:string"/>
+            </s:sequence>
+	  </s:extension>
+	</s:complexContent>
+      </s:complexType>
+      <s:complexType name="i985_1">
+	<s:sequence>
+	  <s:element name="i985_e1" nillable="true" type="s:string"/>
+	</s:sequence>
+      </s:complexType>
+      <s:element name="issue985" type="tns:i985_1"/>
     </s:schema>
     <s:schema xmlns:tns1="http://qore.org/simpletest1" elementFormDefault="qualified" targetNamespace="http://qore.org/simpletest1">
       <s:element name="issue86" type="tns1:issue86_1"/>
@@ -186,6 +201,7 @@
     <wsdl:part name="issue468" element="tns:issue468"/>
     <wsdl:part name="issue560" element="tns:issue560"/>
     <wsdl:part name="issue984" element="tns:issue984"/>
+    <wsdl:part name="issue985" element="tns:issue985"/>
     <wsdl:part name="logo" type="s:base64Binary"/>
   </wsdl:message>
 

@@ -1018,16 +1018,23 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
     any serialize(any h, *softbool omit_type, *softbool omit_ns, string key, string typename) {
         if (type.typeCode() == NT_HASH)
             printf("ERROR: %y\n", self);
-        return serializeAsIntern(type, h, omit_type, omit_ns, key, typename);
-    }
 
-    any serializeAs(XsdAbstractType type, any h, *softbool omit_type, *softbool omit_ns, string key, string typename) {
-        type.checkExtends(type, name);
-        return serializeAsIntern(type, h, omit_type, omit_ns, key, name);
+        if (h."^type^" && h."^type^" instanceof XsdAbstractType && h.hasKey("^val^")) {
+            XsdAbstractType ntype = cast<XsdAbstractType>(h."^type^");
+            ntype.checkExtends(type, name);
+            return serializeAsIntern(ntype, h."^val^", omit_type, omit_ns, key, name);
+        }
+
+        return serializeAsIntern(type, h, omit_type, omit_ns, key, typename);
     }
 
     private any serializeAsIntern(XsdAbstractType type, any h, *softbool omit_type, *softbool omit_ns, string key, string typename) {
         #printf("DEBUG: XsdElement::serializeAsIntern() name: %y h: %y key: %y typename: %y (%y) minOccurs: %y nillable: %y (%y %y)\n", name, h, key, typename, type.getName(), minOccurs, nillable, !exists h, !minOccurs);
+
+        # XXX
+        if (type.getNameWithNS() == "ns1:string")
+            throw "ERROR", sprintf("type: %N", type);
+
         int tc = h.typeCode();
         if (tc == NT_LIST && h.size() == 1)
             h = h[0];
@@ -1038,7 +1045,7 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
 
             if (nillable || type.isNillable()) {
                 hash rh = ("xsi:nil" : "true");
-                if (!omit_type)
+                if (!omit_type || type != self)
                     rh += ("xsi:type" : type.getNameWithNS());
                 return ("^attributes^" : rh);
             }
@@ -1050,7 +1057,7 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
         }
 
         *hash pf;
-        if (omit_type && type != type)
+        if (!omit_type || type != self)
             pf = ("^attributes^": ("xsi:type": omit_ns ? type.getName() : type.getNameWithNS()));
 
         if (tc == NT_LIST) {
@@ -1310,8 +1317,9 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         }
     }
 
+    #! throws an exception if the types are not compatible
     checkExtends(XsdAbstractType t, string ename) {
-        if (extension == t.name)
+        if (extension == t.name || t == self)
             return;
         throw SOAP_SERIALIZATION_ERROR, sprintf("explicit type %y given for element %y, type %y, however the types are not compatible%s", name, ename, t.name, extension ? sprintf("; %y extends %y", name, extension) : "");
     }
@@ -1412,16 +1420,10 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
     }
 
     private *hash serializeElement(string key, XsdElement element, any h, *softbool omit_type, *softbool omit_ns) {
-        any e;
         any v = h{key};
         string e_ons;
         #printf("DEBUG: XsdComplexType::serializeElement() key: %y v: %y h: %y ns: %y\n", key, v, h, nsc.getTargetNamespaceUri());
-        if (v."^type^" && v."^type^" instanceof XsdAbstractType && v.hasKey("^val^")) {
-            #printf("DBG: type: %s: %y val: %y\n", v."^type^".className(), v."^type^".name, v."^val^");
-            e = element.serializeAs(v."^type^", v."^val^", omit_type, omit_ns, key, name);
-        }
-        else
-            e = element.serialize(v, omit_type, omit_ns, key, name);
+        any e = element.serialize(v, omit_type, omit_ns, key, name);
 
         if (!exists e && !element.isRequired())
             return;
@@ -1558,13 +1560,13 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             # ensure types match
             *string tn = attr."xsi:type";
             if (exists tn) {
-                (*string ns, *string name) = tn =~ x/(.*):(.*)/;
-                if (exists name)
-                    tn = name;
+                (*string ns, *string tname) = tn =~ x/(.*):(.*)/;
+                if (exists tname)
+                    tn = tname;
                 if (tn != name) {
-                    #printf("DEBUG: %y: %s\n", tn, types{tn} ? types{tn}.className() : "n/a");
                     # check for compatible extension
                     *XsdAbstractType t = tmap.tryGet(tn);
+                    #printf("DEBUG: type provided %y: %y\n", tn, t.name);
                     if (t) {
                         t.checkExtends(self, en);
                         return t.deserialize(en, tmap, mrh, oval);
@@ -2152,22 +2154,14 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         foreach any p in (m.part) {
             any arg = p."^attributes^";
             if (arg.element) {
-                (*string ns, *string name) = arg.element =~ x/(\w+):(\w+)/;
-                if (!name)
-                    name = arg.element;
+                (*string ns, *string ename) = arg.element =~ x/(\w+):(\w+)/;
+                if (!ename)
+                    ename = arg.element;
 
-                if (arg.name && arg.name != name)
-                    pmap{name} = arg.name;
+                if (arg.name && arg.name != ename)
+                    pmap{ename} = arg.name;
 
-                args{name}.element = emap.get(nsc.getNamespaceUri(ns), name);
-
-                /*
-                if (!elementmap{name}) {
-                    #printf("DEBUG: WSMessage::constructor() message %y element %y (%y)\n", name, arg.element, keys elementmap);
-                    throw WSDL_ERROR, sprintf("message %y references unknown element %y (known elements: %y)", name, name, elementmap.keys());
-                }
-                args{name}.element = elementmap{name};
-                */
+                args{ename}.element = emap.get(nsc.getNamespaceUri(ns), ename);
             }
             else {
                 args{arg.name} = arg;
@@ -2198,6 +2192,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
 
             any hv;
             #printf("DEBUG: arg %y with %y\n", k, args{k});
+            #printf("DEBUG: arg %y with %y\n", k, v."^val^" ?? v);
             string ons;
             if (args{k}.element) {
                 hv = args{k}.element.serialize(v, !encoded, NOTHING, k, name);
@@ -2823,14 +2818,14 @@ public class WSDL::Namespaces {
         if (!type) {
             #printf("DEBUG: XsdBase::doType(%y) xsd: %y\n", t, default_ns);
             if (default_ns == XSD_NS)
-                return new XsdBaseType(t, self, getTargetNamespaceInputPrefix());
+                return new XsdBaseType(t, self);
 
             return ("val": t);
         }
 
         # if this is in the XML Schema namespace, then it's a base type
         if (xsd_schema{ns})
-            return new XsdBaseType(type, self, getTargetNamespaceInputPrefix());
+            return new XsdBaseType(type, self);
 
         return ("ns": getOutputNamespacePrefix(getInputNamespaceUri(ns)), "val": type);
     }
