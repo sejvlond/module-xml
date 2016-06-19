@@ -123,6 +123,9 @@ class SoapTest inherits QUnit::Test {
             <sim:issue560_2>A</sim:issue560_2>
             <sim:issue560_3>A</sim:issue560_3>
          </sim:issue560>
+         <sim:issue984>
+            <sim:i984_empty/>
+         </sim:issue984>
          <logo>dGVzdA==</logo>
       </sim:setInfo>
    </soap:Body>
@@ -155,7 +158,7 @@ class SoapTest inherits QUnit::Test {
     }
 
     soapTestCase() {
-        WebService ws = new WebService(ReadOnlyFile::readTextFile(get_script_dir() + "/test.wsdl"));
+        WebService ws(ReadOnlyFile::readTextFile(get_script_dir() + "/test.wsdl"));
         WSOperation op = ws.getOperation("setInfo");
 
         hash req = (
@@ -183,6 +186,7 @@ class SoapTest inherits QUnit::Test {
                 "issue560_2": "A",
                 "issue560_3": "A",
             ),
+            "issue984": NOTHING,
             "logo": binary("test"),
             );
 

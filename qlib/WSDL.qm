@@ -1136,12 +1136,7 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
             WSDL::XsdBase::removeNS(\r);
 
             if (r.enumeration)
-                map enum.($1."^attributes^".value) = True, r.enumeration;
-            #enum = map $1."^attributes^".value, r.enumeration;
-            /*
-            else
-                throw "XSD-SIMPLETYPE-ERROR", sprintf("missing enumeration element in simpleType %y restriction", name);
-            */
+                enum = map {$1."^attributes^".value: True}, r.enumeration;
         }
         else
             throw "XSD-SIMPLETYPE-ERROR", sprintf("missing restriction element in simpleType %y", name);
@@ -1196,7 +1191,6 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
     }
 
     private {
-
         #! type of complexType object
         string cx_type;
 
@@ -1207,7 +1201,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         const XET_NONE     = "NONE";
     }
 
-    constructor(hash ct, Namespaces nsc, XsdLateResolverHelper unresolved, *string desc_name) : XsdAbstractType(\ct, nsc, desc_name) {
+    constructor(*hash ct, Namespaces nsc, XsdLateResolverHelper unresolved, *string desc_name) : XsdAbstractType(\ct, nsc, desc_name) {
         #any a = ct."^attributes^";
         delete ct."^attributes^";
 
