@@ -1031,10 +1031,6 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
     private any serializeAsIntern(XsdAbstractType type, any h, *softbool omit_type, *softbool omit_ns, string key, string typename) {
         #printf("DEBUG: XsdElement::serializeAsIntern() name: %y h: %y key: %y typename: %y (%y) minOccurs: %y nillable: %y (%y %y)\n", name, h, key, typename, type.getName(), minOccurs, nillable, !exists h, !minOccurs);
 
-        # XXX
-        if (type.getNameWithNS() == "ns1:string")
-            throw "ERROR", sprintf("type: %N", type);
-
         int tc = h.typeCode();
         if (tc == NT_LIST && h.size() == 1)
             h = h[0];
@@ -1208,6 +1204,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         const XET_NONE     = "NONE";
     }
 
+    # ct can be NOTHING in case of an empty complex type
     constructor(*hash ct, Namespaces nsc, XsdLateResolverHelper unresolved, *string desc_name) : XsdAbstractType(\ct, nsc, desc_name) {
         #any a = ct."^attributes^";
         delete ct."^attributes^";
