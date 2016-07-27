@@ -37,6 +37,8 @@ static QoreStringNode *xml_module_init();
 static void xml_module_ns_init(QoreNamespace *rns, QoreNamespace *qns);
 static void xml_module_delete();
 
+DLLLOCAL void init_option_constants(QoreNamespace& ns);
+
 // qore module symbols
 DLLEXPORT char qore_module_name[] = "xml";
 DLLEXPORT char qore_module_version[] = PACKAGE_VERSION;

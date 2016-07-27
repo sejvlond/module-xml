@@ -16,6 +16,15 @@ list(APPEND CMAKE_REQUIRED_INCLUDES ${LIBXML2_INCLUDE_DIR})
 include_directories( ${CMAKE_SOURCE_DIR}/src )
 include_directories( ${LIBXML2_INCLUDE_DIR} )
 
+# Check for C++11.
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+if(COMPILER_SUPPORTS_CXX11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DPIC")
+else()
+    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+
 #include(CheckSymbolExists)
 include(CheckFunctionExists)
 
@@ -43,14 +52,15 @@ qore_check_symbol(xmlTextReaderGetParserLineNumber HAVE_XMLTEXTREADERGETPARSERLI
 
 
 set(QPP_SRC
+    src/QC_SaxIterator.qpp
     src/QC_FileSaxIterator.qpp
     src/QC_InputStreamSaxIterator.qpp
     src/QC_XmlDoc.qpp
-    src/QC_XmlReader.qpp
-    src/ql_xml.qpp
-    src/QC_SaxIterator.qpp
     src/QC_XmlNode.qpp
+    src/QC_XmlReader.qpp
     src/QC_XmlRpcClient.qpp
+    src/ql_xml.qpp
+    src/qc_option.qpp
 )
 
 set(CPP_SRC
@@ -67,6 +77,8 @@ set(QMOD
 qore_wrap_qpp_value(QPP_SOURCES ${QPP_SRC})
 
 SET (module_name "xml")
+
+set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 add_library(${module_name} SHARED ${QPP_SOURCES} ${CPP_SRC})
 

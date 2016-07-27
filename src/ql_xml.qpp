@@ -438,7 +438,7 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
    ConstHashIterator hi(h);
    bool done = false;
    while (hi.next()) {
-      std::auto_ptr<QoreString> keyStr(hi.getKeyString());
+      std::unique_ptr<QoreString> keyStr(hi.getKeyString());
       // convert string if needed
       if (keyStr->getEncoding() != str.getEncoding()) {
 	 QoreString* ns = keyStr->convertEncoding(str.getEncoding(), xsink);
@@ -541,7 +541,7 @@ static int add_xmlrpc_value_intern_hash(QoreString* str, const QoreHashNode* h, 
       str->concat('\n');
    ConstHashIterator hi(h);
    while (hi.next()) {
-      std::auto_ptr<QoreString> member(hi.getKeyString());
+      std::unique_ptr<QoreString> member(hi.getKeyString());
       // here we allow hashes with empty key names to be serialized
       if (!member->strlen())
 	 member.reset(new QoreString(EMPTY_KEY_STRING, ccs));
@@ -780,7 +780,7 @@ QoreStringNode* make_xmlrpc_call_args(ExceptionSink* xsink, const QoreEncoding* 
       if (l->size()) {
          str->sprintf("%s<params>%s", fmt ? "  " : "", fmt ? "\n" : "");
 
-         for (int i = 0 ; i < l->size(); ++i) {
+         for (unsigned int i = 0 ; i < l->size(); ++i) {
             const AbstractQoreNode* p = l->retrieve_entry(i);
             str->sprintf("%s<param>%s", fmt ? "    " : "", fmt ? "\n" : "");
             if (add_xmlrpc_value(*str, p, fmt ? 6 : 0, ccs, flags, xsink))
@@ -930,7 +930,7 @@ static AbstractQoreNode* make_xmlrpc_response_args(ExceptionSink* xsink, const Q
       if (arg.getType() == NT_LIST) {
          const QoreListNode* l = arg.get<QoreListNode>();
          // now loop through the params
-         for (int i = 0; i < l->size(); ++i) {
+         for (unsigned int i = 0; i < l->size(); ++i) {
             const AbstractQoreNode* p = l->retrieve_entry(i);
             if (fmt)
                str->concat("    <param>\n");
