@@ -154,10 +154,71 @@ class SoapTest inherits QUnit::Test {
             "body": "SetInfoResult",
             "issue663": "issue663",
             );
+
+        const SoapEnvAttr1 = (
+            "^attributes^": (
+                "xmlns:soap": SOAP_11_ENV,
+                "xmlns:tes": "http://example.com/test1/test1_ws",
+            ),
+            );
+
+        # all values are strings here because we do raw XML parsing and not SOAP deserialization for the comparison
+        # to avoid comparing values generated and parsed with the same code which would result in an identity test
+        const Req1_1 = (
+            "soap:Envelope": SoapEnvAttr1 + (
+                "soap:Body": (
+                    "tes:test1": (
+                        "tes:arg1": "x",
+                        "tes:arg2": "y",
+                    ),
+                ),
+            ),
+            );
+
+        const SoapEnvAttr1Res = (
+            "^attributes^": (
+                "xmlns:soap": SOAP_11_ENV,
+                "xmlns:tes": "http://example.com/test1/test1_ws",
+                "xmlns:oth": "http://example.com/test1/other",
+            ),
+            );
+
+        const Test1Res = (
+            "soap:Envelope": SoapEnvAttr1Res + (
+                "soap:Body": (
+                    "tes:test1Response": (
+                        "oth:Root": (
+                            "Struct": (
+                                "arg1": "1",
+                                "arg2": "2",
+                                "arg3": "3",
+                                "arg4": "4",
+                            ),
+                            "res1": "a",
+                            "res2": "b",
+                        ),
+                    ),
+                ),
+            ),
+            );
+
+        const Res1_1 = (
+            "Root": (
+                "Struct": (
+                    "arg1": "1",
+                    "arg2": "2",
+                    "arg3": "3",
+                    "arg4": "4",
+                ),
+                "res1": "a",
+                "res2": "b",
+            ),
+            );
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
-        addTestCase("SoapTestCase", \soapTestCase());
+        #addTestCase("SoapTestCase", \soapTestCase());
+        addTestCase("Test1", \test1());
         set_return_value(main());
     }
 
@@ -285,6 +346,27 @@ class SoapTest inherits QUnit::Test {
         compareSoapMsgs("no-output", xh, EmptyRes);
         eh = op.deserializeResponse(h);
         assertEq(NOTHING, eh);
+    }
+
+    test1() {
+        WebService ws(ReadOnlyFile::readTextFile(get_script_dir() + "/test1.wsdl"));
+
+        WSOperation op = ws.getOperation("test1");
+
+        hash req = (
+            "arg1": "x",
+            "arg2": "y",
+            );
+
+        hash h = op.serializeRequest(req, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
+        hash xh = parse_xml(h.body);
+        compareSoapMsgs("attr-ser", xh, Req1_1);
+
+        h = op.serializeResponse(Res1_1);
+        xh = parse_xml(h.body);
+        printf("Test1Res: %y\n", Test1Res);
+        printf("xh: %y\n", xh);
+        compareSoapMsgs("output", xh, Test1Res);
     }
 
     compareSoapMsgs(string assert, hash h1, hash h2) {
