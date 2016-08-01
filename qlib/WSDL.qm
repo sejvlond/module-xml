@@ -207,7 +207,7 @@ public class WSDL::WSDLLib {
         if (hc)
             hc.setURL(url);
         else
-            hc = new HTTPClient(("url" : url));
+            hc = new HTTPClient(("url": url));
         string body = hc.get(path ? path : "/", headers);
         return as_string ? body : binary(body);
     }
@@ -347,8 +347,10 @@ public class WSDL::WSDLLib {
                 if (hh."content-id" !~ /^\<.*\>$/)
                     throw "SOAP-MESSAGE-ERROR", sprintf("expected part ID to have the following format: <id>, instead got %s", hh."content-id");
 
-                hash p = ( "hdr" : hh,
-                               "body" : b );
+                hash p = (
+                    "hdr": hh,
+                    "body": b,
+                    );
 
                 if ((!exists msg."_qore_multipart_start" && i == 1)
                     || (exists msg."_qore_multipart_start" && msg."_qore_multipart_start" == hh."content-id")) {
@@ -703,13 +705,6 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
         }
 
         #printf("DEBUG: FORCE: type: %y, nstype: %y, val: %y\n", type, nstype, val);
-        if (omit_type == "ns")
-            return ("^attributes^": (
-                        "xmlns:xsi": XSI_NS,
-                        "xsi:type": sprintf("%s:%s", ons, type),
-                    ),
-                    "^value^": val,
-            );
         if (omit_type)
             return val;
         else
@@ -1042,7 +1037,7 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
     }
 
     private any serializeAsIntern(XsdAbstractType type, any h, *softbool omit_type, string key, string typename) {
-        #printf("DEBUG: XsdElement::serializeAsIntern() name: %y h: %y key: %y typename: %y (%y) minOccurs: %y nillable: %y (%y %y)\n", name, h, key, typename, type.getName(), minOccurs, nillable, !exists h, !minOccurs);
+        #printf("DEBUG: XsdElement::serializeAsIntern() name: %y (with type: %y) h: %y key: %y typename: %y (%y) minOccurs: %y nillable: %y (%y %y)\n", name, ((!omit_type || type != self.type) && type.hasRealName()), h, key, typename, type.getName(), minOccurs, nillable, !exists h, !minOccurs);
 
         int tc = h.typeCode();
         if (tc == NT_LIST && h.size() == 1)
@@ -1053,10 +1048,10 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
                 return;
 
             if (nillable || type.isNillable()) {
-                hash rh = ("xsi:nil" : "true");
-                if ((!omit_type || type != self) && type.hasRealName())
-                    rh += ("xsi:type" : type.getNameWithNS());
-                return ("^attributes^" : rh);
+                hash rh = ("xsi:nil": "true");
+                if ((!omit_type || type != self.type) && type.hasRealName())
+                    rh += ("xsi:type": type.getNameWithNS());
+                return ("^attributes^": rh);
             }
 
             if (!type.isRequired())
@@ -1066,7 +1061,7 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
         }
 
         *hash pf;
-        if ((!omit_type || type != self) && type.hasRealName())
+        if ((!omit_type || type != self.type) && type.hasRealName())
             pf = ("^attributes^": ("xsi:type": !usedocns ? type.getName() : type.getNameWithNS()));
 
         if (tc == NT_LIST) {
@@ -1296,6 +1291,10 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         }
         else if (ct)
             parseData(ct, unresolved);
+        else {
+            # empty complex type
+            cx_type = XET_NONE;
+        }
     }
 
     finalize(TypeMap tmap, Namespaces nsc) {
@@ -1521,13 +1520,16 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 rh = serializeChoice(elementmap, h, omit_type);
             }
         }
+        else { # "none"
+            rh."^value^" = NOTHING;
+        }
 
-        #printf("name: %y desc: %y\n", name, descriptive_name);
+        #printf("DEBUG name: %y desc: %y\n", name, descriptive_name);
         if (name && !omit_type && !descriptive_name)
             rh."^attributes^" += ("xsi:type": "ns1:" + name) + ah;
         else if (ah)
             rh."^attributes^" += ah;
-        #printf("complex type %s returning %y from %y\n", name, rh, h);
+        #printf("DEBUG complex type %s returning %y from %y\n", name, rh, h);
         return rh;
     }
 
@@ -1757,7 +1759,6 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         # setup namespaces for SOAP envelope
         hash rh = nsc.hasSoap12() ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
 
-        # ns1 (( "^attributes^" :
         rh."soapenv:Envelope"."^attributes^" += nsc.getOutputNamespaceHash(nsh);
 
         #printf("DEBUG header: %y\n", header);
@@ -1799,7 +1800,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             if (soapAction) {
                 if (nsc.hasSoap12())
                     rv.hdr."Content-Type" += sprintf(";action: %s", soapAction);
-                rv.hdr += ("SOAPAction" : soapAction);
+                rv.hdr += ("SOAPAction": soapAction);
             }
 
             rv.hdr."Content-Type" += sprintf(";charset=%s", exists enc ? enc : get_default_encoding());
@@ -1839,14 +1840,19 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         - \c hdr: hash of HTTP headers
     */
     hash serializeResponse(any h, *hash header, *string enc, *hash nsh, *bool soap12, *int xml_opts) {
-        if (soap12) {
-            if (!nsc.hasSoap12())
-                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize response for operation %y with SOAP 1.2 encoding; this operation does not support SOAP 1.2", name);
+        if (exists soap12) {
+            if (soap12) {
+                if (!nsc.hasSoap12())
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize response for operation %y with SOAP 1.2 encoding; this operation does not support SOAP 1.2", name);
+            }
+            else {
+                if (!nsc.hasSoap11())
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize response for operation %y with SOAP 1.1 encoding; this operation does not support SOAP 1.1", name);
+            }
         }
-        else {
-            if (!nsc.hasSoap11())
-                throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize response for operation %y with SOAP 1.1 encoding; this operation does not support SOAP 1.1", name);
-        }
+        else
+            soap12 = nsc.hasSoap12();
+
         # setup namespaces for SOAP envelope
         hash rh = soap12 ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
 
@@ -1889,8 +1895,10 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
         ct += sprintf(";charset=%s", exists enc ? enc : get_default_encoding());
 
-        return ( "hdr"  : ( "Content-Type" : ct ),
-                 "body" : body );
+        return (
+            "hdr": ("Content-Type": ct),
+            "body": body,
+            );
     }
 
     private list processMultiRef(hash body) {
@@ -2236,8 +2244,8 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
 
         if (encoded)
             rh."^attributes^" += (
-                "soapenv:encodingStyle" : SOAP_ENCODING,
-                "xmlns:soapenc"         : SOAP_ENCODING,
+                "soapenv:encodingStyle": SOAP_ENCODING,
+                "xmlns:soapenc": SOAP_ENCODING,
             );
 
         hash rvh.("ns1:" + n_name) = rh;
