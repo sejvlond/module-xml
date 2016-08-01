@@ -24,9 +24,7 @@
 #include "QoreXmlReader.h"
 #include "QoreXmlRpcReader.h"
 
-namespace {
-
-bool keys_are_equal(const char* k1, const char* k2, bool &get_value) {
+static bool keys_are_equal(const char* k1, const char* k2, bool &get_value) {
    while (true) {
       if (!(*k1)) {
 	 if (!(*k2))
@@ -43,8 +41,6 @@ bool keys_are_equal(const char* k1, const char* k2, bool &get_value) {
       k2++;
    }
    return false;
-}
-
 }
 
 QoreHashNode* QoreXmlReader::parseXmlData(const QoreEncoding* data_ccsid, int pflags, ExceptionSink* xsink) {
