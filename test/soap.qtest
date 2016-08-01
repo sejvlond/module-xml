@@ -217,7 +217,7 @@ class SoapTest inherits QUnit::Test {
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
-        #addTestCase("SoapTestCase", \soapTestCase());
+        addTestCase("SoapTestCase", \soapTestCase());
         addTestCase("Test1", \test1());
         set_return_value(main());
     }
@@ -364,8 +364,8 @@ class SoapTest inherits QUnit::Test {
 
         h = op.serializeResponse(Res1_1);
         xh = parse_xml(h.body);
-        printf("Test1Res: %y\n", Test1Res);
-        printf("xh: %y\n", xh);
+        #printf("Test1Res: %y\n", Test1Res);
+        #printf("xh: %y\n", xh);
         compareSoapMsgs("output", xh, Test1Res);
     }
 
@@ -403,7 +403,8 @@ class SoapTest inherits QUnit::Test {
         foreach string rkey in (v2.keyIterator()) {
             (*string nsp2, *string key) = (rkey =~ x/^(\w+):(\w+)$/);
             if (!nsp2) {
-                testAssertionValue(sprintf("%s (%s.%s)", assert, loc, rkey), v1{rkey}, v2{rkey});
+                assertTrue(v1.hasKey(rkey), sprintf("%s (%s) has element %y", assert, loc, rkey));
+                assertEq(v2{rkey}, v1{rkey}, sprintf("%s (%s.%s) values match", assert, loc, rkey));
                 continue;
             }
             *string uri2 = nh2.pmap{nsp2};
