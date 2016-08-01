@@ -22,6 +22,30 @@
 */
 
 #include "QoreXmlReader.h"
+#include "QoreXmlRpcReader.h"
+
+namespace {
+
+bool keys_are_equal(const char* k1, const char* k2, bool &get_value) {
+   while (true) {
+      if (!(*k1)) {
+	 if (!(*k2))
+	    return true;
+	 if ((*k2) == '^') {
+	    get_value = true;
+	    return true;
+	 }
+	 return false;
+      }
+      if ((*k1) != (*k2))
+	 break;
+      k1++;
+      k2++;
+   }
+   return false;
+}
+
+}
 
 QoreHashNode* QoreXmlReader::parseXmlData(const QoreEncoding* data_ccsid, int pflags, ExceptionSink* xsink) {
    if (read(xsink) != 1)
@@ -40,7 +64,7 @@ QoreHashNode* QoreXmlReader::parseXmlData(const QoreEncoding* data_ccsid, int pf
 }
 
 AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEncoding* data_ccsid, int pflags, int min_depth) {
-   xml_stack xstack;
+   Qore::Xml::intern::xml_stack xstack;
 
    QORE_TRACE("getXMLData()");
    int rc = 1;

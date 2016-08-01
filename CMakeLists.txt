@@ -15,15 +15,18 @@ list(APPEND CMAKE_REQUIRED_INCLUDES ${LIBXML2_INCLUDE_DIR})
 
 include_directories( ${CMAKE_SOURCE_DIR}/src )
 include_directories( ${LIBXML2_INCLUDE_DIR} )
+include_directories( ${QORE_INCLUDE_DIR} )
 
 # Check for C++11.
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 if(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 else()
     message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
+
+set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 #include(CheckSymbolExists)
 include(CheckFunctionExists)
@@ -65,6 +68,8 @@ set(QPP_SRC
 
 set(CPP_SRC
     src/xml-module.cpp
+    src/QoreXmlRpcReader.cpp
+    src/QoreXmlReader.cpp
 )
 
 set(QMOD
@@ -77,8 +82,6 @@ set(QMOD
 qore_wrap_qpp_value(QPP_SOURCES ${QPP_SRC})
 
 SET (module_name "xml")
-
-set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 add_library(${module_name} SHARED ${QPP_SOURCES} ${CPP_SRC})
 

@@ -28,6 +28,7 @@
 
 #include "qore/InputStream.h"
 
+#include "qore-xml-module.h"
 #include "QoreXmlDoc.h"
 
 #include <errno.h>
