@@ -569,6 +569,10 @@ public class WSDL::XsdAbstractType inherits WSDL::XsdNamedData {
         return True;
     }
 
+    bool requiresValue() {
+        return !isNillable() && isRequired();
+    }
+
     string getOutputNamespacePrefix() {
         return ons;
     }
@@ -1057,6 +1061,9 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
             if (!type.isRequired())
                 return;
 
+            if (!type.requiresValue())
+                return ("^value^": NOTHING);
+
             throw SOAP_SERIALIZATION_ERROR, sprintf("missing element %y value for %s::%s (minOccurs: %d, type %y)", name, typename, key, minOccurs, type.getName());
         }
 
@@ -1188,6 +1195,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
         bool nillable = False;
         bool required = False;
+        bool requires_value = False;
 
         # attributes
         hash attrs;
@@ -1294,6 +1302,8 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         else {
             # empty complex type
             cx_type = XET_NONE;
+            required = True;
+            requires_value = False;
         }
     }
 
@@ -1352,6 +1362,8 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
         if (!d) {
             cx_type = XET_NONE;
+            required = True;
+            requires_value = False;
             return;
         }
 
@@ -1413,6 +1425,10 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return required;
     }
 
+    bool requiresValue() {
+        return requires_value;
+    }
+
     private *hash parseElements(softlist el, XsdLateResolverHelper unresolved, bool for_object = True) {
         #printf("DEBUG: XsdComplexType::parseElements(%y)\n", el);
         hash h;
@@ -1429,6 +1445,9 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             if (h.size() == 1 && h.firstValue().isNillable())
                 nillable = True;
         }
+
+        if (for_object && required && !nillable)
+            requires_value = True;
 
         return h;
     }

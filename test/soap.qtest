@@ -286,7 +286,7 @@ class SoapTest inherits QUnit::Test {
                 "issue560_3": "A",
             ),
             "issue984": (
-                "i984_empty": {},
+                "i984_empty": NOTHING,
             ),
             "issue985": ws.getType("i985_2", ("i985_e1": "test", "i985_e2": "test",)),
             "logo": binary("test"),
@@ -311,7 +311,6 @@ class SoapTest inherits QUnit::Test {
                 "i985_e1": "test", "i985_e2": "test",
             ),
             );
-        req_r.issue984 = NOTHING;
 
         assertEq(req_r, h, "attr-deser-our");
 
@@ -328,12 +327,12 @@ class SoapTest inherits QUnit::Test {
 
             # rename key with an undefined namespace
             r1{ek}{bk}{sik1}."xxx:SetInfo" = remove r1{ek}{bk}{sik1}{sik2};
-            testAssertion("attr-ser-neg-1", \compareSoapMsgs(), ("attr-ser", r1, xh), new TestResultExceptionType("SOAP-NAMESPACE-ERROR"));
+            assertThrows("SOAP-NAMESPACE-ERROR", \compareSoapMsgs(), ("attr-ser", r1, xh), "attr-ser-neg-1");
 
             # rename key with a defined but incorrect namespace
             string sik = sprintf("%s:SetInfo", nh.umap."http://www.w3.org/2003/05/soap-envelope");
             r1{ek}{bk}{sik1}{sik} = remove r1{ek}{bk}{sik1}."xxx:SetInfo";
-            testAssertion("attr-ser-neg-2", \compareSoapMsgs(), ("attr-ser", r1, xh), new TestResultExceptionType("TEST-EXCEPTION"));
+            assertThrows("TEST-EXCEPTION", \compareSoapMsgs(), ("attr-ser", r1, xh), "attr-ser-neg-2");
         }
 
         {
@@ -346,12 +345,12 @@ class SoapTest inherits QUnit::Test {
 
             # rename key with an undefined namespace
             xh{ek}{bk}{sik1}."xxx:SetInfo" = remove xh{ek}{bk}{sik1}{sik2};
-            testAssertion("attr-ser-neg-3", \compareSoapMsgs(), ("attr-ser", Req_1, xh), new TestResultExceptionType("TEST-EXCEPTION"));
+            assertThrows("TEST-EXCEPTION", \compareSoapMsgs(), ("attr-ser", Req_1, xh), "attr-ser-neg-3");
 
             # rename key with a defined but incorrect namespace
             pfx = nh.umap."http://www.w3.org/2003/05/soap-envelope";
             xh{ek}{bk}{sik1}{pfx} = remove xh{ek}{bk}{sik1}."xxx:SetInfo";
-            testAssertion("attr-ser-neg-4", \compareSoapMsgs(), ("attr-ser", Req_1, xh), new TestResultExceptionType("TEST-EXCEPTION"));
+            assertThrows("TEST-EXCEPTION", \compareSoapMsgs(), ("attr-ser", Req_1, xh), "attr-ser-neg-4");
         }
 
         h = parse_xml(SoapUiReq_1);
