@@ -253,6 +253,7 @@ class SoapTest inherits QUnit::Test {
     constructor() : QUnit::Test("SoapTest", "1.0") {
         addTestCase("SoapTestCase", \soapTestCase());
         addTestCase("Test1", \test1());
+        addTestCase("globalweather", \globalWeather());
         set_return_value(main());
     }
 
@@ -404,6 +405,10 @@ class SoapTest inherits QUnit::Test {
         compareSoapMsgs("output", Test1Res, xh);
         *hash eh = op.deserializeResponse(xh);
         assertEq(Res1_1, eh, "deserialize response");
+    }
+
+    globalWeather() {
+        assertThrows("WSDL-ERROR", sub () { WebService ws(ReadOnlyFile::readTextFile(get_script_dir() + "/globalweather.wsdl")); }, NOTHING, "http binding");
     }
 
     compareSoapMsgs(string assert, hash h1, hash h2) {

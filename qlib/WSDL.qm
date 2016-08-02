@@ -1748,6 +1748,11 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         docstyle = True;
 
         foreach string key in (input.args.keyIterator()) {
+            # FIXME: could be a type here instead of an element
+            if (!input.args{key}.element.name) {
+                return;
+            }
+
             string element = input.args{key}.element.name;
             idocmap{element} = input.args{key}.element;
             if (!request_name)
@@ -2434,8 +2439,16 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
 
         if (data.binding) {
             *hash bba = data.binding."^attributes^";
-            if (bba.transport && !SOAP_TRANSPORT.(bba.transport))
-                throw WSDL_ERROR, sprintf("unsupported transport %y in binding %y (known transports: %y)", bba.transport, name, SOAP_TRANSPORT.keys());
+            if (bba.verb)
+                throw WSDL_ERROR, sprintf("binding %y declares unsupported HTTP %y binding; support for HTTP bindings has not yet been implemented", name, bba.verb);
+
+            if (bba.transport) {
+                if (!SOAP_TRANSPORT.(bba.transport))
+                    throw WSDL_ERROR, sprintf("unsupported transport %y in binding %y (known transports: %y)", bba.transport, name, SOAP_TRANSPORT.keys());
+            }
+            else
+                throw WSDL_ERROR, sprintf("missing SOAP transport in binding %y (known SOAP transports: %y)", bba.transport, name, SOAP_TRANSPORT.keys());
+
             if (bba.style == "document")
                 docStyle = True;
         }
@@ -2445,7 +2458,7 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
 
             *WSOperation op = opmap{opname};
             if (!exists op)
-                throw WSDL_ERROR, sprintf("binding for %y references unknown operation %y", data.name, opname);
+                throw WSDL_ERROR, sprintf("binding %y for %y references unknown operation %y", name, data.name, opname);
 
             WSDL::XsdBase::removeNS(\ophash);
 
@@ -2474,7 +2487,7 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                     WSDL::XsdBase::removeNS(\ophash.input.multipartRelated);
 
                     if (!exists ophash.input.multipartRelated.part)
-                        throw WSDL_ERROR, sprintf("missing part definition(s) in input message definition for operation %y: %y", opname, ophash);
+                        throw WSDL_ERROR, sprintf("binding %y is missing part definition(s) in input message definition for operation %y: %y", name, opname, ophash);
 
                     foreach any part in (ophash.input.multipartRelated.part) {
                         WSDL::XsdBase::removeNS(\part);
@@ -2482,10 +2495,10 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                     }
                 }
                 else
-                    throw WSDL_ERROR, sprintf("cannot parse input message definition for operation %y: %y", opname, ophash);
+                    throw WSDL_ERROR, sprintf("cannot parse input message definition in binding %y for operation %y: %y", name, opname, ophash);
             }
             else if (ophash.input.body || ophash.input.multipartRelated)
-                throw WSDL_ERROR, sprintf("cannot parse input message definition for operation %y with no input: %y", opname, ophash);
+                throw WSDL_ERROR, sprintf("cannot parse input message definition in binding %y for operation %y with no input: %y", name, opname, ophash);
 
             # check for header
             foreach hash hh in (ophash.input.header) {
