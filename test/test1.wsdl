@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions targetNamespace="http://example.com/test1/test1_ws" name="test1" xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:wstns="http://example.com/test1/test1_ws" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
+  <documentation>Test Web Service</documentation>
+  <types>
+    <xs:schema targetNamespace="http://example.com/test1/test1_ws" elementFormDefault="qualified" xmlns:stns="http://example.com/test1/test1_ws" xmlns:tns="http://example.com/test1/other">
+      <xs:import namespace="http://example.com/test1/other"/>
+      <xs:element name="test1">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="arg1" type="xs:string"/>
+            <xs:element name="arg2" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="test1Response">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element ref="tns:Root" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+    <xs:schema targetNamespace="http://example.com/test1/other" xmlns:tns="http://example.com/test1/other">
+      <xs:element name="Root">
+        <xs:complexType>
+          <xs:sequence maxOccurs="1" minOccurs="1">
+            <xs:element name="Struct" maxOccurs="unbounded" minOccurs="1">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="arg1" maxOccurs="1" minOccurs="1" type="xs:string"/>
+                  <xs:element name="arg2" maxOccurs="1" minOccurs="1" type="xs:string"/>
+                  <xs:element name="arg3" maxOccurs="1" minOccurs="1" type="xs:string"/>
+                  <xs:element name="arg4" maxOccurs="1" minOccurs="1" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="res1" maxOccurs="1" minOccurs="1" type="xs:string"/>
+            <xs:element name="res2" maxOccurs="1" minOccurs="0" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+  </types>
+  <message name="test1In">
+    <part name="parameters" element="wstns:test1"/>
+  </message>
+  <message name="test1Out">
+    <part name="parameters" element="wstns:test1Response"/>
+  </message>
+  <portType name="test1PortType">
+    <operation name="test1">
+      <input message="wstns:test1In"/>
+      <output message="wstns:test1Out"/>
+    </operation>
+  </portType>
+  <binding name="test1SoapBinding" type="wstns:test1PortType">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+    <operation name="test1">
+      <soap:operation soapAction="http://example.com/test1/test1_ws/test1" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+    </operation>
+  </binding>
+  <service name="test1SoapService">
+    <port binding="wstns:test1SoapBinding" name="test1SoapPort">
+      <soap:address location="http://192.168.25.105:8080/test1_ws/services/test1SoapService"/>
+    </port>
+  </service>
+</definitions>
