@@ -1789,7 +1789,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
         if (header) {
             if (iheader) {
-                hash hh.(iheader.part) = header; # XXX
+                hash hh.(iheader.part) = header;
                 rh."soapenv:Envelope"."soapenv:Header" = iheader.msg.serializeDocument(iheader.part, NOTHING, NOTHING, hh);
             }
             else {
