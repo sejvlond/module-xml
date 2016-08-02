@@ -38,6 +38,11 @@ class NsMap {
         if (uri == SOAP_12_ENV || uri == SOAP_11_ENV)
             se = prefix;
     }
+
+    # returns the SOAP envelope URI
+    string getSoapUri() {
+        return pmap{se};
+    }
 }
 
 class SoapTest inherits QUnit::Test {
@@ -79,6 +84,31 @@ class SoapTest inherits QUnit::Test {
                         "st:issue87": (
                             "st:issue87e1": "i87",
                             "st:choice12": "i87c12",
+                        ),
+                        "st:issue97": (
+                            "st:i97list": NOTHING,
+                        ),
+                        "st:issue468": (
+                            "st:issue468_1": (
+                                "^attributes^": (
+                                    "xsi:nil": "true",
+                                ),
+                            ),
+                        ),
+                        "st:issue560": (
+                            "st:issue560_3": "A",
+                            "st:issue560_2": "A",
+                            "st:issue560_1": "A",
+                        ),
+                        "st:issue984": (
+                            "st:i984_empty": NOTHING,
+                        ),
+                        "st:issue985": (
+                            "^attributes^": (
+                                "xsi:type": "st:i985_2",
+                            ),
+                            "st:i985_e1": "test",
+                            "st:i985_e2": "test",
                         ),
                         "logo": "dGVzdA==",
                     ),
@@ -141,11 +171,15 @@ class SoapTest inherits QUnit::Test {
 
         const EmptyRes = EmptyReq;
 
-        const TestRes = EmptyReq + (
-            "soap:Body": (
-                "sim:SetInfoResult": "test",
-                "sim:issue663": (
-                    "sim:i663list": NOTHING,
+        const TestRes = (
+            "soap:Envelope": SoapEnvAttr + (
+                "soap:Body": (
+                    "st:setInfoResponse": (
+                        "st:SetInfoResult": "test",
+                        "st:issue663": (
+                            "st:i663list": NOTHING,
+                        ),
+                    ),
                 ),
             ),
             );
@@ -154,10 +188,72 @@ class SoapTest inherits QUnit::Test {
             "body": "SetInfoResult",
             "issue663": "issue663",
             );
+
+        const SoapEnvAttr1 = (
+            "^attributes^": (
+                "xmlns:soap": SOAP_11_ENV,
+                "xmlns:tes": "http://example.com/test1/test1_ws",
+            ),
+            );
+
+        # all values are strings here because we do raw XML parsing and not SOAP deserialization for the comparison
+        # to avoid comparing values generated and parsed with the same code which would result in an identity test
+        const Req1_1 = (
+            "soap:Envelope": SoapEnvAttr1 + (
+                "soap:Body": (
+                    "tes:test1": (
+                        "tes:arg1": "x",
+                        "tes:arg2": "y",
+                    ),
+                ),
+            ),
+            );
+
+        const SoapEnvAttr1Res = (
+            "^attributes^": (
+                "xmlns:soap": SOAP_11_ENV,
+                "xmlns:tes": "http://example.com/test1/test1_ws",
+                "xmlns:oth": "http://example.com/test1/other",
+            ),
+            );
+
+        const Test1Res = (
+            "soap:Envelope": SoapEnvAttr1Res + (
+                "soap:Body": (
+                    "tes:test1Response": (
+                        "oth:Root": (
+                            "Struct": (
+                                "arg1": "1",
+                                "arg2": "2",
+                                "arg3": "3",
+                                "arg4": "4",
+                            ),
+                            "res1": "a",
+                            "res2": "b",
+                        ),
+                    ),
+                ),
+            ),
+            );
+
+        const Res1_1 = (
+            "Root": (
+                "Struct": (
+                    "arg1": "1",
+                    "arg2": "2",
+                    "arg3": "3",
+                    "arg4": "4",
+                ),
+                "res1": "a",
+                "res2": "b",
+            ),
+            );
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
         addTestCase("SoapTestCase", \soapTestCase());
+        addTestCase("Test1", \test1());
+        addTestCase("globalweather", \globalWeather());
         set_return_value(main());
     }
 
@@ -190,13 +286,15 @@ class SoapTest inherits QUnit::Test {
                 "issue560_2": "A",
                 "issue560_3": "A",
             ),
-            "issue984": NOTHING,
+            "issue984": (
+                "i984_empty": NOTHING,
+            ),
             "issue985": ws.getType("i985_2", ("i985_e1": "test", "i985_e2": "test",)),
             "logo": binary("test"),
             );
 
         # negative test w/o attributes
-        testAssertion("attr-ser-neg", \op.serializeRequest(), req, new TestResultExceptionType("SOAP-SERIALIZATION-ERROR"));
+        assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), req, "attr-ser-neg");
 
         req.body."^attributes^" = (
             "infoType": "test",
@@ -205,10 +303,9 @@ class SoapTest inherits QUnit::Test {
 
         hash h = op.serializeRequest(req, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
         hash xh = parse_xml(h.body);
-        compareSoapMsgs("attr-ser", xh, Req_1);
+        compareSoapMsgs("attr-ser", Req_1, xh);
 
-        h = parse_xml(h.body);
-        h = op.deserializeRequest(h);
+        h = op.deserializeRequest(xh);
 
         hash req_r = req + (
             "issue985": (
@@ -231,12 +328,12 @@ class SoapTest inherits QUnit::Test {
 
             # rename key with an undefined namespace
             r1{ek}{bk}{sik1}."xxx:SetInfo" = remove r1{ek}{bk}{sik1}{sik2};
-            testAssertion("attr-ser-neg-1", \compareSoapMsgs(), ("attr-ser", xh, r1), new TestResultExceptionType("SOAP-NAMESPACE-ERROR"));
+            assertThrows("SOAP-NAMESPACE-ERROR", \compareSoapMsgs(), ("attr-ser", r1, xh), "attr-ser-neg-1");
 
             # rename key with a defined but incorrect namespace
             string sik = sprintf("%s:SetInfo", nh.umap."http://www.w3.org/2003/05/soap-envelope");
             r1{ek}{bk}{sik1}{sik} = remove r1{ek}{bk}{sik1}."xxx:SetInfo";
-            testAssertion("attr-ser-neg-2", \compareSoapMsgs(), ("attr-ser", xh, r1), new TestResultExceptionType("TEST-EXCEPTION"));
+            assertThrows("TEST-EXCEPTION", \compareSoapMsgs(), ("attr-ser", r1, xh), "attr-ser-neg-2");
         }
 
         {
@@ -249,12 +346,12 @@ class SoapTest inherits QUnit::Test {
 
             # rename key with an undefined namespace
             xh{ek}{bk}{sik1}."xxx:SetInfo" = remove xh{ek}{bk}{sik1}{sik2};
-            testAssertion("attr-ser-neg-3", \compareSoapMsgs(), ("attr-ser", xh, Req_1), new TestResultExceptionType("TEST-EXCEPTION"));
+            assertThrows("TEST-EXCEPTION", \compareSoapMsgs(), ("attr-ser", Req_1, xh), "attr-ser-neg-3");
 
             # rename key with a defined but incorrect namespace
             pfx = nh.umap."http://www.w3.org/2003/05/soap-envelope";
             xh{ek}{bk}{sik1}{pfx} = remove xh{ek}{bk}{sik1}."xxx:SetInfo";
-            testAssertion("attr-ser-neg-4", \compareSoapMsgs(), ("attr-ser", xh, Req_1), new TestResultExceptionType("TEST-EXCEPTION"));
+            assertThrows("TEST-EXCEPTION", \compareSoapMsgs(), ("attr-ser", Req_1, xh), "attr-ser-neg-4");
         }
 
         h = parse_xml(SoapUiReq_1);
@@ -264,7 +361,7 @@ class SoapTest inherits QUnit::Test {
 
         h = op.serializeResponse(Res_1);
         xh = parse_xml(h.body);
-        compareSoapMsgs("output", xh, TestRes);
+        compareSoapMsgs("output", TestRes, xh);
         *hash eh = op.deserializeResponse(xh);
         # map message part names to element names
         eh = map {RMap{$1.key}: $1.value}, eh.pairIterator();
@@ -275,22 +372,52 @@ class SoapTest inherits QUnit::Test {
         op = ws.getOperation("noInput");
         h = op.serializeRequest();
         xh = parse_xml(h.body);
-        compareSoapMsgs("no-input", xh, EmptyReq);
+        compareSoapMsgs("no-input", EmptyReq, xh);
         eh = op.deserializeRequest(h);
         assertEq(NOTHING, eh);
 
         op = ws.getOperation("noOutput");
         h = op.serializeResponse();
         xh = parse_xml(h.body);
-        compareSoapMsgs("no-output", xh, EmptyRes);
+        compareSoapMsgs("no-output", EmptyRes, xh);
         eh = op.deserializeResponse(h);
         assertEq(NOTHING, eh);
+    }
+
+    test1() {
+        WebService ws(ReadOnlyFile::readTextFile(get_script_dir() + "/test1.wsdl"));
+
+        WSOperation op = ws.getOperation("test1");
+
+        hash req = (
+            "arg1": "x",
+            "arg2": "y",
+            );
+
+        hash h = op.serializeRequest(req, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
+        hash xh = parse_xml(h.body);
+        #printf("xh: %N\n", xh);
+        #printf("r1: %N\n", Req1_1);
+        compareSoapMsgs("attr-ser", Req1_1, xh);
+
+        h = op.serializeResponse(Res1_1);
+        xh = parse_xml(h.body);
+        compareSoapMsgs("output", Test1Res, xh);
+        *hash eh = op.deserializeResponse(xh);
+        assertEq(Res1_1, eh, "deserialize response");
+    }
+
+    globalWeather() {
+        assertThrows("WSDL-ERROR", sub () { WebService ws(ReadOnlyFile::readTextFile(get_script_dir() + "/globalweather.wsdl")); }, NOTHING, "http binding");
     }
 
     compareSoapMsgs(string assert, hash h1, hash h2) {
         # get namespace hashes and soap envelope prefix
         NsMap nh1 = SoapTest::getNamespaceMap(h1);
         NsMap nh2 = SoapTest::getNamespaceMap(h2);
+
+        # compare soap version in envelope
+        assertEq(nh1.getSoapUri(), nh2.getSoapUri());
 
         *hash b1 = SoapTest::getValue(h1, nh1.se, "Envelope", "Body");
         *hash b2 = SoapTest::getValue(h2, nh2.se, "Envelope", "Body");
@@ -299,40 +426,64 @@ class SoapTest inherits QUnit::Test {
     }
 
     compareSoapValue(string assert, string loc, any v1, any v2, NsMap nh1, NsMap nh2) {
+        if (v1.typeCode() == NT_STRING) {
+            # check if value is a namespace-prefixed string and processing accordingly if so
+            if ((*string nv1, *string kv1) = (v1 =~ x/^(\w+):(\w+)$/)) {
+                *string uri1 = nh1.pmap{nv1};
+                if (!exists uri1)
+                    throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) namespace prefix in %y in the expected value is not defined", assert, loc, v1);
+                *string nv2 = nh2.umap{uri1};
+                if (!exists nv2)
+                    throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) expected namespace URI %y in value %y is not defined in the given value", assert, loc, uri1, v1);
+                # generate expected value
+                string str = sprintf("%s:%s", nv2, kv1);
+                assertEq(str, v2);
+            }
+            else
+                assertEq(v1, v2, sprintf("%s (%s) values match", assert, loc));
+            return;
+        }
+
         if (v1.typeCode() != NT_HASH) {
-            testAssertionValue(sprintf("%s (%s)", assert, loc), v1, v2);
+            assertEq(v1, v2, sprintf("%s (%s)", assert, loc));
             return;
         }
 
         # check attributes
-        foreach hash h in (v1."^attributes^".pairIterator()) {
+        foreach hash h in (v2."^attributes^".pairIterator()) {
             (*string nsp1, *string key) = (h.key =~ x/^(\w+):(\w+)$/);
             if (nsp1 && key) {
-                *string uri1 = nh1.pmap{nsp1};
-                if (!uri1)
+                *string uri2 = nh2.pmap{nsp1};
+                if (!uri2)
                     throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) namespace prefix in %y in the generated value is not defined", assert, loc, h.key);
 
                 # check type value
-                if (key == "type" && uri1 == XSI_NS && h.value =~ / /)
+                if (key == "type" && uri2 == XSI_NS && h.value =~ / /)
                     throw "SOAP-TYPE-ERROR", sprintf("%s (%s) xsi:type=%y is invalid", assert, loc, h.value);
             }
         }
 
-        foreach string rkey in (v2.keyIterator()) {
-            (*string nsp2, *string key) = (rkey =~ x/^(\w+):(\w+)$/);
-            if (!nsp2) {
-                testAssertionValue(sprintf("%s (%s.%s)", assert, loc, rkey), v1{rkey}, v2{rkey});
+        foreach string rkey in (v1.keyIterator()) {
+            (*string nsp1, *string key) = (rkey =~ x/^(\w+):(\w+)$/);
+            if (!nsp1) {
+                assertTrue(v2.hasKey(rkey), sprintf("%s (%s) has element %y", assert, loc, rkey));
+                compareSoapValue(assert, sprintf("%s.%s", loc, rkey), v1{rkey}, v2{rkey}, nh1, nh2);
+                remove v2{rkey};
                 continue;
             }
-            *string uri2 = nh2.pmap{nsp2};
-            if (!exists uri2)
+            *string uri1 = nh1.pmap{nsp1};
+            if (!exists uri1)
                 throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) namespace prefix in %y in the expected value is not defined", assert, loc, rkey);
-            *string nsp1 = nh1.umap{uri2};
-            if (!exists nsp1)
-                throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) expected namespace URI %y in key %y is not defined in the given value", assert, loc, uri2, rkey);
-            string k1 = SoapTest::getKey(nsp1, key);
-            compareSoapValue(assert, sprintf("%s.%s", loc, key), v1{k1}, v2{rkey}, nh1, nh2);
+            *string nsp2 = nh2.umap{uri1};
+            if (!exists nsp2)
+                throw "SOAP-NAMESPACE-ERROR", sprintf("%s (%s) expected namespace URI %y in key %y is not defined in the given value", assert, loc, uri1, rkey);
+            string k2 = SoapTest::getKey(nsp2, key);
+            assertTrue(v2.hasKey(k2), sprintf("expected value %s has key %y", loc, k2));
+            compareSoapValue(assert, sprintf("%s.%s", loc, key), v1{rkey}, v2{k2}, nh1, nh2);
+            remove v2{k2};
         }
+
+        assertEq((), v2.keys(), sprintf("%s all keys matched", loc));
     }
 
     static any getValue(hash h, string nsp, string key) {
