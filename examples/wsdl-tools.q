@@ -6,7 +6,7 @@
 %new-style
 
 /*
-./wsdl-test.q qore_msg -v -w /home/tma/omq/wsdl/msepl_at/wincash/MaterialMovementInterface_v13.wsdl
+./wsdl-test.q qore_msg -v MaterialMovementInterface_v13.wsdl msg exportMaterialMovementData response -f human
 
 /home/tma/omq/wsdl/msepl_at/wincash/
 BasketInterface_v13.wsdl
@@ -17,18 +17,12 @@ SalesDataInterface_v13.wsdl
 
 /home/tma/work/qore/module-xml/examples/wsdl-viewer/test/TimeService.wsdl
 
-TODO: 
-    use bindings to print SOAPClient/server code
-    human readable report
-
 */
 
 class WSDLHelper {
 
     private {
         WebService ws;
-        int xmlIndentation = 2;
-        int qoreIndentation = 4;
     }
 
     constructor (WebService _ws) {
@@ -124,7 +118,7 @@ class WSDLHelper {
                 switch (res.type) {
                 case "string":
                     res.value = (keys t.enum)[0];
-                    res.svalue = sprintf("'%s'", res.value);
+                    res.svalue = sprintf("%y", res.value);
                     break;
                 case "int":
                     res.value = sprintf("%s", (keys t.enum)[0]);
@@ -152,122 +146,6 @@ class WSDLHelper {
         }
         res.attrs = exists t.attrs;
         return res;
-    }
-
-    private string getPrefix(int indent) {
-        return strmul(' ', indent, NOTHING);
-    }
-
-    # cursor position is set to position of next output
-    private string getMessageAsQoreIntern(string fmt_name, XsdElement elem, int indent) {
-        my string result = '';
-        if (elem.minOccurs == 0) {
-            result += getPrefix(indent) + "# optional\n";
-        }
-        result += getPrefix(indent) + fmt_name;
-        my n = elem.maxOccurs > 0 ? elem.maxOccurs : 1;
-#printf("%y\n", fmt_name);
-        my hash vi = getTypeInfo(elem.type);
-        if (n > 1) {
-            indent += qoreIndentation;
-            result += "\n"+getPrefix(indent)+"(\n";
-            indent += qoreIndentation;
-        }
-        if (vi.attrs) {
-            indent += qoreIndentation;
-            result += "\n"+getPrefix(indent)+"{\n";
-            indent += qoreIndentation;
-            if (vi.type) {
-                result += getPrefix(indent)+"\"^value^\":";
-            }
-        }
-        if (vi.type) {
-            for (my int i = 0; i < n; i++) {
-                if (vi.type == 'hash') {
-                    indent += qoreIndentation;
-                    result += "\n"+getPrefix(indent)+"{\n";
-                    foreach my string name2 in (keys elem.type.elementmap) {
-                        result += getMessageAsQoreIntern(sprintf("\"%s\": ", name2), elem.type.elementmap{name2}, indent+qoreIndentation);
-                        result += ",\n";
-                    }
-                    if (elem.type.choices) {
-                        indent += qoreIndentation;
-                        result += getPrefix(indent)+"# <choices>\n";
-                        indent += qoreIndentation;
-                        my int j = 1;
-                        foreach my string name2 in (keys elem.type.choices[0].elementmap) {
-                            result += getPrefix(indent)+sprintf("# choice [%d]\n", j);
-                            result += getMessageAsQoreIntern(sprintf("\"%s\": ", name2), elem.type.choices[0].elementmap{name2}, indent);
-                            result += ",\n";
-                            j++;
-                        }
-                        indent -= qoreIndentation;
-                        result += getPrefix(indent)+"# </choices>\n";
-                        indent -= qoreIndentation;
-                    }
-                    result += getPrefix(indent)+"}";
-                    indent -= qoreIndentation;
-                } else {
-                    result += vi.svalue;
-                }
-
-                if (n > 1) {
-                    result += ",\n";
-                }
-                if (i > 3) {
-                    result += sprintf("\n%s# ... %d items\n", getPrefix(indent), elem.maxOccurs);
-                    break;
-                }
-            }
-        }
-        if (vi.attrs) {
-            if (vi.type) {
-                result += ",\n";
-            }
-            result += getPrefix(indent)+"\"^attributes^\":";
-            indent += qoreIndentation;
-            result += "\n"+getPrefix(indent)+"{\n";
-            indent += qoreIndentation;
-
-            foreach my name2 in (keys elem.type.attrs) {
-                my hash vi2 = getTypeInfo(elem.type.attrs{name2}.type);
-                if (vi2.type) {
-                    result += sprintf("%s\"%s\": %s,\n", getPrefix(indent), name2, vi2.svalue);
-                }
-            }
-
-            indent -= qoreIndentation;
-            result += getPrefix(indent)+"}";
-            indent -= qoreIndentation;
-
-            indent -= qoreIndentation;
-            result += "\n"+getPrefix(indent)+"}";
-            indent -= qoreIndentation;
-        }
-        if (n > 1) {
-            indent -= qoreIndentation;
-            result += getPrefix(indent) + ")";
-            indent -= qoreIndentation;
-        }
-        return result;
-    }
-
-    string getMessageAsQore(*list names) {
-        if (!names) {
-            names = keys ws.idocmap;
-        }
-        my string result;
-        foreach my string name in (names) {
-            my XsdElement elem = ws.idocmap{name};
-            if (elem.maxOccurs > 1) {
-                result += getMessageAsQoreIntern(sprintf("my list %s = ", name), elem, 0);
-            } else {
-                my hash vi = getTypeInfo(elem.type);
-                result += getMessageAsQoreIntern(sprintf("my %s %s = ", vi.type, name), elem, 0);
-            }
-            result += ";\n\n";
-        }
-        return result;
     }
 
     hash getMessage(XsdElement elem, bool add_comments = True, bool string_values = False, bool only_one_choice = False) {
@@ -354,110 +232,32 @@ class WSDLHelper {
         return getMessage(msg.args.firstValue().element, add_comments, string_values, only_one_choice);
     }
 
-    private string getMessageAsXmlIntern(string name, XsdElement elem, reference nsc, int indent) {
-        my string result = '';
-        /*if (elem.minOccurs == 0) {
-            result += getPrefix(indent) + "# optional\n";
-        }*/
-        my hash vi = getTypeInfo(elem.type);
-        my string elem_name = name;
-        if (elem.ns) {
-            ws.nsc.pushTargetNamespace(elem.ns);
-            nsc{ws.nsc.getTargetNamespaceInputPrefix()} = elem.ns;
-            elem_name = ws.nsc.getTargetNamespaceInputPrefix()+":"+elem_name;
-            ws.nsc.popTargetNamespace();
-        }
-
-        result += getPrefix(indent) + "<" + elem_name;
-        if (vi.attrs) {
-            foreach my name2 in (keys elem.type.attrs) {
-                my hash vi2 = getTypeInfo(elem.type.attrs{name2}.type);
-                if (vi2.type) {
-                    result += sprintf(" %s=\"%s\"", name2, vi2.xvalue);
-                }
-            }
-        }
-        result += ">\n";
-        indent += xmlIndentation;
-        if (vi.xvalue) {
-            result += getPrefix(indent) + vi.xvalue + "\n";
-        }
-        if (vi.type == "hash") {
-            foreach my string name2 in (keys elem.type.elementmap) {
-                result += getMessageAsXmlIntern(name2, elem.type.elementmap{name2}, \nsc, indent);
-            }
-            if (elem.type.choices) {
-                my int j = 1;
-                foreach my string name2 in (keys elem.type.choices[0].elementmap) {
-                    result += getPrefix(indent)+sprintf("<!--choice [%d]-->\n", j);
-                    result += getMessageAsXmlIntern(name2, elem.type.choices[0].elementmap{name2}, \nsc, indent);
-                    j++;
-                }
-            }
-        }
-        indent -= xmlIndentation;
-        result += getPrefix(indent) + "</" + elem_name + ">\n";
-
-        return result;
+    private getOperationParams(WSMessage msg) {
+        return sprintf("%s(%s)", msg.name, (keys msg.args).join(','));
     }
-
-    string getMessageAsXml(*list names) {
-        if (!names) {
-            names = keys ws.idocmap;
-        }
-        my string result;
-        foreach my string name in (names) {
-            hash nsc = {};
-            my string body = getMessageAsXmlIntern(name, ws.idocmap{name}, \nsc, 4);
-            my string namespaces = "";
-            foreach my ns in (keys nsc) {
-                namespaces += sprintf(" xmlns:%s=\"%s\"", ns, nsc{ns});
-            }
-            result +=
-'<?xml version="1.0"?>
-<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope/" soap:encodingStyle="http://www.w3.org/2003/05/soap-encoding"' + namespaces + '>
-  <soap:Header>
-  </soap:Header>
-
-  <soap:Body>
-' + body + '
-    <soap:Fault>
-    </soap:Fault>
-  </soap:Body>
-</soap:Envelope>
-
-';
-        }
-        return result;
-    }
-
-    string getOperationMessageAsXml(*list names, bool request) {
-        if (!names) {
-            names = keys ws.opmap;
-        }
-        my string result;
-        foreach my string name in (names) {
-            my WSOperation op = ws.opmap{name};
-            if (request) {
-                #my hash msg = getMessage((keys op.input.args)[0], False, False);
-                if (op.input) {
-                    my hash msg = getMessage(op.input, False, False, True);
-#printf("%N\n", msg);
-#printf("%N\n", op.input);
-                    result += op.serializeRequest(msg, NOTHING, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body;
-                }
-            } else {
-                if (op.output) {
-#                my hash msg = getMessage((keys op.output.args)[0], False, False);
-                    my hash msg = getMessage(op.output, False, False, True);
-#printf("%N\n", msg);
-                    result += op.serializeResponse(msg, NOTHING, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body;
-#printf("%N\n", result);
+    nothing makeReport(File output, string wsdl_name) {
+        output.printf("wsdl: %s\n", wsdl_name);
+        foreach my hash svc in (ws.listServices()) {
+            output.printf("  service: %s\n", svc.name);
+            #my hash svc = ws.getService(svc_name);
+            foreach my string port in (keys svc.port) {
+                output.printf("    port: %s\n", port);
+                output.printf("      binding: %s\n", svc.port{port}.binding.name);
+                output.printf("      address: %s\n", svc.port{port}.address);
+                my hash portType = ws.portType{svc.port{port}.binding.getPort()};
+            output.print("      operations:\n");
+                foreach my string name in (keys portType.operations) {
+                    my WSOperation op = portType.operations{name};
+                    output.printf("        %s\n", name);
+                    if (op.input) {
+                        output.printf("          input: %s\n", getOperationParams(op.input));
+                    }
+                    if (op.output) {
+                        output.printf("          output: %s\n", getOperationParams(op.output));
+                    }
                 }
             }
-            result += "\n\n";
         }
-        return result;
     }
 }
 
@@ -465,71 +265,129 @@ class WSDLHelper {
 %exec-class WSDLTools
 class WSDLTools {
     private {
+        const MSG_REQUEST = 0x1;
+        const MSG_RESPONSE = 0x2;
         hash opts = (
             'help': 'h',
-            'verbose': 'v',
-            'wsdl': 'w=s',
+            'verbose': 'v:i+',
             'output': 'o=s',
         );
         hash operations = (
-            'print_msg': True,
-            'qorize_msg': True,
-            'qore_msg': True,
-            'xml_msg': True,
-            'dump_wsdl': True,
-            'dump_ws': True,
-            'xml_oper_req': True,
-            'xml_oper_resp': True,
+            'report': (
+            ),
+            'msg': (
+                'opts': (
+                    'format': 'f=s',
+                    'comment':'c',
+                ),
+                'params': (
+                    True,
+                    ('both': MSG_REQUEST|MSG_RESPONSE, 'request': MSG_REQUEST, 'response': MSG_RESPONSE, ),
+                ),
+                'formats': ('human': True, 'xml': True, 'qore': True, ),
+            ),
+            'dump': (
+                'params': (
+                    ('ws': 'ws', 'wsdl': 'wsdl', ),
+                ),
+            ),
         );
-        bool verbose = False;
+        int verbose = 0;
         WebService ws;
         WSDLHelper wh;
-
     }
 
     constructor () {
         my GetOpt g(opts);
-        my hash opt = g.parse3(\ARGV);
+        # first try to get general options (help, etc.), do not modify ARGV
+        *softlist argv2 = ARGV;
+        my hash opt = g.parse(\ARGV);
         my *list objs;
         my string operation;
+        my string wsdl_file;
+        my softlist params;
         try {
             if (opt.help) {
                 help();
             }
-            if (opt.verbose) {
-                verbose = True;
-            }
+            verbose = opt.verbose ?? verbose;
             if (ARGV.empty()) {
-                throw "WSDL-TOOL-ERROR", "No operation specified";
+                throw "WSDL-TOOL-ERROR", "No WSDL file provided";
             }
-            my list l = (shift ARGV).split(':');
-            if (!ARGV.empty()) {
-                throw "WSDL-TOOL-ERROR", "Only one operation allowed";
-            }
-            operation = shift l;
-            objs = l ? (shift l).split(','):NOTHING;
+            wsdl_file = shift ARGV;
 
-            if (!exists operations{operation}) {
-                throw "WSDL-TOOL-ERROR", sprintf("Operation '%s' is not in the list of supported operations %y\n", operation, keys operations);
+            if (ARGV.empty()) {
+                operation = (keys operations)[0];
+            } else {
+                operation = shift ARGV;
+                if (!exists operations{operation}) {
+                    throw "WSDL-TOOL-ERROR", sprintf("Operation %y is not in the list of supported operations %y", operation, keys operations);
+                }
+            }
+            if (operations{operation}.opts) {
+                g = new GetOpt(opts + operations{operation}.opts);
+            }
+            # check all options
+            ARGV = argv2;
+            opt = g.parse3(\ARGV);
+            # it might be tricky as changes options may change eaten params
+            shift ARGV;  # remove wdsl
+            if (!ARGV.empty()) {
+                shift ARGV;  # remove operation
+            }
+
+            int n = exists operations{operation}.params ? operations{operation}.params.size() : 0;
+            if (ARGV.size()-2 > n) {
+                throw "WSDL-TOOL-ERROR", sprintf("Operation %y supports up to %y parameters but provided %y", operation, n, ARGV);
+            }
+            for (my i = 0; i < n; i++) {
+                if (operations{operation}.params[i].typeCode() == NT_HASH) {
+                    if (i >= ARGV.size()) {
+                        push params, operations{operation}.params[i].firstValue();
+                    } else {
+                        if (exists operations{operation}.params[i]{ARGV[i]}) {
+                            push params, operations{operation}.params[i]{ARGV[i]};
+                        } else {
+                            throw "WSDL-TOOL-ERROR", sprintf("Wrong parameter value %y supported values %y", ARGV[i], keys operations{operation}.params[i]);
+                        }
+                    }
+                } else {
+                    push params, ARGV[i] ?? '';
+                }
+            }
+            switch (operation) {
+            case 'report':
+                break;
+            case 'msg':
+                if (opt.format) {
+                    if (! exists operations{operation}.formats{opt.format}) {
+                        throw "WSDL-TOOL-ERROR", sprintf("Value %y is not in the list of supported formats %y\n", opt.format, keys operations{operation}.formats);
+                    }
+                } else {
+                    opt.format = operations{operation}.formats.firstKey();
+                }
+                break;
+            case 'dump':
+                break;
             }
 
         } catch (e) {
             if (e.type == Qore::ET_User) {
-                stderr.printf("%s\n\n%N", e.desc, e);
+                stderr.printf("%s\n\n", e.desc);
                 help();
             } else {
                 rethrow;
             }
         }
         my *string wsdlContent;
-        if (!opt.wsdl) {
+        if (wsdl_file == '-') {
             wsdlContent = stdin.read(-1);
         } else {
-            string url = opt.wsdl;
+            string url = wsdl_file;
             if (! (url =~ /:\/\//)) {
                 url = 'file://'+url;
             }
-            info("getFileFromURL(%s)\n", url);
+            info(sprintf("getFileFromURL(%y)\n", url));
             hash h = Qore::parse_url(url);
             wsdlContent = WSDLLib::getFileFromURL(url, h, 'file', NOTHING, NOTHING, True);
         }
@@ -540,14 +398,14 @@ class WSDLTools {
             output.open(opt.output, O_CREAT | O_TRUNC | O_WRONLY);
         }
 
-        if (operation == 'dump_wsdl') {
+        if (operation == 'dump' && params[0] == 'wsdl') {
             output.print(wsdlContent);
             return;
         }
 
         ws = new WebService(wsdlContent);
 
-        if (operation == 'dump_ws') {
+        if (operation == 'dump' && params[0] == 'ws') {
             ws.wsdl = '';
             output.printf("%N\n", ws);
             return;
@@ -555,73 +413,85 @@ class WSDLTools {
         wh = new WSDLHelper(ws);
 
         switch (operation) {
-        case 'print_msg':
-            # temporary debug
-            if (!objs) {
-                objs = keys ws.idocmap;
+            case 'report':
+                info(sprintf("%s()\n", operation));
+                wh.makeReport(output, wsdl_file);
+                break;
+            case 'msg': {
+                my list names;
+                if (params[0] && params[0] != '-') {
+                    names = params[0].split(',');
+                } else {
+                    names = keys ws.opmap;
+                }
+                info(sprintf("%s(%y,%y,%y,%y)\n", operation, names, params[1], opt.format, opt.comment));
+                foreach my string name in (names) {
+                    if (!ws.opmap{name}) {
+                        throw "WSDL-TOOL-ERROR", sprintf("Value %y is not in the list of operations %y\n", name, keys ws.opmap);
+                    }
+                    my WSOperation op = ws.opmap{name};
+                    foreach my int request in ((MSG_REQUEST, MSG_RESPONSE)) {
+                        if ((request & params[1]) != 0 && ((request==MSG_REQUEST) ? op.input : op.output)) {
+                            my hash msg = wh.getMessage((request==MSG_REQUEST) ? op.input : op.output, opt.comment && opt.format != 'xml', False, True);
+                            switch (opt.format) {
+                            case 'xml':
+                                if (opt.comment) {
+                                    info("Comment options is ignored\n");
+                                }
+                                info("Only the first choice is considered\n");
+                                output.print(request == MSG_REQUEST ?
+                                    op.serializeRequest(msg, NOTHING, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body :
+                                    op.serializeResponse(msg, NOTHING, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body
+                                );
+                                break;
+                            case 'qore':
+                                output.print(qorize(msg, name, True));
+                                break;
+                            case 'human':
+                                output.printf("%s: %N\n", name, msg);
+                                break;
+                            }
+                            output.print("\n\n");
+                        }
+                    }
+                }
             }
-            my hash vars;
-            foreach my string name in (objs) {
-                vars{name} = wh.getMessage(name);
-            }
-            output.printf("%N\n", vars);
-            break;
-        case 'qorize_msg':
-            # temporary debug
-            if (!objs) {
-                objs = keys ws.idocmap;
-            }
-            my hash vars;
-            foreach my string name in (objs) {
-                output.print(qorize(wh.getMessage(name), name, True));
-            }
-#            output.printf("%N\n", vars);
-            break;
-
-        case 'qore_msg':
-            info("getMessagesAsQore(%y)\n", objs);
-            output.print(wh.getMessageAsQore(objs));
-            break;
-        case 'xml_msg':
-            info("getMessageAsXml(%y)\n", objs);
-            output.print(wh.getMessageAsXml(objs));
-            break;
-
-        case 'xml_oper_req':
-            info("getOperationMessageAsXml(%y, True)\n", objs);
-            output.print(wh.getOperationMessageAsXml(objs, True));
-            break;
-        case 'xml_oper_resp':
-            info("getOperationMessageAsXml(%y, False)\n", objs);
-            output.print(wh.getOperationMessageAsXml(objs, False));
-            break;
         }
     }
 
     private help() {
         stderr.printf(
             "WSDL tools, ver 0.1\n"
-            "usage: %s [options] [-w wsdl] [-o output] operation[:name[,name...]]\n"
+            "usage: %s [options] [-o <output>] [-f <format>] <wsdl> [<cmd> [params]]\n"
             "  options\n"
             "  -v     verbose\n"
             "  -h     help\n"
-            "  wsdl   WSDL file or URL. Unless specified then expected at STDIN\n"
+            "  wsdl   WSDL file or URL. If '-' specified then expected at STDIN\n"
             "  output unless file specified then goes to STDOUT\n"
-            "  operation\n"
-            "    print_msg   print message as printf output\n"
-            "    qorize_msg  print message as Qorize output\n"
-            "    xml_oper_req  print XML message of operation request\n"
-            "    xml_oper_resp  print XML message of operation response\n"
-
-            "    qore_msg    print message as Qore hash\n"
-            "    xml_msg     print message as XML structure\n"
-            "    dump_wsdl   dump input WSDL file\n"
-            "    dump_ws     dump WebService hash\n"
-            "    xml_oper_req  print XML message of operation request\n"
-            "  name   output object name. If not specified then output all objects\n"
+            "\n"
+            "Commands:\n"
+            "  report\n"
+            "    report supported services, operations, etc.\n"
+            "\n"
+            "  msg [<operation> [both|request|response]]\n"
+            "    print request or response message related to operation\n"
+            "    operation    unless specified (or '-') print all operations\n"
+            "    format:\n"
+            "      human  human-readable, default\n"
+            "      qore   Qore source file\n"
+            "      xml    XML SOAP message\n"
+            "    options:\n"
+            "      -c     output comments\n"
+            "\n"
+            "  dump <what>\n"
+            "    dump specified information\n"
+            "    What:\n"
+            "      wsdl   print WSDL on output\n"
+            "      ws     print WebService on output\n"
+            "\n"
             "\n"
             "Example:\n"
-            "  %s qore_msg MaterialMovementInterface_v13.wsdl\n"
+            "  %s MaterialMovementInterface_v13.wsdl msg exportMaterialMovementData request -f qore\n"
             "\n"
         ,
             get_script_name(),
@@ -630,9 +500,10 @@ class WSDLTools {
         exit(1);
     }
 
-    private info(string s, p) {
+    private info(string s) { # , any *p1, any *p2, any *p3, any *p4, any *p5) {  # TODO: elipsis params and vprintf()
         if (verbose) {
-            stderr.vprintf(s, p);
+            stderr.print(s);
+            #stderr.vprintf(s, p1, p2, p3, p4, p5);
         }
     }
 }
