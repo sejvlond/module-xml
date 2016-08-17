@@ -241,7 +241,7 @@ AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEnco
 	    }
 	    xstack.incCDataCount();
 	 }
-      } else if (nt == XML_READER_TYPE_COMMENT) {
+      } else if (nt == XML_READER_TYPE_COMMENT && (pflags & XPF_ADD_COMMENTS)) {
 	 int depth = QoreXmlReader::depth();
 	 xstack.checkDepth(depth);
 
