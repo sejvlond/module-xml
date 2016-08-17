@@ -71,9 +71,10 @@ namespace intern { // make classes local
       int depth;
       int vcount;
       int cdcount;
+      int commentcount;
 
       DLLLOCAL xml_node(AbstractQoreNode** n, int d)
-	 : node(n), next(0), depth(d), vcount(0), cdcount(0) {
+	 : node(n), next(0), depth(d), vcount(0), cdcount(0), commentcount(0) {
       }
    };
 
@@ -137,6 +138,12 @@ namespace intern { // make classes local
       }
       DLLLOCAL void incCDataCount() {
 	 tail->cdcount++;
+      }
+      DLLLOCAL int getCommentCount() const {
+	 return tail->commentcount;
+      }
+      DLLLOCAL void incCommentCount() {
+	 tail->commentcount++;
       }
    };
 }
