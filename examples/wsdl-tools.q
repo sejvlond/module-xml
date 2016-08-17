@@ -379,6 +379,7 @@ class WSDLTools {
                 rethrow;
             }
         }
+        *hash ws_opts;
         my *string wsdlContent;
         if (wsdl_file == '-') {
             wsdlContent = stdin.read(-1);
@@ -386,7 +387,14 @@ class WSDLTools {
             string url = wsdl_file;
             if (! (url =~ /:\/\//)) {
                 url = 'file://'+url;
+                ws_opts = ("def_path": dirname(wsdl_file));
             }
+            else {
+                string dir = dirname(wsdl_file);
+                dir =~ s/^.*:\/\///;
+                ws_opts = ("def_path": dir);
+            }
+
             info(sprintf("getFileFromURL(%y)\n", url));
             hash h = Qore::parse_url(url);
             wsdlContent = WSDLLib::getFileFromURL(url, h, 'file', NOTHING, NOTHING, True);
@@ -403,7 +411,7 @@ class WSDLTools {
             return;
         }
 
-        ws = new WebService(wsdlContent);
+        ws = new WebService(wsdlContent, ws_opts);
 
         if (operation == 'dump' && params[0] == 'ws') {
             ws.wsdl = '';
