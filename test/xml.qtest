@@ -224,6 +224,6 @@ class XmlTest inherits QUnit::Test {
         );
 
         assertEq(xml, make_xml(rec, XGF_ADD_FORMATTING), "make_xml()");
-        assertEq(rec, parse_xml(xml, XPF_PRESERVE_ORDER), "parse_xml()");
+        assertEq(rec, parse_xml(xml, XPF_PRESERVE_ORDER | XPF_ADD_COMMENTS), "parse_xml()");
     }
 }

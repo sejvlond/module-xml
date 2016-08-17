@@ -1477,6 +1477,11 @@ const XPF_NONE = XPF_NONE;
     This option should only be used when it is important to maintain the XML element order in the resulting %Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.
  */
 const XPF_PRESERVE_ORDER = XPF_PRESERVE_ORDER;
+
+//! decode XML comments
+/** If this option is given then parse_xml() creates hash elements with key '^comment^' corresponding to comments found in XML
+ */
+const XPF_ADD_COMMENTS = XPF_ADD_COMMENTS;
 //@}
 
 /** @defgroup xml_functions XML Functions
@@ -1714,6 +1719,8 @@ nothing makeFormattedXMLFragment() [flags=RUNTIME_NOOP,DEPRECATED] {
     @throw PARSE-XML-EXCEPTION Error parsing the XML string
 
     @note the default is to parse XML as serialized data; to preserve key order in XML strings for higher fidelity to the original string when serializing back to XML, use the @ref XPF_PRESERVE_ORDER flag when parsing
+
+    @note use the @ref XPF_ADD_COMMENTS to process XML comments and put them in hash as elements with '^comment^' key
 
     @see @ref serialization
 
