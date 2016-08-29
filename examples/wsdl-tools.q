@@ -162,13 +162,13 @@ class WSDLHelper {
                 foreach my string name2 in (keys elem.type.elementmap) {
                     val += getMessage(elem.type.elementmap{name2}, add_comments, string_values, only_one_choice);
                 }
-                if (elem.type.choices) {
+                foreach my hash choice in (elem.type.choices) {
                     my int j = 1;
-                    foreach my string name2 in (keys elem.type.choices[0].elementmap) {
+                    foreach my string name2 in (keys choice.elementmap) {
                         if (add_comments) {
                             val{sprintf('^comment%d^', j)} = sprintf("choice [%d]", j);
                         }
-                        val += getMessage(elem.type.choices[0].elementmap{name2}, add_comments, string_values, only_one_choice);
+                        val += getMessage(choice.elementmap{name2}, add_comments, string_values, only_one_choice);
                         j++;
                         if (only_one_choice) {
                             break;
@@ -278,7 +278,8 @@ class WSDLTools {
             'msg': (
                 'opts': (
                     'format': 'f=s',
-                    'comment':'c',
+                    'comment': 'c',
+                    'choices': 'm',
                 ),
                 'params': (
                     True,
@@ -432,7 +433,7 @@ class WSDLTools {
                 } else {
                     names = keys ws.opmap;
                 }
-                info(sprintf("%s(%y,%y,%y,%y)\n", operation, names, params[1], opt.format, opt.comment));
+                info(sprintf("%s(%y,%y,%y,%y,%y)\n", operation, names, params[1], opt.format, opt.comment, opt.choices));
                 foreach my string name in (names) {
                     if (!ws.opmap{name}) {
                         throw "WSDL-TOOL-ERROR", sprintf("Value %y is not in the list of operations %y\n", name, keys ws.opmap);
@@ -440,11 +441,14 @@ class WSDLTools {
                     my WSOperation op = ws.opmap{name};
                     foreach my int request in ((MSG_REQUEST, MSG_RESPONSE)) {
                         if ((request & params[1]) != 0 && ((request==MSG_REQUEST) ? op.input : op.output)) {
-                            my hash msg = wh.getMessage((request==MSG_REQUEST) ? op.input : op.output, opt.comment && opt.format != 'xml', False, True);
+                            my hash msg = wh.getMessage((request==MSG_REQUEST) ? op.input : op.output, opt.comment && opt.format != 'xml', False, !opt.choices || opt.format == 'xml');
                             switch (opt.format) {
                             case 'xml':
                                 if (opt.comment) {
                                     info("Comment options is ignored\n");
+                                }
+                                if (opt.choices) {
+                                    info("Multiple choices options is ignored\n");
                                 }
                                 info("Only the first choice is considered\n");
                                 output.print(request == MSG_REQUEST ?
@@ -490,6 +494,7 @@ class WSDLTools {
             "      xml    XML SOAP message\n"
             "    options:\n"
             "      -c     output comments\n"
+            "      -m     output multiple choices\n"
             "\n"
             "  dump <what>\n"
             "    dump specified information\n"
