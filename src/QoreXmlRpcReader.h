@@ -56,7 +56,7 @@ namespace intern { // make classes local
 	 if (vp)
 	    *vp = v.takeNode();
 	 else
-	    val.assignAndSanitize(v);
+	    discard(val.assignAndSanitize(v), 0);
       }
 
       DLLLOCAL void setPtr(AbstractQoreNode** v) {

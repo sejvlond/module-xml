@@ -29,21 +29,21 @@ static int xmlrpc_do_empty_value(Qore::Xml::intern::XmlRpcValue *v, const char* 
    if (!strcmp(name, "string"))
       v->set(null_string());
    else if (!strcmp(name, "i4") || !strcmp(name, "int") || !strcmp(name, "ex:i1") || !strcmp(name, "ex:i2") || !strcmp(name, "ex:i8"))
-      v->set(zero());
+      v->set(0ll);
    else if (!strcmp(name, "boolean"))
-      v->set(get_bool_node(false));
+      v->set(false);
    else if (!strcmp(name, "struct"))
       v->set(new QoreHashNode);
    else if (!strcmp(name, "array"))
       v->set(new QoreListNode);
    else if (!strcmp(name, "double") || !strcmp(name, "ex:float"))
-      v->set(zero_float());
+      v->set(0.0f);
    else if (!strcmp(name, "dateTime.iso8601") || !strcmp(name, "ex:dateTime"))
       v->set(zero_date());
    else if (!strcmp(name, "base64"))
-      v->set(new BinaryNode());
+      v->set(new BinaryNode);
    else if (!strcmp(name, "ex:nil"))
-      v->set(0);
+      v->set(reinterpret_cast<AbstractQoreNode*>(0));
    else {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "unknown XML-RPC type '%s' at level %d", name, depth);
       return -1;
@@ -320,7 +320,7 @@ int QoreXmlRpcReader::getBoolean(Qore::Xml::intern::XmlRpcValue *v, ExceptionSin
       const char* str = constValue();
       if (str) {
 	 //printd(5, "** got boolean '%s'\n", str);
-	 v->set(strtoll(str, 0, 10) ? boolean_true() : boolean_false());
+	 v->set(strtoll(str, 0, 10) ? true : false);
       }
 
       if (readXmlRpc(xsink))
@@ -330,7 +330,7 @@ int QoreXmlRpcReader::getBoolean(Qore::Xml::intern::XmlRpcValue *v, ExceptionSin
 	 return -1;
    }
    else
-      v->set(boolean_false());
+      v->set(false);
 
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in boolean (%d)", nt);
@@ -350,7 +350,7 @@ int QoreXmlRpcReader::getInt(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* x
       if (str) {
 	 //printd(5, "** got int '%s'\n", str);
 	 // note that we can parse 64-bit integers here, which is not conformant to the standard
-	 v->set(new QoreBigIntNode(strtoll(str, 0, 10)));
+	 v->set(strtoll(str, 0, 10));
       }
 
       if (readXmlRpc(xsink))
@@ -360,7 +360,7 @@ int QoreXmlRpcReader::getInt(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* x
 	 return -1;
    }
    else
-      v->set(new QoreBigIntNode);
+      v->set(0ll);
 
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in int (%d)", nt);
@@ -379,7 +379,7 @@ int QoreXmlRpcReader::getDouble(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink
       const char* str = constValue();
       if (str) {
 	 //printd(5, "** got float '%s'\n", str);
-	 v->set(new QoreFloatNode(strtod(str, 0)));
+	 v->set(strtod(str, 0));
       }
 
       // advance to next position
@@ -390,7 +390,7 @@ int QoreXmlRpcReader::getDouble(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink
 	 return -1;
    }
    else
-      v->set(zero_float());
+      v->set(0.0f);
 
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in float (%d)", nt);
@@ -453,7 +453,7 @@ int QoreXmlRpcReader::getBase64(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink
 	 return -1;
    }
    else
-      v->set(new BinaryNode());
+      v->set(new BinaryNode);
 
    if (nt != XML_READER_TYPE_END_ELEMENT) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "extra information in base64 (%d)", nt);
@@ -526,7 +526,7 @@ int QoreXmlRpcReader::getArray(Qore::Xml::intern::XmlRpcValue *v, const QoreEnco
 	       return -1;
 
 	    if (nt == XML_READER_TYPE_END_ELEMENT)
-	       v->set(0);
+	       v->set(reinterpret_cast<AbstractQoreNode*>(0));
 	    else {
 	       if (getValueData(v, data_ccsid, true, xsink))
 		  return -1;
