@@ -37,7 +37,7 @@
 %disable-warning unreferenced-variable
 
 module WSDL {
-    version = "0.3.6";
+    version = "0.3.5.1";
     desc = "WSDL module providing functionality for SOAP";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
@@ -111,7 +111,7 @@ module WSDL {
 #! main WSDL namespace
 public namespace WSDL {
     #! this WSDL implementation version
-    public const version     = "0.3.5";
+    public const version     = "0.3.5.1";
 
     #! SOAP 1.1 envelope URI
     public const SOAP_11_ENV  = "http://schemas.xmlsoap.org/soap/envelope/";
