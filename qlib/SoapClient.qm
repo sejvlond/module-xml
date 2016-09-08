@@ -1,7 +1,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 #! @file SoapClient.qm SOAP Client module implementation based on the WSDL classes
 
-/*  SoapClient.qm Copyright (C) 2012 - 2016 David Nichols
+/*  SoapClient.qm Copyright (C) 2012 - 2016 Qore Technologies, s.r.o.
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -38,7 +38,7 @@
 %new-style
 
 module SoapClient {
-    version = "0.2.4";
+    version = "0.2.4.1";
     desc = "SoapClient module";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
@@ -92,6 +92,9 @@ any result = sc.call("SubmitDocument", msg);
 
     @section soapclientrelnotes SoapClient Release Notes
 
+    @subsection soapclient_0_2_4_1 SoapClient v0.2.4.1
+    - added the @ref SoapClient::SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
+
     @subsection soapclient_0_2_4 SoapClient v0.2.4
     - handle SOAP fault messages returned with 500-series error codes as Fault messages
     - added optional logging closures, added SOAP headers to info hash when available
@@ -113,7 +116,7 @@ public namespace SoapClient {
     #! SOAP client class implementation, publically inherits qore's HTTPClient class
     public class SoapClient inherits HTTPClient {
         #! version of the implementation of this class
-        const Version = "0.2.4";
+        const Version = "0.2.4.1";
 
         #! default HTTP headers
         const Headers = ("Accept": (MimeTypeSoapXml + "," + MimeTypeXml + "," + MimeTypeXmlApp), "User-Agent": ("Qore-Soap-Client/" + SoapClient::Version));
@@ -254,6 +257,9 @@ public namespace SoapClient {
             @param args the arguments to the SOAP operation
             @param header data structure for the SOAP header, if required by the message
             @param op a reference to return the @ref WSDL::WSOperation "WSOperation" object found
+            @param nsh a hash giving HTTP header information to include in the message (does not override automatically-generated SOAP message headers)
+            @param xml_opts an integer XML generation option code; see @ref xml_generation_constants for possible values; combine multiple codes with binary or (\c |)
+            @param soapaction an optional string that will override the SOAPAction for the request; en empty string here will prevent the SOAPAction from being sent
 
             @return a hash with the following keys:
             - \c hdr: a hash of message headers
@@ -263,19 +269,41 @@ public namespace SoapClient {
 
             @note content encoding is not applied here but rather internally by the call() methods
         */
-        hash getMsg(string operation, any args, *hash header, reference op, *hash nsh) {
+        hash getMsg(string operation, any args, *hash header, reference op, *hash nsh, *int xml_opts, *string soapaction) {
             op = wsdl.getOperation(operation);
-            hash msg = op.serializeRequest(args, header, getEncoding(), nsh);
+            hash msg = op.serializeRequest(args, header, getEncoding(), nsh, xml_opts, soapaction);
             if (msg.hdr."Content-Type" !~ /charset=/i)
                 msg.hdr."Content-Type" += ";charset=" + getEncoding();
 
             return msg;
         }
 
+        #! makes a server call with the given operation, arguments, options, and optional info hash reference and returns the result
+        /** @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying @ref WSDL::WebService "WebService" class, an exception will be thrown
+            @param args the arguments to the SOAP operation
+            @param opts an optional hash of options for the call as follows:
+            - \c soap_header: a hash giving SOAP header information, if required by the message
+            - \c http_header: a hash giving HTTP header information to include in the message (does not override automatically-generated SOAP message headers)
+            - \c xml_opts: an integer XML generation option code; see @ref xml_generation_constants for possible values; combine multiple codes with binary or (\c |)
+            - \c soapaction: an optional string that will override the SOAPAction for the request; en empty string here will prevent the SOAPAction from being sent
+            @param info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers)
+
+            @return a hash with the following keys:
+            - \c hdr: a hash of message headers
+            - \c body: the serialized message body
+
+            @since %SoapClient 0.2.4.1
+         */
+        any callOperation(string operation, any args, *hash opts, *reference info) {
+            return makeCallIntern(\info, operation, args, opts.soap_header, opts.http_header, opts.xml_opts, opts.soapaction);
+        }
+
         #! makes a server call with the given operation and arguments and returns the deserialized result
         /** @param operation the operation name for the SOAP call
             @param args the arguments to the SOAP operation
             @param header optional soap headers (if required by the operation)
+            @param nsh a hash giving HTTP header information to include in the message (does not override automatically-generated SOAP message headers)
+            @param xml_opts an integer XML generation option code; see @ref xml_generation_constants for possible values; combine multiple codes with binary or (\c |)
 
             @return the deserialized result of the SOAP call to the SOAP server
         */
@@ -300,6 +328,7 @@ public namespace SoapClient {
             @param operation the operation name for the SOAP call
             @param args the arguments to the SOAP operation
             @param header optional soap headers (if required by the operation)
+            @param nsh a hash giving HTTP header information to include in the message (does not override automatically-generated SOAP message headers)
 
             @return the deserialized result of the SOAP call to the SOAP server
         */
@@ -308,9 +337,9 @@ public namespace SoapClient {
         }
 
         #! makes the call to the SOAP server and ensures that SOAP fault responses returned with a 500-series status code are processed as a SOAP fault so that error information is returned in the resulting exception
-        private any makeCallIntern(*reference info, string operation, any args, *hash header, *hash nsh) {
+        private any makeCallIntern(*reference info, string operation, any args, *hash header, *hash nsh, *int xml_opts, *string soapaction) {
             WSOperation op;
-            hash msg = getMsg(operation, args, header, \op, nsh);
+            hash msg = getMsg(operation, args, header, \op, nsh, xml_opts, soapaction);
             hash hdr = headers + msg.hdr;
 
             # we have to write the request key after the HTTPClient::post() call
