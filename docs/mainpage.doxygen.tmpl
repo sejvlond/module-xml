@@ -267,6 +267,7 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - supress emitting a SOAPAction header in requests if the binding gives an empty string (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
       - updated \c WSOperation::serializeRequest() to allow the SOAPAction header to be overridden in each request (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
       - respect XML generation flags in request generation
+      - fixed parsing empty base64Binary and hexBinary elements (<a href="https://github.com/qorelanguage/qore/issues/1227">issue 1227</a>)
     - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes and enhancements:
       - added the \c SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
 

@@ -337,9 +337,9 @@ public namespace SoapClient {
         }
 
         #! makes the call to the SOAP server and ensures that SOAP fault responses returned with a 500-series status code are processed as a SOAP fault so that error information is returned in the resulting exception
-        private any makeCallIntern(*reference info, string operation, any args, *hash header, *hash nsh, *int xml_opts, *string override_soapaction) {
+        private any makeCallIntern(*reference info, string operation, any args, *hash header, *hash nsh, *int xml_opts, *string soapaction) {
             WSOperation op;
-            hash msg = getMsg(operation, args, header, \op, nsh, xml_opts, override_soapaction);
+            hash msg = getMsg(operation, args, header, \op, nsh, xml_opts, soapaction);
             hash hdr = headers + msg.hdr;
 
             # we have to write the request key after the HTTPClient::post() call

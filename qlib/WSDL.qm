@@ -76,6 +76,7 @@ module WSDL {
     - supress emitting a SOAPAction header in requests if the binding gives an empty string (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
     - updated @ref WSDL::WSOperation::serializeRequest() to allow the SOAPAction header to be overridden in each request (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
     - respect XML generation flags in request generation
+    - fixed parsing empty base64Binary and hexBinary elements (<a href="https://github.com/qorelanguage/qore/issues/1227">issue 1227</a>)
 
     @subsection wsdl_0_3_5 WSDL v0.3.5
     - fixed many message serialization and deserialization issues
@@ -849,10 +850,10 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
                 return float(val);
 
             case "base64Binary":
-                return parse_base64_string(val);
+                return val.empty() ? binary() : parse_base64_string(val);
 
             case "hexBinary":
-                return parse_hex_string(val);
+                return val.empty() ? binary() : parse_hex_string(val);
 
             default: {
                 if (name == "anyType")  {
