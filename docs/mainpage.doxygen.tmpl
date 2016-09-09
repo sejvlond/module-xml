@@ -280,6 +280,7 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - fixed parsing empty base64Binary and hexBinary elements (<a href="https://github.com/qorelanguage/qore/issues/1227">issue 1227</a>)
     - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes and enhancements:
       - added the \c SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
+      - updated SOAP response processing to throw an exception when the server responds with an error code (<a href="https://github.com/qorelanguage/qore/issues/1228">issue 1228</a>)
 
     @subsection xml131 xml Module Version 1.3.1
     <b>Changes and Bug Fixes in This Release</b>

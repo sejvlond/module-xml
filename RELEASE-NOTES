@@ -31,6 +31,9 @@ version 1.3.2
   + added the SoapClient::callOperation() method to provide a more flexible
     API for SOAP request message generating including overriding the
     SOAPAction header on a per-request basis (issue 1226)
+  + updated SOAP response processing to throw an exception when the server
+    responds with an error code
+
 
 
 *************
