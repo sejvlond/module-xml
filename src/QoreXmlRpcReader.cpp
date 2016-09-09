@@ -23,7 +23,9 @@
 
 #include "QoreXmlRpcReader.h"
 
-static int xmlrpc_do_empty_value(XmlRpcValue *v, const char* name, int depth, ExceptionSink* xsink) {
+#include "ql_xml.h"
+
+static int xmlrpc_do_empty_value(Qore::Xml::intern::XmlRpcValue *v, const char* name, int depth, ExceptionSink* xsink) {
    if (!strcmp(name, "string"))
       v->set(null_string());
    else if (!strcmp(name, "i4") || !strcmp(name, "int") || !strcmp(name, "ex:i1") || !strcmp(name, "ex:i2") || !strcmp(name, "ex:i8"))
@@ -49,7 +51,7 @@ static int xmlrpc_do_empty_value(XmlRpcValue *v, const char* name, int depth, Ex
    return 0;
 }
 
-int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getStruct(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
    int nt;
 
    QoreHashNode* h = new QoreHashNode;
@@ -173,7 +175,7 @@ int QoreXmlRpcReader::getStruct(XmlRpcValue *v, const QoreEncoding* data_ccsid, 
    return 0;
 }
 
-int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getParams(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
    int nt;
    int index = 0;
 
@@ -268,7 +270,7 @@ int QoreXmlRpcReader::getParams(XmlRpcValue *v, const QoreEncoding* data_ccsid, 
    return 0;
 }
 
-int QoreXmlRpcReader::getString(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getString(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
@@ -308,7 +310,7 @@ int QoreXmlRpcReader::getString(XmlRpcValue *v, const QoreEncoding* data_ccsid, 
    return 0;
 }
 
-int QoreXmlRpcReader::getBoolean(XmlRpcValue *v, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getBoolean(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
@@ -337,7 +339,7 @@ int QoreXmlRpcReader::getBoolean(XmlRpcValue *v, ExceptionSink* xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getInt(XmlRpcValue *v, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getInt(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
@@ -367,7 +369,7 @@ int QoreXmlRpcReader::getInt(XmlRpcValue *v, ExceptionSink* xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getDouble(XmlRpcValue *v, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getDouble(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
@@ -397,7 +399,7 @@ int QoreXmlRpcReader::getDouble(XmlRpcValue *v, ExceptionSink* xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getDate(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
@@ -426,7 +428,7 @@ int QoreXmlRpcReader::getDate(XmlRpcValue *v, ExceptionSink* xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getBase64(XmlRpcValue *v, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getBase64(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink) {
    int nt;
 
    if ((nt = readXmlRpcNode(xsink)) == -1)
@@ -460,7 +462,7 @@ int QoreXmlRpcReader::getBase64(XmlRpcValue *v, ExceptionSink* xsink) {
    return 0;
 }
 
-int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getArray(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink) {
    int nt;
    int index = 0;
 
@@ -563,7 +565,7 @@ int QoreXmlRpcReader::getArray(XmlRpcValue *v, const QoreEncoding* data_ccsid, E
    return 0;
 }
 
-int QoreXmlRpcReader::getValueData(XmlRpcValue *v, const QoreEncoding* data_ccsid, bool read_next, ExceptionSink* xsink) {
+int QoreXmlRpcReader::getValueData(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, bool read_next, ExceptionSink* xsink) {
    int nt = nodeTypeSkipWhitespace();
    if (nt == -1) {
       xsink->raiseException("PARSE-XMLRPC-ERROR", "error parsing XML string");
