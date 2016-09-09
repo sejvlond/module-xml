@@ -94,6 +94,7 @@ any result = sc.call("SubmitDocument", msg);
 
     @subsection soapclient_0_2_4_1 SoapClient v0.2.4.1
     - added the @ref SoapClient::SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
+    - updated SOAP response processing to throw an exception when the server responds with an error code (<a href="https://github.com/qorelanguage/qore/issues/1228">issue 1228</a>)
 
     @subsection soapclient_0_2_4 SoapClient v0.2.4
     - handle SOAP fault messages returned with 500-series error codes as Fault messages
@@ -265,7 +266,7 @@ public namespace SoapClient {
             - \c hdr: a hash of message headers
             - \c body: the serialized message body
 
-            @throw SOAP-CLIENT-ERROR the operation is not defined in the WSDL
+            @throw WSDL-OPERATION-ERROR the operation is not defined in the WSDL
 
             @note content encoding is not applied here but rather internally by the call() methods
         */
@@ -292,6 +293,11 @@ public namespace SoapClient {
             - \c hdr: a hash of message headers
             - \c body: the serialized message body
 
+            @throw WSDL-OPERATION-ERROR the operation is not defined in the WSDL
+            @throw HTTP-CLIENT-RECEIVE-ERROR this exception is thrown when the SOAP server returns an HTTP error code; if a SOAP fault is returned, then it is deserialized and returned in the \a arg key of the exception hash
+
+            @note this method can throw any exception that @ref Qore::HTTPClient::send() "HTTPClient::send()" can throw as well as any XML parsing errors thrown by @ref Qore::XML::parse_xml() "parse_xml()"
+
             @since %SoapClient 0.2.4.1
          */
         any callOperation(string operation, any args, *hash opts, *reference info) {
@@ -306,6 +312,11 @@ public namespace SoapClient {
             @param xml_opts an integer XML generation option code; see @ref xml_generation_constants for possible values; combine multiple codes with binary or (\c |)
 
             @return the deserialized result of the SOAP call to the SOAP server
+
+            @throw WSDL-OPERATION-ERROR the operation is not defined in the WSDL
+            @throw HTTP-CLIENT-RECEIVE-ERROR this exception is thrown when the SOAP server returns an HTTP error code; if a SOAP fault is returned, then it is deserialized and returned in the \a arg key of the exception hash
+
+            @note this method can throw any exception that @ref Qore::HTTPClient::send() "HTTPClient::send()" can throw as well as any XML parsing errors thrown by @ref Qore::XML::parse_xml() "parse_xml()"
         */
         any call(string operation, any args, *hash header, *hash nsh) {
             hash info;
@@ -318,6 +329,11 @@ public namespace SoapClient {
             @param info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers)
 
             @return the deserialized result of the SOAP call to the SOAP server
+
+            @throw WSDL-OPERATION-ERROR the operation is not defined in the WSDL
+            @throw HTTP-CLIENT-RECEIVE-ERROR this exception is thrown when the SOAP server returns an HTTP error code; if a SOAP fault is returned, then it is deserialized and returned in the \a arg key of the exception hash
+
+            @note this method can throw any exception that @ref Qore::HTTPClient::send() "HTTPClient::send()" can throw as well as any XML parsing errors thrown by @ref Qore::XML::parse_xml() "parse_xml()"
         */
         any call(string operation, any args, *reference info) {
             return makeCallIntern(\info, operation, args);
@@ -331,6 +347,11 @@ public namespace SoapClient {
             @param nsh a hash giving HTTP header information to include in the message (does not override automatically-generated SOAP message headers)
 
             @return the deserialized result of the SOAP call to the SOAP server
+
+            @throw WSDL-OPERATION-ERROR the operation is not defined in the WSDL
+            @throw HTTP-CLIENT-RECEIVE-ERROR this exception is thrown when the SOAP server returns an HTTP error code; if a SOAP fault is returned, then it is deserialized and returned in the \a arg key of the exception hash
+
+            @note this method can throw any exception that @ref Qore::HTTPClient::send() "HTTPClient::send()" can throw as well as any XML parsing errors thrown by @ref Qore::XML::parse_xml() "parse_xml()"
         */
         any call(reference info, string operation, any args, *hash header, *hash nsh) {
             return makeCallIntern(\info, operation, args, header, nsh);
@@ -365,8 +386,7 @@ public namespace SoapClient {
                 # allow fault responses returned with a 500-series status code to be processed as a SOAP fault so that error information is returned in the exception
                 if (ex.err == "HTTP-CLIENT-RECEIVE-ERROR" && ex.arg.status_code >= 500 && ex.arg.status_code < 600 && ex.arg.body =~ /<\?xml.*Fault/)
                     info.response = ex.arg;
-                else
-                    rethrow;
+                rethrow;
             }
 
             hash xmldata = WSDLLib::parseSOAPMessage(info.response);
@@ -379,6 +399,11 @@ public namespace SoapClient {
             @param arg a list or arguments or a single argument (or NOTHING) for the operation
 
             @return the deserialized result of the SOAP call to the SOAP server
+
+            @throw WSDL-OPERATION-ERROR the operation is not defined in the WSDL
+            @throw HTTP-CLIENT-RECEIVE-ERROR this exception is thrown when the SOAP server returns an HTTP error code; if a SOAP fault is returned, then it is deserialized and returned in the \a arg key of the exception hash
+
+            @note this method can throw any exception that @ref Qore::HTTPClient::send() "HTTPClient::send()" can throw as well as any XML parsing errors thrown by @ref Qore::XML::parse_xml() "parse_xml()"
         */
         any methodGate(string op, any arg) {
             return call(op, arg);

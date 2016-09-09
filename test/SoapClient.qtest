@@ -36,7 +36,7 @@ class TestSoapServer inherits HttpServer {
         int verbose;
     }
 
-    constructor(WebService ws, int port, int verbose = 0) : HttpServer(\self.log(), \TestSoapServer::errlog(), verbose > 2) {
+    constructor(WebService ws, int port, int verbose = 0) : HttpServer(\self.log(), \self.errlog(), verbose > 2) {
         self.verbose = verbose;
 
         # setup SOAP handler
@@ -50,6 +50,8 @@ class TestSoapServer inherits HttpServer {
     }
 
     hash getInfo(hash cx, hash h) {
+        if (h.tickerSymbol == "ERR")
+            throw "ERR", "ERR";
         return (
             "body": ResponseBody,
             "docs": h.tickerSymbol,
@@ -57,8 +59,9 @@ class TestSoapServer inherits HttpServer {
             );
     }
 
-    static errlog(string fmt) {
-        vprintf(fmt + "\n", argv);
+    errlog(string fmt) {
+        if (verbose > 2)
+            vprintf(fmt + "\n", argv);
     }
 
     log(string fmt) {
@@ -109,5 +112,8 @@ class SoapClientTest inherits QUnit::Test {
         assertEq(99.9, h.body.result);
         assertEq("QOR", h.docs);
         assertEq(binary("TestAction"), h.logo);
+
+        assertThrows("HTTP-CLIENT-RECEIVE-ERROR", \sc.callOperation(), ("getInfo", ("GetInfo": ("tickerSymbol": "ERR"))));
+        assertThrows("WSDL-OPERATION-ERROR", \sc.callOperation(), "xxx");
     }
 }
