@@ -74,6 +74,7 @@ module SoapHandler {
     - added the err_func argument so SOAP response serialization errors can be logged at the source
     - added support for debugging (verbose exception info/logging)
     - fixes to service creation and GET WSDL handling
+    - Content-type in exceptional cases follows Soap version
 
     @subsection soaphandler_0_2_4 SoapHandler 0.2.4
     - updated to a user module
