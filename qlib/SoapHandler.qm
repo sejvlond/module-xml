@@ -74,6 +74,7 @@ module SoapHandler {
     - added the err_func argument so SOAP response serialization errors can be logged at the source
     - added support for debugging (verbose exception info/logging)
     - fixes to service creation and GET WSDL handling
+    - Content-type in exceptional cases follows Soap version
 
     @subsection soaphandler_0_2_4 SoapHandler 0.2.4
     - updated to a user module
@@ -596,7 +597,7 @@ public namespace SoapHandler {
                     ? get_exception_string(ex)
                     : sprintf("%s: %s: %s", get_ex_pos(ex), ex.err, ex.desc),
                     "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
-                    "hdr": ("Content-Type" : MimeTypeSoapXml),
+                    "hdr": ("Content-Type" : reqsoap12 ? MimeTypeSoapXml : MimeTypeXml),
                     );
             }
             try {
@@ -611,7 +612,7 @@ public namespace SoapHandler {
                     "code": 500,
                     "errlog": str,
                     "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
-                    "hdr": ("Content-Type" : MimeTypeSoapXml)
+                    "hdr": ("Content-Type" : reqsoap12 ? MimeTypeSoapXml : MimeTypeXml)
                     );
             }
         }
