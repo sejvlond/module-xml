@@ -65,6 +65,7 @@ module WSDL {
     - @ref WSDL::WebService "WebService": represents a WSDL file; an easy way to get an object of this type from a URL is by calling WSDL::WSDLLib::getWSDL()
     - @ref WSDL::WSDLLib "WSDLLib": a class of static functions providing helper functions for the module
     - @ref WSDL::WSOperation "WSOperation": a class representing a single operation from a web service
+    - @ref WSDL::WSMessageHelper "WSMessageHelper": a class to create sample message used by operation
 
     See the following for modules using the %WSDL module:
     - <a href="../../SoapClient/html/index.html">SoapClient user module</a>
@@ -77,6 +78,7 @@ module WSDL {
     - added @ref WSDL::WebService::getOperation()
     - allow for environment variable substitution in WSDLLib::getWSDL() when retrieving files
     - fixed charset=... header value
+    - added @ref WSDL::WSMessageHelper
 
     @subsection wsdl_0_3_4 WSDL v0.3.4
     - updated to a user module
@@ -602,7 +604,15 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
         else {
             type = name;
         }
-
+        *hash comments;
+        if (val.typeCode() == NT_HASH) {
+            foreach string k in (val.keyIterator()) {
+                if (k =~ /^\^comment/) {
+                    comments{k} = val{k};
+                }
+            }
+            val = val."^value^";
+        }
         switch (type) {
             case "byte": {
                 int v = int(val);
@@ -710,9 +720,15 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
 
         #printf("DEBUG: FORCE: type: %y, nstype: %y, val: %y\n", type, nstype, val);
         if (omit_type)
-            return val;
+            if (comments) {
+                return comments + (
+                    "^value^": val
+                );
+            } else
+                return val;
         else
             return (
+                comments +
                 "^attributes^": (
                     "xsi:type": sprintf("%s:%s", ons, type),
                 ),
@@ -1165,10 +1181,20 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
     }
 
     any serialize(any val, *softbool omit_type) {
+        *hash rh;
+        if (val.typeCode() == NT_HASH) {
+            foreach string k in (val.keyIterator()) {
+                if (k =~ /^\^comment/) {
+                    rh{k} = remove val{k};
+                }
+            }
+            if (val.size() == 1 && val.firstKey() == "^value^") 
+                val = val."^value^";
+        }
         if (enum && !enum{val})
             throw "SOAP-SERIALIZATION-ERROR", sprintf("value %y passed to simpleType %y is not in the enumeration list (%y)", val, name, enum.keys());
 
-        return type.serialize(val, omit_type);
+        return rh + type.serialize(val, omit_type);
     }
 
     any deserialize(string en, *TypeMap tmap, *hash mrh, any val) {
@@ -1479,6 +1505,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
         # process attributes first
         *hash ah;
+        hash rh;
         if (h.typeCode() == NT_HASH) {
             if (h."^attributes^") {
                 hash mah = remove h."^attributes^";
@@ -1495,9 +1522,13 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 if (attr.use == "required" && !exists ah.(attr.name))
                     throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), attr.name);
             }
+            foreach string k in (h.keyIterator()) {
+                if (k =~ /^\^comment/) {
+                    rh{k} = remove h{k};
+                }
+            }
         }
 
-        hash rh;
 
         if (cx_type == XET_SIMPLE) {
             if (exists h."^value^")
@@ -1515,18 +1546,32 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                     delete h{p};
                 }
 
+                # when generating example messages we need generate all choices, in this case extra ^choices^ tag is used
+                # choice name is unique in element so ne merge all choices together first
+                *hash hch;
+                foreach string k in (h.keyIterator()) {
+                    if (k =~ /^\^choices/) {
+                        hch += remove h{k};
+                    }
+                }
                 # also serialize each choice block, if any
                 foreach hash ch in (choices) {
                     *hash vh = h.(ch.elementmap.keys());
-                    if (!vh) {
+                    *hash vhch = hch.(ch.elementmap.keys());
+                    if (!vh && !vhch) {
                         if (ch.required)
                             throw SOAP_SERIALIZATION_ERROR, sprintf("expecting one of %y to serialize choice / union in complexType %y but no such keys were supplied", ch.elementmap.keys(), getName());
                     }
                     else {
-                        hash rch = serializeChoice(ch.elementmap, vh, omit_type);
-                        # remove the serialized key from the input hash for the check below
-                        remove h{vh.firstKey()};
-                        rh += rch;
+                        if (vh) {
+                            rh += serializeChoice(ch.elementmap, vh, omit_type, False);
+                            # remove the serialized key from the input hash for the check below
+                            map remove h{$1}, keys vh;
+                        }
+                        if (vhch) {
+                            rh += serializeChoice(ch.elementmap, vhch, omit_type, True);
+                            map remove hch{$1}, keys vhch;
+                        }
                     }
                 }
 
@@ -1534,9 +1579,12 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                     any kl = h.size() == 1 ? h.firstKey() : h.keys();
                     throw SOAP_SERIALIZATION_ERROR, sprintf("%y %s of type %y (valid elements: %y)", kl, kl.lsize() == 1 ? "is an invalid member" : "are invalid members", getName(), elementmap.keys());
                 }
+                if (hch) {
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("unknown choice members %y provided via ^choices^ in %y", keys hch, getName());
+                }
             }
             else { # "choice" - union
-                rh = serializeChoice(elementmap, h, omit_type);
+                rh = serializeChoice(elementmap, h, omit_type, False);
             }
         }
         else { # "none"
@@ -1552,15 +1600,20 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return rh;
     }
 
-    private hash serializeChoice(hash emap, hash h, *softbool omit_type) {
-        if (elements h > 1)
+    private hash serializeChoice(hash emap, hash h, *softbool omit_type, bool all_members) {
+        # normally there is only one choice but we also need output example message where all options are enumerated
+        if (!all_members && elements h > 1)
             throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize choice / union in complexType %y with more than 1 member (%y)", getName(), h.keys());
-        *string key = h.firstKey();
-        if (!emap{key})
-            throw SOAP_SERIALIZATION_ERROR, sprintf("%y is an invalid member of choice / union in complexType %y; expecting one of: %y", key, getName(), emap.keys());
+        *hash rh;
+        foreach string key in (keys h) {
+            if (!emap{key})
+                throw SOAP_SERIALIZATION_ERROR, sprintf("%y is an invalid member of choice / union in complexType %y; expecting one of: %y", key, getName(), emap.keys());
 
+            # add namespace if necessary
+            rh += serializeElement(key, emap{key}, h, omit_type);
+        }
         # add namespace if necessary
-        return serializeElement(key, emap{key}, h, omit_type);
+        return rh;
     }
 
     *hash deserialize(string en, *TypeMap tmap, *hash mrh, any oval) {
