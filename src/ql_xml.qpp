@@ -521,9 +521,9 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
       }
 
       // make sure it's a valid XML tag element name
-      if (!key || !isalpha(key[0])) {
-        xsink->raiseException("MAKE-XML-ERROR", "tag: \"%s\" is not a valid XML tag element name", key ? key : "");
-        return -1;
+      if (!key || (!isalpha(key[0]) && key[0] != '_')) {
+	 xsink->raiseException("MAKE-XML-ERROR", "tag: \"%s\" is not a valid XML tag element name", key ? key : "");
+	 return -1;
       }
 
       // process key name - remove ^# from end of key name if present
