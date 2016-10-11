@@ -1,21 +1,21 @@
 /* -*- mode: c++; indent-tabs-mode: nil -*- */
 /*
   QC_SaxIterator.h
- 
+
   Qore Programming Language
- 
-  Copyright (C) 2003 - 2014 David Nichols
- 
+
+  Copyright (C) 2003 - 2016 David Nichols
+
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
   version 2.1 of the License, or (at your option) any later version.
- 
+
   This library is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
- 
+
   You should have received a copy of the GNU Lesser General Public
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -35,12 +35,14 @@ DLLLOCAL QoreClass *initSaxIteratorClass(QoreNamespace& ns);
 DLLEXPORT extern qore_classid_t CID_FILESAXITERATOR;
 DLLLOCAL QoreClass *initFileSaxIteratorClass(QoreNamespace& ns);
 
+DLLLOCAL extern QoreClass* QC_SAXITERATOR;
+
 class QoreSaxIterator : public QoreXmlReaderData, public QoreAbstractIteratorBase {
 protected:
    std::string element_name;
    int element_depth;
    bool val;
-   
+
 public:
    DLLLOCAL QoreSaxIterator(QoreStringNode* xml, const char* ename, ExceptionSink* xsink) : QoreXmlReaderData(xml, xsink), element_name(ename), element_depth(-1), val(false) {
    }
@@ -55,22 +57,20 @@ public:
    }
 
    DLLLOCAL AbstractQoreNode* getReferencedValue(ExceptionSink* xsink) {
-      SimpleRefHolder<QoreStringNode> holder(getInnerXml());
+      SimpleRefHolder<QoreStringNode> holder(getOuterXml());
       if (!holder)
          return 0;
       TempEncodingHelper str(*holder, QCS_UTF8, xsink);
       if (*xsink)
          return 0;
       str.makeTemp();
-      ((QoreString*)(*str))->prepend("<a>");
-      ((QoreString*)(*str))->concat("</a>");
-      
+
       QoreXmlReader reader(*str, QORE_XML_PARSER_OPTIONS, xsink);
       if (!reader)
          return 0;
 
-      ReferenceHolder<QoreHashNode> h(reader.parseXMLData(QCS_UTF8, true, xsink), xsink);
-      AbstractQoreNode* n = h->getKeyValue("a");
+      ReferenceHolder<QoreHashNode> h(reader.parseXmlData(QCS_UTF8, XPF_NONE, xsink), xsink);
+      AbstractQoreNode* n = h->getKeyValue(element_name.c_str());
       return n ? n->refSelf() : 0;
    }
 

@@ -1,0 +1,119 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+# make sure we have the right version of qore
+%requires qore >= 0.8.12
+
+%new-style
+%require-types
+%strict-args
+%enable-all-warnings
+%no-child-restrictions
+%require-our
+
+# test deprecated functions as well
+%disable-warning deprecated
+
+%requires QUnit
+%requires HttpServer
+%requires ../qlib/WSDL.qm
+%requires ../qlib/SoapHandler.qm
+%requires ../qlib/SoapClient.qm
+
+%requires Util
+%requires xml
+
+const DefaultPort = 8088;
+
+%exec-class SoapClientTest
+
+const ResponseBody = ("result": 99.9);
+
+class TestSoapServer inherits HttpServer {
+    public {}
+
+    private {
+        int verbose;
+    }
+
+    constructor(WebService ws, int port, int verbose = 0) : HttpServer(\self.log(), \self.errlog(), verbose > 2) {
+        self.verbose = verbose;
+
+        # setup SOAP handler
+        SoapHandler soap(new PermissiveAuthenticator(), NOTHING, verbose > 2);
+        setDefaultHandler("soap", soap);
+
+        # setup operation handler
+        soap.addMethod(ws, ws.getOperation("getInfo"), \getInfo());
+
+        addListener(port);
+    }
+
+    hash getInfo(hash cx, hash h) {
+        if (h.tickerSymbol == "ERR")
+            throw "ERR", "ERR";
+        return (
+            "body": ResponseBody,
+            "docs": h.tickerSymbol,
+            "logo": binary(cx.http_header.soapaction),
+            );
+    }
+
+    errlog(string fmt) {
+        if (verbose > 2)
+            vprintf(fmt + "\n", argv);
+    }
+
+    log(string fmt) {
+        if (verbose > 2)
+            vprintf(fmt + "\n", argv);
+    }
+}
+
+class SoapClientTest inherits QUnit::Test {
+    public {
+    }
+
+    private {
+        const WsdlUrl = "file://" + get_script_dir() + "/test.wsdl";
+
+        #! command-line options
+        const MyOpts = Opts + (
+            "port": "p,port=i",
+            );
+
+        const OptionColumn = 25;
+    }
+
+    constructor() : QUnit::Test("SoapClientTest", "1.0", \ARGV, MyOpts) {
+        WebService ws(WSDLLib::getFileFromURL(WsdlUrl));
+
+        # start SOAP server server
+        TestSoapServer server(ws, m_options.port ?? DefaultPort, m_options.verbose);
+        on_exit server.stop();
+
+        # add test cases
+        addTestCase("SoapClientTest", \soapClientTest());
+        # execute tests
+        set_return_value(main());
+    }
+
+    soapClientTest() {
+        string url = sprintf("http://%s:%d", gethostname(), m_options.port ?? DefaultPort);
+        #printf("url: %y\n", url);
+        SoapClient sc(("wsdl": WsdlUrl, "url": url));
+
+        hash h = sc.callOperation("getInfo", ("GetInfo": ("tickerSymbol": "ABC")), ("soapaction": ""));
+        assertEq(99.9, h.body.result);
+        assertEq("ABC", h.docs);
+        assertEq(binary(), h.logo);
+
+        h = sc.callOperation("getInfo", ("GetInfo": ("tickerSymbol": "QOR")), ("soapaction": "TestAction"));
+        assertEq(99.9, h.body.result);
+        assertEq("QOR", h.docs);
+        assertEq(binary("TestAction"), h.logo);
+
+        assertThrows("HTTP-CLIENT-RECEIVE-ERROR", \sc.callOperation(), ("getInfo", ("GetInfo": ("tickerSymbol": "ERR"))));
+        assertThrows("WSDL-OPERATION-ERROR", \sc.callOperation(), "xxx");
+    }
+}

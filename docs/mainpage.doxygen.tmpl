@@ -31,13 +31,13 @@
     - <a href="../../XmlRpcHandler/html/index.html">XmlRpcHandler user module</a>
 
     @section optionconstants Module Option Constants
-    
+
     The following constants give information about the availability of XML functionality (dependent on libxml2 features at compile time):
 
     <b>XML Option Constants</b>
     |!Name|!Type|!Description
-    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHRELAXNG "HAVE_PARSEXMLWITHRELAXNG"|\c bool|Indicates if parseXMLWithRelaxNG() and Qore::Xml::XmlReader::relaxNGValidate() are available
-    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHSCHEMA "HAVE_PARSEXMLWITHSCHEMA"|\c bool|Indicates if parseXMLWithSchema() and Qore::Xml::XmlReader::schemaValidate() are available
+    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHRELAXNG "HAVE_PARSEXMLWITHRELAXNG"|\c bool|Indicates if parse_xml_with_relaxng() and Qore::Xml::XmlReader::relaxNGValidate() are available
+    |@ref Qore::Xml::Option::HAVE_PARSEXMLWITHSCHEMA "HAVE_PARSEXMLWITHSCHEMA"|\c bool|Indicates if parse_xml_with_schema() and Qore::Xml::XmlReader::schemaValidate() are available
 
     If either of the above constants are \c False, then calling any of the dependent functions or methods will result in a run-time exception.
 
@@ -51,7 +51,7 @@
 
     @code
 $h = ("record": ("name": ("first": "Fred", "last": "Smith")));
-printf("%s\n", makeFormattedXMLString($h));@endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     This produces the following result
 
@@ -69,9 +69,9 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     For example:
 
     @code
-$h = ("record": ("^attributes^": ("type": "customer") , 
+$h = ("record": ("^attributes^": ("type": "customer") ,
 	         "name": ("first": "Fred", "last": "Smith")));
-printf("%s\n", makeFormattedXMLString($h));@endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     This produces the following results:
 
@@ -87,9 +87,9 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     If instead we wanted to have text instead of child data under the "record" node, we must set the \c "^value^" key of the hash along with the \c "^attributes^" key as follows:
 
     @code
-$h = ("record": ("^attributes^": ("type": "customer"), 
+$h = ("record": ("^attributes^": ("type": "customer"),
 	         "^value^": "NO-RECORD"));
-printf("%s\n", makeFormattedXMLString($h)); @endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING)); @endcode
 
     Giving the following results:
 
@@ -100,7 +100,7 @@ printf("%s\n", makeFormattedXMLString($h)); @endcode
 
     @code
 $h = ("record": ("part": ("part-02-05", "part-99-23", "part-34-28")));
-printf("%s\n", makeFormattedXMLString($h));@endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     Producing the following results:
 
@@ -121,33 +121,40 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     It's not possible to use a list, because text is required in between. As described earlier, the \c "^value^" hash key can be used to serialize text in an XML string. In this case, we need to have several text nodes and several code nodes in a mixed-up order to give us the XML string we want. Because qore hases have unique keys (we can't use the same key twice in the same hash), we resort to a key naming trick that allows us to virtually duplicate our key names and therefore arrive at the XML string we want. We do this by appending a \c '^' character to the end of the key name and then some unique text. When serializing hash keys, any text after (and including) the \c '^' character is ignored. For the special key name \c "^value^", we do not need to duplicate the final \c '^' character. Instead we just add unique text to ensure that our hash can contain all the data we want and that it will be serialized in the right order to the XML string as follows:
 
     @code
-$h = ("para": ("^value^": "Keywords: ", 
-               "code" : "this", 
-               "^value^1" : ", ", 
-               "code^1" : "that", 
-               "^value^2" : ", and ", 
-               "code^2" : "the_other", 
+$h = ("para": ("^value^": "Keywords: ",
+               "code" : "this",
+               "^value^1" : ", ",
+               "code^1" : "that",
+               "^value^2" : ", and ",
+               "code^2" : "the_other",
                "^value^3" : "."));
-printf("%s\n", makeFormattedXMLString($h));@endcode
+printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     By ignoring the text after the \c '^' character, the above code will serialize to the XML string we want. In general, by using this convention, we can properly serialize multiple out-of-order keys without losing data and still have unique names for our hash keys.
 
-    Note than when deserializing XML strings to %Qore data structures, the above rules are applied in reverse. If any out-of-order duplicate keys are detected, %Qore will automatically generate unique hash key names based on the above rules.
+    Note than when deserializing XML strings to %Qore data structures, the above rules are applied in reverse. If any out-of-order duplicate keys are detected, %Qore will automatically generate unique hash key names based on the above rules only if the @ref Qore::Xml::XPF_PRESERVE_ORDER "XPF_PRESERVE_ORDER" flag is given with the parse_xml(), parse_xml_with_relaxng() or parse_xml_with_schema() function calls.
 
     Also note that \c CDATA text will be generated if a hash key starts with \c '^cdata'; such text will not be processed for escape code substitution. When deserializing XML strings to qore data structures, CDATA text will be placed unmodified under such a hash key as well.
 
     <b>Functions For XML Serialization and Deserialization</b>
     |!Function Name|!Description
-    |makeFormattedXMLFragment()|Serializes a hash into an XML string with formatting without an XML header.
-    |makeFormattedXMLString()|Serializes a hash into an XML string with formatting and an XML header.
-    |makeXMLFragment()|Serializes a hash into an XML string without an XML header or formatting.
-    |makeXMLString()|Serializes a hash into a complete XML string with an XML header and without formatting.
-    |parseXMLAsData()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and returns a %Qore hash structure.
-    |parseXMLAsDataWithRelaxNG()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against a RelaxNG schema string and returns a %Qore hash structure.
-    |parseXMLAsDataWithSchema()|parses an XML string as data (duplicate, out-of-order XML elements are collapsed into lists) and validates against an XSD schema string and returns a %Qore hash structure.
-    |parseXML()|parses an XML string (XML element order is preserved by appending numeric suffixes to %Qore hash key names when necessary) and returns a %Qore hash structure.
-    |parseXMLWithRelaxNG()|parses an XML string (XML element order is preserved by appending numeric suffixes to %Qore hash key names when necessary) and validates against a RelaxNG schema string and returns a %Qore hash structure.
-    |parseXMLWithSchema()|parses an XML string (XML element order is preserved by appending numeric suffixes to %Qore hash key names when necessary) and validates against an XSD schema string and returns a %Qore hash structure.
+    |make_xml_fragment()|Serializes a hash into an XML string without an XML header or formatting.
+    |make_xml()|Serializes a hash into a complete XML string with an XML header
+    |parse_xml()|parses an XML string and returns a %Qore hash structure.
+    |parse_xml_with_relaxng()|parses an XML string and validates against a RelaxNG schema string and returns a %Qore hash structure.
+    |parse_xml_with_schema()|parses an XML string and validates against an XSD schema string and returns a %Qore hash structure.
+
+    <b>Deprecated Functions For XML Serialization and Deserialization</b>
+    - @ref makeFormattedXMLFragment(): deprecated by make_xml_fragment()
+    - @ref makeFormattedXMLString(): deprecated by make_xml()
+    - @ref makeXMLFragment(): deprecated by make_xml_fragment()
+    - @ref makeXMLString(): deprecated by make_xml()
+    - @ref parseXML(): deprecated by parse_xml()
+    - @ref parseXMLAsData(): deprecated by parse_xml()
+    - @ref parseXMLAsDataWithRelaxNG(): deprecated by parse_xml_with_relaxng()
+    - @ref parseXMLAsDataWithSchema(): deprecated by parse_xml_with_schema()
+    - @ref parseXMLWithRelaxNG(): deprecated by parse_xml_with_relaxng()
+    - @ref parseXMLWithSchema(): deprecated by parse_xml_with_schema()
 
     @anchor xmlclasses
     <b>Classes Providing XML Functionality</b>
@@ -176,34 +183,43 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     |\c list|\c array|direct conversion
     |\c hash|\c struct|direct conversion
     |all others|n/a|All other types will cause an \c XML-RPC-SERIALIZATION-ERROR to be raised.
-	 
+
     <b>Classes Providing XML-RPC Functionality</b>
     |!Class|!Description
     |Qore::Xml::XmlRpcClient|For communicating with XML-RPC servers
 
     <b>Functions Providing XML-RPC Functionality</b>
     |!Function Name|!Description
-    |makeFormattedXMLRPCCallString()|Serializes a hash into an XML string formatted for an XML-RPC call with formatting.
-    |makeFormattedXMLRPCCallStringArgs()|Serializes a hash into an XML string formatted for an XML-RPC call with formatting, taking a single list argument for the argument list.
-    |makeFormattedXMLRPCCallStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC call with formatting and an explicit output encoding
-    |makeFormattedXMLRPCCallStringArgsWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC call with formatting, taking a single list argument for the argument list and an explicit output encoding
-    |makeFormattedXMLRPCFaultResponseString()|Serializes a hash into an XML string formatted for an XML-RPC fault response with formatting.
-    |makeFormattedXMLRPCFaultResponseStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC fault response with formatting and an explicit output encoding.
-    |makeFormattedXMLRPCResponseString()|Serializes a hash into an XML string formatted for an XML-RPC response with formatting.
-    |makeFormattedXMLRPCResponseStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC response with formatting and an explicit output encoding.
-    |makeFormattedXMLRPCValueString()|Serializes a hash into an XML string in XML-RPC value format with formatting.
-    |makeXMLRPCCallString()|Serializes a hash into an XML string formatted for an XML-RPC call without formatting.
-    |makeXMLRPCCallStringArgs()|Serializes a hash into an XML string formatted for an XML-RPC call without formatting, taking a single list argument for the argument list.
-    |makeXMLRPCCallStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC call without formatting and an explicit output encoding.
-    |makeXMLRPCCallStringArgsWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC call without formatting, taking a single list argument for the argument list and an explicit output encoding.
-    |makeXMLRPCFaultResponseString()|Serializes a hash into an XML string formatted for an XML-RPC fault response without formatting.
-    |makeXMLRPCFaultResponseStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC fault response without formatting and an explicit output encoding.
-    |makeXMLRPCResponseString()|Serializes a hash into an XML string formatted for an XML-RPC response without formatting.
-    |makeXMLRPCResponseStringWithEncoding()|Serializes a hash into an XML string formatted for an XML-RPC response without formatting and an explicit output encoding.
-    |makeXMLRPCValueString()|Serializes a hash into an XML string in XML-RPC value format without formatting.
-    |parseXMLRPCCall()|deserializies an XML-RPC call string, returning a %Qore hash respresenting the call information.
-    |parseXMLRPCResponse()|deserializies an XML-RPC response string, returning a %Qore hash respresenting the response information.
-    |parseXMLRPCValue()|deserializies an XML-RPC value tree, returning a %Qore hash respresenting the information.
+    |make_xmlrpc_call()|Serializes a hash into an XML string formatted for an XML-RPC call
+    |make_xmlrpc_fault()|Serializes a hash into an XML string formatted for an XML-RPC fault response
+    |make_xmlrpc_value()|Serializes a hash into an XML string in XML-RPC value format
+    |make_xmlrpc_response()|Serializes a hash into an XML string formatted for an XML-RPC response
+    |parse_xmlrpc_call()|deserializies an XML-RPC call string, returning a %Qore hash respresenting the call information.
+    |parse_xmlrpc_response()|deserializies an XML-RPC response string, returning a %Qore hash respresenting the response information.
+    |parse_xmlrpc_value()|deserializies an XML-RPC value tree, returning a %Qore hash respresenting the information.
+
+    <b>Deprecated Functions For XML-RPC Serialization and Deserialization</b>
+    - @ref makeFormattedXMLRPCCallString(): deprecated by make_xmlrpc_call()
+    - @ref makeFormattedXMLRPCCallStringArgs(): deprecated by make_xmlrpc_call()
+    - @ref makeFormattedXMLRPCCallStringArgsWithEncoding(): deprecated by make_xmlrpc_call()
+    - @ref makeFormattedXMLRPCCallStringWithEncoding(): deprecated by make_xmlrpc_call()
+    - @ref makeFormattedXMLRPCFaultResponseString(): deprecated by make_xmlrpc_fault()
+    - @ref makeFormattedXMLRPCFaultResponseStringWithEncoding(): deprecated by make_xmlrpc_fault()
+    - @ref makeFormattedXMLRPCResponseString(): deprecated by make_xmlrpc_response()
+    - @ref makeFormattedXMLRPCResponseStringWithEncoding(): deprecated by make_xmlrpc_response()
+    - @ref makeFormattedXMLRPCValueString(): deprecated by make_xmlrpc_value()
+    - @ref makeXMLRPCCallString(): deprecated by make_xmlrpc_call()
+    - @ref makeXMLRPCCallStringArgs(): deprecated by make_xmlrpc_call()
+    - @ref makeXMLRPCCallStringArgsWithEncoding(): deprecated by make_xmlrpc_call()
+    - @ref makeXMLRPCCallStringWithEncoding(): deprecated by make_xmlrpc_call()
+    - @ref makeXMLRPCFaultResponseString(): deprecated by make_xmlrpc_fault()
+    - @ref makeXMLRPCFaultResponseStringWithEncoding(): deprecated by make_xmlrpc_fault()
+    - @ref makeXMLRPCResponseString(): deprecated by make_xmlrpc_response()
+    - @ref makeXMLRPCResponseStringWithEncoding(): deprecated by make_xmlrpc_response()
+    - @ref makeXMLRPCValueString(): deprecated by make_xmlrpc_value()
+    - @ref parseXMLRPCCall(): deprecated by parse_xmlrpc_call()
+    - @ref parseXMLRPCResponse(): deprecated by parse_xmlrpc_response()
+    - @ref parseXMLRPCValue(): deprecated by parse_xmlrpc_value()
 
     @section constants XML Constants
 
@@ -228,33 +244,128 @@ printf("%s\n", makeFormattedXMLString($h));@endcode
     This tag is equal to @ref NOOP, except that \c RUNTIME_NOOP is also enforced at runtime.
 
     @subsection RET_VALUE_ONLY RET_VALUE_ONLY
-	
+
     This flag indicates that the function or method has no side effects; it only returns a value, for example.
 
     This tag is identical to @ref CONSTANT except that functions or methods tagged with \c RET_VALUE_ONLY could throw exceptions.
 
     @subsection CONSTANT CONSTANT
-	
+
     This flag indicates that the function or method has no side effects and does not throw any exceptions.
 
     This tag is identical to @ref RET_VALUE_ONLY except that functions or methods tagged with \c CONSTANT do not throw exceptions.
 
     @subsection DEPRECATED DEPRECATED
-	
+
     Code with this flag is deprecated and may be removed in a future version of this module; if a variant with this flag is resolved at parse time, a \c "deprecated" warning is raised (assuming this warning is enabled).
 
     @section xmlreleasenotes Release Notes
 
+    @subsection xml132 xml Module Version 1.3.2
+    <b>Changes and Bug Fixes in This Release</b>
+    - <a href="../../WSDL/html/index.html">WSDL</a> fixes and enhancements:
+      - supress emitting a SOAPAction header in requests if the binding gives an empty string (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
+      - updated \c WSOperation::serializeRequest() to allow the SOAPAction header to be overridden in each request (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
+      - respect XML generation flags in request generation
+      - fixed parsing empty base64Binary and hexBinary elements (<a href="https://github.com/qorelanguage/qore/issues/1227">issue 1227</a>)
+    - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes and enhancements:
+      - added the \c SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
+      - updated SOAP response processing to throw an exception when the server responds with an error code (<a href="https://github.com/qorelanguage/qore/issues/1228">issue 1228</a>)
+      - Content-type in exceptional cases follows Soap version (<a href="https://github.com/qorelanguage/qore/issues/1244">issue 1244</a>)
+
+    @subsection xml131 xml Module Version 1.3.1
+    <b>Changes and Bug Fixes in This Release</b>
+    - fixed a memory leak in XML-RPC parsing (<a href="https://github.com/qorelanguage/qore/issues/1214">issue 1214</a>)
+
     @subsection xml13 xml Module Version 1.3
     <b>Changes and Bug Fixes in This Release</b>
     - added the @ref Qore::Xml::SaxIterator "SaxIterator" and @ref Qore::Xml::FileSaxIterator "FileSaxIterator" classes
-    - many SOAP messaging and WSDL handling fixes
-    - allow for XSD imports without a URI scheme to be imported with custom logic
-    - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes: fixed URI request path, fixed agent string, added optional logging closures, added SOAP headers to info hash when available
-    - <a href="../../SoapHandler/html/index.html">SoapHandler</a> changes:  
+    - <a href="../../WSDL/html/index.html">WSDL</a> fixes and enhancements:
+      - many major SOAP messaging and WSDL handling fixes including major namespace handling and serialization/deserialization fixes
+      - complexType attributes are now serialized and deserialized correctly
+      - elements with the same names in different namespaces are now handled correctly
+      - complexTypes wtih a sequence of choice and element elements are now handled correctly
+      - allow for XSD imports without a URI scheme to be imported with custom logic
+      - perform environment-variable substitution on the file path in WSDLLib::getWSDL()
+      - better support for empty elements; correct de/serialization depending on element and type properties
+      - allow for schema definitions to temporarily override namespace prefixes within that schema
+      - implemented support for default namespace handling for base types
+      - implemented support for operations with either a missing input or output message
+      - XSD \c "integer" types are returned as integers when possible
+      - fixed a bug in XSD namespace handling
+      - fixed bugs deserializing xml nil elements (<a href="https://github.com/qorelanguage/qore/issues/468">issue 468</a>)
+      - fixed a bug handling types with more than two levels of nested references (<a href="https://github.com/qorelanguage/qore/issues/560">issue 560</a>)
+      - fixed namespace prefix generation with elements in different schemas and for elements based on references (<a href="https://github.com/qorelanguage/qore/issues/561">issue 561</a>)
+      - new APIs for WebService introspection and WSDL retrieving (<a href="https://github.com/qorelanguage/qore/issues/571">issue 571</a>)
+      - fixed a bug handling empty lists for optional elements (<a href="https://github.com/qorelanguage/qore/issues/663">issue 663</a>)
+      - fixed a bug setting the \c "charset=..." value in HTTP headers (<a href="https://github.com/qorelanguage/qore/issues/906">issue 906</a>)
+    - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes:
+      - fixed URI request path
+      - fixed agent string
+      - added optional logging closures
+      - added SOAP headers to info hash when available
+      - fixed parsing messages with multiple input parts
+      - required modules are now reexported
+      - added the following methods:
+        - SoapClient::addDefaultHeaders()
+        - SoapClient::getDefaultHeaders()
+        - SoapClient::getSendEncoding()
+        - SoapClient::getWebService()
+        - SoapClient::setContentEncoding()
+        - SoapClient::setSendEncoding()
+      - updated for new WebService APIs
+    - <a href="../../SoapHandler/html/index.html">SoapHandler</a> changes:
       - allow SOAP serialization errors to be logged at the source
       - added support for matching requests by soap action values
+      - allow \c "^header^" key in top-level hash response to specify SOAP headers in the response message
+      - 500 HTTP response code returned with SOAP faults
+      - added support for debugging (verbose exception info/logging)
+      - updated for new WebService APIs; improved URL matching
+      - improved service URL generation
+      - WSDLs are now returned with the correct service URLs (<a href="https://github.com/qorelanguage/qore/issues/568">issue 568</a>, <a href="https://github.com/qorelanguage/qore/issues/571">issue 571</a>)
     - user modules moved to top-level qore module directory from version-specific module directory since they are valid for multiple versions of qore
+    - implemented the following non-camel-case functions as replacements for old camel-case functions (the following camel-case function names are now deprecated):
+      - make_xml(): replaced:
+      	 - makeXMLString()
+	 - makeFormattedXMLString()
+      - make_xml_fragment(): replaced:
+        - makeXMLFragment()
+	- makeFormattedXMLFragment()
+      - make_xmlrpc_call(): replaced:
+        - makeFormattedXMLRPCCallString()
+	- makeFormattedXMLRPCCallStringArgs()
+	- makeFormattedXMLRPCCallStringArgsWithEncoding()
+	- makeFormattedXMLRPCCallStringWithEncoding()
+	- makeXMLRPCCallString()
+	- makeXMLRPCCallStringArgs()
+	- makeXMLRPCCallStringArgsWithEncoding()
+	- makeXMLRPCCallStringWithEncoding()
+      - make_xmlrpc_fault(): replaced:
+        - makeFormattedXMLRPCFaultResponseString()
+	- makeFormattedXMLRPCFaultResponseStringWithEncoding()
+	- makeXMLRPCFaultResponseString()
+	- makeXMLRPCFaultResponseStringWithEncoding()
+      - make_xmlrpc_response(): replaced:
+        - makeFormattedXMLRPCResponseString()
+	- makeFormattedXMLRPCResponseStringWithEncoding()
+	- makeXMLRPCResponseString()
+	- makeXMLRPCResponseStringWithEncoding()
+      - make_xmlrpc_value(): replaced:
+        - makeFormattedXMLRPCValueString()
+	- makeXMLRPCValueString()
+      - parse_xml(): replaced:
+        - parseXML()
+	- parseXMLAsData()
+      - parse_xml_with_relaxng(): replaced:
+        - parseXMLWithRelaxNG()
+	- parseXMLAsDataWithRelaxNG()
+      - parse_xml_with_schema(): replaced:
+        - parseXMLWithSchema()
+	- parseXMLAsDataWithSchema()
+      - parse_xmlrpc_call(): replaced parseXMLRPCCall()
+      - parse_xmlrpc_response(): replaced parseXMLRPCResponse()
+      - parse_xmlrpc_value(): replaced: parseXMLRPCValue()
+    - SOAP and WSDL test infrastructure
 
     @subsection xml12 xml Module Version 1.2
     <b>Changes and Bug Fixes in This Release</b>
