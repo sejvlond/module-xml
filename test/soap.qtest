@@ -301,11 +301,13 @@ class SoapTest inherits QUnit::Test {
             "code": 1,
             );
 
-        hash h = op.serializeRequest(req, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
+        hash h = op.serializeRequest(req, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING, "TEST");
+        assertEq("TEST", h.hdr.SOAPAction);
         hash xh = parse_xml(h.body);
         compareSoapMsgs("attr-ser", Req_1, xh);
 
         h = op.deserializeRequest(xh);
+        assertEq(NOTHING, h.hdr.SOAPAction);
 
         hash req_r = req + (
             "issue985": (

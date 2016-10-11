@@ -131,6 +131,11 @@ class XmlTest inherits QUnit::Test {
         xr.read();
         assertEq(Xml::XML_NODE_TYPE_ELEMENT, xr.nodeType(), "XmlReader::read(), XmlReader::Type()");
         assertEq(True, xr.toQore() == mo.o, "XmlReader::toQoreData()");
+
+        # #1326: module-xml: make_xml() is too strict for tag names, resulting in MAKE-XML-ERROR: tag: "_some_tag" is not a valid XML tag element name if tag starts with underscore
+        hash underscore = ( "foo" : ("_underscore_test" : 1, ) );
+        string underscoreResult = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><foo><_underscore_test>1</_underscore_test></foo>";
+        assertEq(underscoreResult, make_xml(underscore), "_underscore_test");
     }
 
     deprecatedXmlTestCase() {
