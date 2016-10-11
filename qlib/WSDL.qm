@@ -65,6 +65,7 @@ module WSDL {
     - @ref WSDL::WebService "WebService": represents a WSDL file; an easy way to get an object of this type from a URL is by calling WSDL::WSDLLib::getWSDL()
     - @ref WSDL::WSDLLib "WSDLLib": a class of static functions providing helper functions for the module
     - @ref WSDL::WSOperation "WSOperation": a class representing a single operation from a web service
+    - @ref WSDL::WSMessageHelper "WSMessageHelper": a class to create sample message used by operation
 
     See the following for modules using the %WSDL module:
     - <a href="../../SoapClient/html/index.html">SoapClient user module</a>
@@ -83,6 +84,8 @@ module WSDL {
     - added @ref WSDL::WebService::getOperation()
     - allow for environment variable substitution in WSDLLib::getWSDL() when retrieving files
     - fixed charset=... header value
+    - added @ref WSDL::WSMessageHelper
+    - added @ref WSDL::WebService::getReport()
 
     @subsection wsdl_0_3_4 WSDL v0.3.4
     - updated to a user module
@@ -608,7 +611,15 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
         else {
             type = name;
         }
-
+        *hash comments;
+        if (val.typeCode() == NT_HASH) {
+            foreach string k in (val.keyIterator()) {
+                if (k =~ /^\^comment/) {
+                    comments{k} = val{k};
+                }
+            }
+            val = val."^value^";
+        }
         switch (type) {
             case "byte": {
                 int v = int(val);
@@ -716,9 +727,15 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
 
         #printf("DEBUG: FORCE: type: %y, nstype: %y, val: %y\n", type, nstype, val);
         if (omit_type)
-            return val;
+            if (comments) {
+                return comments + (
+                    "^value^": val
+                );
+            } else
+                return val;
         else
             return (
+                comments +
                 "^attributes^": (
                     "xsi:type": sprintf("%s:%s", ons, type),
                 ),
@@ -1171,10 +1188,20 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
     }
 
     any serialize(any val, *softbool omit_type) {
+        *hash rh;
+        if (val.typeCode() == NT_HASH) {
+            foreach string k in (val.keyIterator()) {
+                if (k =~ /^\^comment/) {
+                    rh{k} = remove val{k};
+                }
+            }
+            if (val.size() == 1 && val.firstKey() == "^value^")
+                val = val."^value^";
+        }
         if (enum && !enum{val})
             throw "SOAP-SERIALIZATION-ERROR", sprintf("value %y passed to simpleType %y is not in the enumeration list (%y)", val, name, enum.keys());
 
-        return type.serialize(val, omit_type);
+        return rh + type.serialize(val, omit_type);
     }
 
     any deserialize(string en, *TypeMap tmap, *hash mrh, any val) {
@@ -1485,6 +1512,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
         # process attributes first
         *hash ah;
+        hash rh;
         if (h.typeCode() == NT_HASH) {
             if (h."^attributes^") {
                 hash mah = remove h."^attributes^";
@@ -1501,9 +1529,13 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 if (attr.use == "required" && !exists ah.(attr.name))
                     throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), attr.name);
             }
+            foreach string k in (h.keyIterator()) {
+                if (k =~ /^\^comment/) {
+                    rh{k} = remove h{k};
+                }
+            }
         }
 
-        hash rh;
 
         if (cx_type == XET_SIMPLE) {
             if (exists h."^value^")
@@ -1521,18 +1553,32 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                     delete h{p};
                 }
 
+                # when generating example messages we need generate all choices, in this case extra ^choices^ tag is used
+                # choice name is unique in element so ne merge all choices together first
+                *hash hch;
+                foreach string k in (h.keyIterator()) {
+                    if (k =~ /^\^choices/) {
+                        hch += remove h{k};
+                    }
+                }
                 # also serialize each choice block, if any
                 foreach hash ch in (choices) {
                     *hash vh = h.(ch.elementmap.keys());
-                    if (!vh) {
+                    *hash vhch = hch.(ch.elementmap.keys());
+                    if (!vh && !vhch) {
                         if (ch.required)
                             throw SOAP_SERIALIZATION_ERROR, sprintf("expecting one of %y to serialize choice / union in complexType %y but no such keys were supplied", ch.elementmap.keys(), getName());
                     }
                     else {
-                        hash rch = serializeChoice(ch.elementmap, vh, omit_type);
-                        # remove the serialized key from the input hash for the check below
-                        remove h{vh.firstKey()};
-                        rh += rch;
+                        if (vh) {
+                            rh += serializeChoice(ch.elementmap, vh, omit_type, False);
+                            # remove the serialized key from the input hash for the check below
+                            map remove h{$1}, keys vh;
+                        }
+                        if (vhch) {
+                            rh += serializeChoice(ch.elementmap, vhch, omit_type, True);
+                            map remove hch{$1}, keys vhch;
+                        }
                     }
                 }
 
@@ -1540,9 +1586,12 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                     any kl = h.size() == 1 ? h.firstKey() : h.keys();
                     throw SOAP_SERIALIZATION_ERROR, sprintf("%y %s of type %y (valid elements: %y)", kl, kl.lsize() == 1 ? "is an invalid member" : "are invalid members", getName(), elementmap.keys());
                 }
+                if (hch) {
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("unknown choice members %y provided via ^choices^ in %y", keys hch, getName());
+                }
             }
             else { # "choice" - union
-                rh = serializeChoice(elementmap, h, omit_type);
+                rh = serializeChoice(elementmap, h, omit_type, False);
             }
         }
         else { # "none"
@@ -1558,15 +1607,20 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return rh;
     }
 
-    private hash serializeChoice(hash emap, hash h, *softbool omit_type) {
-        if (elements h > 1)
+    private hash serializeChoice(hash emap, hash h, *softbool omit_type, bool all_members) {
+        # normally there is only one choice but we also need output example message where all options are enumerated
+        if (!all_members && elements h > 1)
             throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize choice / union in complexType %y with more than 1 member (%y)", getName(), h.keys());
-        *string key = h.firstKey();
-        if (!emap{key})
-            throw SOAP_SERIALIZATION_ERROR, sprintf("%y is an invalid member of choice / union in complexType %y; expecting one of: %y", key, getName(), emap.keys());
+        *hash rh;
+        foreach string key in (keys h) {
+            if (!emap{key})
+                throw SOAP_SERIALIZATION_ERROR, sprintf("%y is an invalid member of choice / union in complexType %y; expecting one of: %y", key, getName(), emap.keys());
 
+            # add namespace if necessary
+            rh += serializeElement(key, emap{key}, h, omit_type);
+        }
         # add namespace if necessary
-        return serializeElement(key, emap{key}, h, omit_type);
+        return rh;
     }
 
     *hash deserialize(string en, *TypeMap tmap, *hash mrh, any oval) {
@@ -3381,5 +3435,291 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         }
 
         return wstr;
+    }
+
+    private string getOperationParams(WSMessage msg) {
+        return sprintf("%s(%s)", msg.name, (foldl $1 + "," + $2, (keys msg.args)));
+    }
+
+    #! prepare a WebService report enumerating the services and operations of the WSDL, outputs to the output stream given as the first argument
+    /** @param stream the output stream for the report data
+        @param wsdl_name name of the WSDL, typically a file name
+
+        @return human readable text report
+    */
+    getReport(StringOutputStream stream, *string wsdl_name) {
+        stream.write(sprintf("wsdl: %s\n", wsdl_name));
+        foreach hash svc in (listServices()) {
+            stream.printf("  service: %s\n", svc.name);
+            #hash svc = getService(svc_name);
+            foreach string port in (keys svc.port) {
+                stream.printf("    port: %s\n", port);
+                stream.printf("      binding: %s\n", svc.port{port}.binding.name);
+                stream.printf("      address: %s\n", svc.port{port}.address);
+                hash pt = portType{svc.port{port}.binding.getPort()};
+                stream.printf("      operations:\n");
+                foreach string name in (keys pt.operations) {
+                    WSOperation op = pt.operations{name};
+                    stream.printf("        %s\n", name);
+                    if (op.input) {
+                        stream.printf("          input: %s\n", getOperationParams(op.input));
+                    }
+                    if (op.output) {
+                        stream.printf("          output: %s\n", getOperationParams(op.output));
+                    }
+                }
+            }
+        }
+    }
+
+    #! prepare a WebService report enumerating the services and operations of the WSDL
+    /** @param wsdl_name name of the WSDL, typically a file name
+
+        @return human readable text report
+    */
+    string getReport(*string wsdl_name) {
+        StringOutputStream stream();
+        getReport(stream, wsdl_name);
+        return stream.getData();
+    }
+}
+
+#! helper class implementing sample message generation
+/** This is the class for generating sample SOAP messages based on a WSDL file
+*/
+public class WSDL::WSMessageHelper {
+
+    private {
+        WebService ws;
+        hash opts;
+    }
+
+    #! creates the WebService object
+    /** @param _ws the object representing the WSDL
+        @param _opts an optional hash of options with the following possible keys:
+        - \c "comments": (bool) generate comments as values with ^comment^ key, default: False
+        - \c "choices": (bool) generate choices as sub hashes ^choices^ key, default: False
+        - \c "max_items" (int): max.number of array elements to output, default: 3
+    **/
+    const DefaultOpts = (
+        "comments": False,
+        "choices": False,
+        "max_items": 3,
+    );
+    constructor(WebService _ws, *hash _opts) {
+        ws = _ws;
+        *hash h = _opts;
+        map remove h{$1}, keys DefaultOpts;
+        if (h) {
+           throw "WSDL-HELPER-ERROR", sprintf("unknown options %y (known values: %y)", keys h, keys DefaultOpts);
+        }
+        opts = DefaultOpts + _opts;
+        if (opts.max_items < 1) {
+           throw "WSDL-HELPER-ERROR", sprintf("wrong 'max_items' value %y (condition: >=1)", opts.max_items);
+        }
+    }
+
+    private hash getTypeInfo(XsdBaseType t) {
+        hash res = (
+            'xtype': t.name,
+        );
+        switch (t.name) {
+            case "string":
+            case "normalizedString":
+            case "token":
+                res.type = "string";
+                res.value = "abc";
+                break;
+            case "anyUri":
+                res.type = "string";
+                res.value = "http://www.qore.com";
+                break;
+            case "byte":
+            case "int":
+            case "integer":
+            case "long":
+            case "negativeInteger":
+            case "nonNegativeInteger":
+            case "positiveInteger":
+            case "nonPositiveInteger":
+            case "short":
+            case "unsignedLong":
+            case "unsignedInt":
+            case "unsignedShort":
+            case "unsignedByte":
+                res.type = "int";
+                res.value = 123;
+                break;
+            case "boolean":
+                res.type = "bool";
+                res.value = True;
+                break;
+            case "base64Binary":
+            case "hexBinary":
+                res.type = "binary";
+                res.value = "<0feba023ffdca6291>";   # TODO: how assign binary const ?
+                break;
+            case "decimal":
+                res.type = "number";
+                res.value = 123.456;
+                break;
+            case "date":
+                res.type = "date";
+                res.value = 2015-01-31;
+                break;
+            case "dateTime":
+                res.type = "date";
+                res.value = 2015-01-31T10:20:30+01:00;
+                break;
+            case "time":
+                res.type = "date";
+                res.value = 10:20:30Z;
+                break;
+            case "duration":
+                res.type = "date";
+                res.value = P5Y2M10DT15H;   # TODO
+                break;
+        }
+        return res;
+    }
+
+    private hash getTypeInfo(XsdSimpleType t) {
+        hash res;
+        if (t.type) {
+            res = getTypeInfo(t.type);
+            res.xtype = t.name;
+            if (t.enum) {
+                switch (res.type) {
+                case "string":
+                    res.value = (keys t.enum)[0];
+                    break;
+                case "int":
+                    res.value = sprintf("%s", (keys t.enum)[0]);
+                    break;
+                default:
+                    res.value = sprintf("%s", (keys t.enum)[0]);
+                }
+                res.comment = sprintf("Enum: %s",  (keys t.enum).join(','));
+            }
+        } else {
+            res.xtype = t.name;
+        }
+        return res;
+    }
+
+    private hash getTypeInfo(XsdComplexType t) {
+        hash res;
+        if (t.elementmap) {
+            res.type = "hash";
+        } else if (t.simpleType) {
+            res = getTypeInfo(t.simpleType);
+        }
+        res.attrs = exists t.attrs;
+        return res;
+    }
+
+    hash getMessage(XsdElement elem, *softlist comments) {
+        hash vi = getTypeInfo(elem.type);
+        any val;
+
+        if (opts.comments) {
+            if (elem.minOccurs == 0) {
+                comments += "optional";
+            }
+            if (elem.minOccurs > 1) {
+                comments += sprintf("minOccurs:%d", elem.minOccurs);
+            }
+            if (elem.maxOccurs > 1 || elem.maxOccurs < 0) {
+                comments += sprintf("maxOccurs:%d", elem.maxOccurs);
+            }
+        }
+        if (vi.type) {
+            if (vi.type == 'hash') {
+                val = hash();
+                foreach string name2 in (keys elem.type.elementmap) {
+                    val += getMessage(elem.type.elementmap{name2});
+                }
+                foreach hash choice in (elem.type.choices) {
+                    if (opts.choices) {
+                        hash ch;
+                        int j = 1;
+                        foreach string name2 in (keys choice.elementmap) {
+                            ch += getMessage(choice.elementmap{name2}, opts.comments ? sprintf("choice[%d]", j) : NOTHING);
+                            j++;
+                        }
+                        val{sprintf("^choices%d^", $#+1)} = ch;
+                    } else {
+                        val += getMessage(choice.elementmap.firstValue(), opts.comments ? sprintf("choice[1/%d]", elem.type.choices.size()) : NOTHING);
+                    }
+                }
+            } else {
+                if (opts.comments && vi.comment) {
+                    comments += vi.comment;
+                }
+                val = vi.value;
+            }
+        }
+
+        any v;
+        if (comments || vi.attrs) {
+            v = hash();
+            if (comments) {
+                v{'^comment^'} = comments.join(';');
+            }
+            if (vi.attrs) {
+                v{'^attributes^'} = ();
+                foreach string name2 in (keys elem.type.attrs) {
+                    hash vi2 = getTypeInfo(elem.type.attrs{name2}.type);
+                    if (vi2.type) {
+                        v{'^attributes^'}{name2} = vi2.value;
+                    }
+                }
+            }
+            if (exists val) {
+                if (vi.type == 'hash') {
+                    v += val;
+                } else {
+                    v{'^value^'} = val;
+                }
+            }
+        } else {
+            v = val;
+        }
+        *softint n = elem.maxOccurs;
+        if (n == -1 || n > opts.max_items) {
+            n = opts.max_items;
+        }
+        if (n > 1) {
+            list l;
+            int i = 1;
+            while (i <= n) {
+                if (comments) {
+                    v{'^comment^'} = ( list(sprintf("#%d", i))+comments).join(';');
+                }
+                push l, v;
+                i++;
+            }
+            return (elem.name: l);
+        } else {
+            return (elem.name: v);
+        }
+    }
+
+    #! prepare sample message
+    /** @param name message name
+
+        @return a hash representing message
+    */
+    hash getMessage(string name) {
+        return getMessage(ws.idocmap{name});
+    }
+
+    #! prepare sample message
+    /** @param msg WSMessage object
+
+        @return a hash representing message
+    */
+    hash getMessage(WSMessage msg) {
+        return getMessage(msg.args.firstValue().element);
     }
 }

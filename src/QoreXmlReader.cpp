@@ -241,6 +241,39 @@ AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEnco
 	    }
 	    xstack.incCDataCount();
 	 }
+      } else if (nt == XML_READER_TYPE_COMMENT && (pflags & XPF_ADD_COMMENTS)) {
+	 int depth = QoreXmlReader::depth();
+	 xstack.checkDepth(depth);
+
+	 const char* str = constValue();
+	 if (str) {
+	    QoreStringNode* val = getValue(data_ccsid, xsink);
+	    if (!val)
+	       return 0;
+
+	    AbstractQoreNode* n = xstack.getNode();
+	    if (n && n->getType() == NT_HASH) {
+	       QoreHashNode* h = reinterpret_cast<QoreHashNode*>(n);
+	       if (!xstack.getCommentCount())
+		  h->setKeyValue("^comment^", val, xsink);
+	       else {
+		  QoreString kstr;
+		  kstr.sprintf("^comment%d^", xstack.getCommentCount());
+		  h->setKeyValue(kstr.getBuffer(), val, xsink);
+	       }
+	    }
+	    else { // convert value to hash and save value node
+	       QoreHashNode* h = new QoreHashNode;
+	       xstack.setNode(h);
+	       if (n) {
+		  h->setKeyValue("^value^", n, 0);
+		  xstack.incValueCount();
+	       }
+
+	       h->setKeyValue("^comment^", val, xsink);
+	    }
+	    xstack.incCommentCount();
+	 }
       }
       rc = read();
 
