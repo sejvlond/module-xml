@@ -3460,17 +3460,16 @@ public class WSDL::WebService inherits WSDL::XsdBase {
                 stream.printf("      operations:\n");
                 foreach string name in (keys pt.operations) {
                     WSOperation op = pt.operations{name};
-                    stream.sprintf("        %s\n", name);
+                    stream.printf("        %s\n", name);
                     if (op.input) {
-                        stream.sprintf("          input: %s\n", getOperationParams(op.input));
+                        stream.printf("          input: %s\n", getOperationParams(op.input));
                     }
                     if (op.output) {
-                        stream.sprintf("          output: %s\n", getOperationParams(op.output));
+                        stream.printf("          output: %s\n", getOperationParams(op.output));
                     }
                 }
             }
         }
-        return output;
     }
 
     #! prepare a WebService report enumerating the services and operations of the WSDL
