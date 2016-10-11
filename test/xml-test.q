@@ -152,6 +152,11 @@ sub xml_tests() {
     $xr.read();
     test_value($xr.nodeType(), Xml::XML_NODE_TYPE_ELEMENT, "XmlReader::read(), XmlReader::Type()");
     test_value($xr.toQore() == $mo.o, True, "XmlReader::toQoreData()");
+
+    # #1326: module-xml: make_xml() is too strict for tag names, resulting in MAKE-XML-ERROR: tag: "_some_tag" is not a valid XML tag element name if tag starts with underscore
+    my hash $underscore = ( "foo" : ("_underscore_test" : 1, ) );
+    my string $underscoreResult = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><foo><_underscore_test>1</_underscore_test></foo>";
+    test_value(makeXMLString($underscore), $underscoreResult, "_underscore_test");
 }
 
 sub do_tests() {
