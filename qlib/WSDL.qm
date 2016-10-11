@@ -1195,7 +1195,7 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
                     rh{k} = remove val{k};
                 }
             }
-            if (val.size() == 1 && val.firstKey() == "^value^") 
+            if (val.size() == 1 && val.firstKey() == "^value^")
                 val = val."^value^";
         }
         if (enum && !enum{val})
@@ -3438,38 +3438,50 @@ public class WSDL::WebService inherits WSDL::XsdBase {
     }
 
     private string getOperationParams(WSMessage msg) {
-        return sprintf("%s(%s)", msg.name, (keys msg.args).join(','));
+        return sprintf("%s(%s)", msg.name, (foldl $1 + "," + $2, (keys msg.args)));
     }
-    #! prepare WebService report where are enumerated services and operations of Wsdl
-    /** @param wsdl_name name of Wsdl, typically file name
+
+    #! prepare a WebService report enumerating the services and operations of the WSDL, outputs to the output stream given as the first argument
+    /** @param stream the output stream for the report data
+        @param wsdl_name name of the WSDL, typically a file name
 
         @return human readable text report
     */
-    string getReport(*string wsdl_name) {
-        my string output;
-        output += sprintf("wsdl: %s\n", wsdl_name);
-        foreach my hash svc in (listServices()) {
-            output += sprintf("  service: %s\n", svc.name);
-            #my hash svc = getService(svc_name);
-            foreach my string port in (keys svc.port) {
-                output += sprintf("    port: %s\n", port);
-                output += sprintf("      binding: %s\n", svc.port{port}.binding.name);
-                output += sprintf("      address: %s\n", svc.port{port}.address);
-                my hash pt = portType{svc.port{port}.binding.getPort()};
-                output += sprintf("      operations:\n");
-                foreach my string name in (keys pt.operations) {
-                    my WSOperation op = pt.operations{name};
-                    output += sprintf("        %s\n", name);
+    getReport(StringOutputStream stream, *string wsdl_name) {
+        stream.write(sprintf("wsdl: %s\n", wsdl_name));
+        foreach hash svc in (listServices()) {
+            stream.printf("  service: %s\n", svc.name);
+            #hash svc = getService(svc_name);
+            foreach string port in (keys svc.port) {
+                stream.printf("    port: %s\n", port);
+                stream.printf("      binding: %s\n", svc.port{port}.binding.name);
+                stream.printf("      address: %s\n", svc.port{port}.address);
+                hash pt = portType{svc.port{port}.binding.getPort()};
+                stream.printf("      operations:\n");
+                foreach string name in (keys pt.operations) {
+                    WSOperation op = pt.operations{name};
+                    stream.sprintf("        %s\n", name);
                     if (op.input) {
-                        output += sprintf("          input: %s\n", getOperationParams(op.input));
+                        stream.sprintf("          input: %s\n", getOperationParams(op.input));
                     }
                     if (op.output) {
-                        output += sprintf("          output: %s\n", getOperationParams(op.output));
+                        stream.sprintf("          output: %s\n", getOperationParams(op.output));
                     }
                 }
             }
         }
         return output;
+    }
+
+    #! prepare a WebService report enumerating the services and operations of the WSDL
+    /** @param wsdl_name name of the WSDL, typically a file name
+
+        @return human readable text report
+    */
+    string getReport(*string wsdl_name) {
+        StringOutputStream stream();
+        getReport(stream, wsdl_name);
+        return stream.getData();
     }
 }
 
@@ -3495,7 +3507,7 @@ public class WSDL::WSMessageHelper {
         "choices": False,
         "max_items": 3,
     );
-    constructor (WebService _ws, *hash _opts) {
+    constructor(WebService _ws, *hash _opts) {
         ws = _ws;
         *hash h = _opts;
         map remove h{$1}, keys DefaultOpts;
@@ -3509,7 +3521,7 @@ public class WSDL::WSMessageHelper {
     }
 
     private hash getTypeInfo(XsdBaseType t) {
-        my hash res = (
+        hash res = (
             'xtype': t.name,
         );
         switch (t.name) {
@@ -3573,7 +3585,7 @@ public class WSDL::WSMessageHelper {
     }
 
     private hash getTypeInfo(XsdSimpleType t) {
-        my hash res;
+        hash res;
         if (t.type) {
             res = getTypeInfo(t.type);
             res.xtype = t.name;
@@ -3597,7 +3609,7 @@ public class WSDL::WSMessageHelper {
     }
 
     private hash getTypeInfo(XsdComplexType t) {
-        my hash res;
+        hash res;
         if (t.elementmap) {
             res.type = "hash";
         } else if (t.simpleType) {
@@ -3608,8 +3620,8 @@ public class WSDL::WSMessageHelper {
     }
 
     hash getMessage(XsdElement elem, *softlist comments) {
-        my hash vi = getTypeInfo(elem.type);
-        my any val;
+        hash vi = getTypeInfo(elem.type);
+        any val;
 
         if (opts.comments) {
             if (elem.minOccurs == 0) {
@@ -3625,14 +3637,14 @@ public class WSDL::WSMessageHelper {
         if (vi.type) {
             if (vi.type == 'hash') {
                 val = hash();
-                foreach my string name2 in (keys elem.type.elementmap) {
+                foreach string name2 in (keys elem.type.elementmap) {
                     val += getMessage(elem.type.elementmap{name2});
                 }
-                foreach my hash choice in (elem.type.choices) {
+                foreach hash choice in (elem.type.choices) {
                     if (opts.choices) {
                         hash ch;
-                        my int j = 1;
-                        foreach my string name2 in (keys choice.elementmap) {
+                        int j = 1;
+                        foreach string name2 in (keys choice.elementmap) {
                             ch += getMessage(choice.elementmap{name2}, opts.comments ? sprintf("choice[%d]", j) : NOTHING);
                             j++;
                         }
@@ -3649,7 +3661,7 @@ public class WSDL::WSMessageHelper {
             }
         }
 
-        my any v;
+        any v;
         if (comments || vi.attrs) {
             v = hash();
             if (comments) {
@@ -3657,8 +3669,8 @@ public class WSDL::WSMessageHelper {
             }
             if (vi.attrs) {
                 v{'^attributes^'} = ();
-                foreach my name2 in (keys elem.type.attrs) {
-                    my hash vi2 = getTypeInfo(elem.type.attrs{name2}.type);
+                foreach string name2 in (keys elem.type.attrs) {
+                    hash vi2 = getTypeInfo(elem.type.attrs{name2}.type);
                     if (vi2.type) {
                         v{'^attributes^'}{name2} = vi2.value;
                     }
@@ -3674,12 +3686,12 @@ public class WSDL::WSMessageHelper {
         } else {
             v = val;
         }
-        my n = elem.maxOccurs;
+        *softint n = elem.maxOccurs;
         if (n == -1 || n > opts.max_items) {
             n = opts.max_items;
         }
         if (n > 1) {
-            my list l;
+            list l;
             int i = 1;
             while (i <= n) {
                 if (comments) {
@@ -3712,4 +3724,3 @@ public class WSDL::WSMessageHelper {
         return getMessage(msg.args.firstValue().element);
     }
 }
-
