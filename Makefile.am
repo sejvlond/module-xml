@@ -37,9 +37,12 @@ EXTRA_DIST = COPYING.LGPL COPYING.MIT AUTHORS README \
 	$(USER_MODULES) \
 	qore-xml-module.spec
 
+SCRIPTS = bin/soaputil
+
 ACLOCAL_AMFLAGS=-I m4
 
 dist_mod_DATA = $(USER_MODULES)
+dist_bin_SCRIPTS = $(SCRIPTS)
 
 if COND_DOXYGEN
 DOX = xml SoapClient SoapHandler WSDL XmlRpcHandler

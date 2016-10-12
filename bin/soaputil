@@ -1,23 +1,11 @@
 #!/usr/bin/env qore
 
+# Copyright (C) 2016 Qore Technologies, sro, all rights reserved
+
 %requires xml
 %requires Qorize
-%requires ../qlib/WSDL.qm
+%requires WSDL
 %new-style
-
-/*
-./wsdl-test.q qore_msg -v MaterialMovementInterface_v13.wsdl msg exportMaterialMovementData response -f human
-
-/home/tma/omq/wsdl/msepl_at/wincash/
-BasketInterface_v13.wsdl
-DbodInterface_v13.wsdl
-EmployeeInterface_v13.wsdl
-MaterialMovementInterface_v13.wsdl
-SalesDataInterface_v13.wsdl
-
-/home/tma/work/qore/module-xml/examples/wsdl-viewer/test/TimeService.wsdl
-
-*/
 
 %exec-class WSDLTools
 class WSDLTools {

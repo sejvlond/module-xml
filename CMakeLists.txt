@@ -79,6 +79,10 @@ set(QMOD
     qlib/XmlRpcHandler.qm
 )
 
+set(SCRIPTS
+	bin/soaputil
+)
+
 qore_wrap_qpp_value(QPP_SOURCES ${QPP_SRC})
 
 SET (module_name "xml")
@@ -87,6 +91,7 @@ add_library(${module_name} SHARED ${QPP_SOURCES} ${CPP_SRC})
 
 qore_binary_module(${module_name} "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}" ${LIBXML2_LIBRARIES})
 qore_user_modules("${QMOD}")
+install(PROGRAMS ${SCRIPTS} DESTINATION bin)
 
 qore_dist("${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
