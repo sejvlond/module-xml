@@ -19,249 +19,6 @@ SalesDataInterface_v13.wsdl
 
 */
 
-class WSDLHelper {
-
-    private {
-        WebService ws;
-    }
-
-    constructor (WebService _ws) {
-        ws = _ws;
-
-    }
-
-    private hash getTypeInfo(XsdBaseType t) {
-        my hash res = (
-            'xtype': t.name,
-        );
-        switch (t.name) {
-            case "string":
-            case "normalizedString":
-            case "token":
-                res.type = "string";
-                res.value = "abc";
-                break;
-            case "anyUri":
-                res.type = "string";
-                res.value = "http://www.qore.com";
-                break;
-            case "byte":
-            case "int":
-            case "integer":
-            case "long":
-            case "negativeInteger":
-            case "nonNegativeInteger":
-            case "positiveInteger":
-            case "nonPositiveInteger":
-            case "short":
-            case "unsignedLong":
-            case "unsignedInt":
-            case "unsignedShort":
-            case "unsignedByte":
-                res.type = "int";
-                res.value = 123;
-                break;
-            case "boolean":
-                res.type = "bool";
-                res.value = True;
-                break;
-            case "base64Binary":
-            case "hexBinary":
-                res.type = "binary";
-                res.value = "<0feba023ffdca6291>";   # TODO: how assign binary const ?
-                res.xvalue = "<0feba023ffdca6291>";
-                res.svalue = res.xvalue;
-                break;
-            case "decimal":
-                res.type = "number";
-                res.value = 123.456;
-                break;
-            case "date":
-                res.type = "date";
-                res.value = 2015-01-31;
-                res.xvalue = format_date('YYYY-MM-DD', res.value);
-                break;
-            case "dateTime":
-                res.type = "date";
-                res.value = 2015-01-31T10:20:30+01:00;
-                res.xvalue = format_date('YYYY-MM-DDTHH:mm:SSZ', res.value);
-                break;
-            case "time":
-                res.type = "date";
-                res.value = 10:20:30Z;
-                res.xvalue = format_date('HH:mm:SSZ', res.value);
-                break;
-            case "duration":
-                res.type = "date";
-                res.value = P5Y2M10DT15H;   # TODO
-                break;
-        }
-        if (res.type == "string") {
-            #res.svalue = "'"+res.value+"'";
-            res.xvalue = res.value;
-        }
-        if (!exists res.svalue) {
-            res.svalue = sprintf('%y', res.value);
-        }
-        if (!exists res.xvalue) {
-            res.xvalue = sprintf('%y', res.value);
-        }
-        return res;
-    }
-
-    private hash getTypeInfo(XsdSimpleType t) {
-        my hash res;
-        if (t.type) {
-            res = getTypeInfo(t.type);
-            res.xtype = t.name;
-            if (t.enum) {
-                switch (res.type) {
-                case "string":
-                    res.value = (keys t.enum)[0];
-                    res.svalue = sprintf("%y", res.value);
-                    break;
-                case "int":
-                    res.value = sprintf("%s", (keys t.enum)[0]);
-                    res.svalue = string(res.value);
-                    break;
-                default:
-                    res.value = sprintf("%s", (keys t.enum)[0]);
-                }
-                res.xvalue = "<!-- " + (keys t.enum).join(',') + " -->";
-                res.svalue += sprintf("  /* %s */",  (keys t.enum).join(','));
-                res.comment = sprintf("Enum: %s",  (keys t.enum).join(','));
-            }
-        } else {
-            res.xtype = t.name;
-        }
-        return res;
-    }
-
-    private hash getTypeInfo(XsdComplexType t) {
-        my hash res;
-        if (t.elementmap) {
-            res.type = "hash";
-        } else if (t.simpleType) {
-            res = getTypeInfo(t.simpleType);
-        }
-        res.attrs = exists t.attrs;
-        return res;
-    }
-
-    hash getMessage(XsdElement elem, bool add_comments = True, bool string_values = False, bool only_one_choice = False) {
-        my list comments = ();
-        my hash vi = getTypeInfo(elem.type);
-        my any val;
-
-        if (add_comments && elem.minOccurs == 0) {
-            comments += "optional";
-        }
-        if (vi.type) {
-            if (vi.type == 'hash') {
-                val = hash();
-                foreach my string name2 in (keys elem.type.elementmap) {
-                    val += getMessage(elem.type.elementmap{name2}, add_comments, string_values, only_one_choice);
-                }
-                foreach my hash choice in (elem.type.choices) {
-                    my int j = 1;
-                    foreach my string name2 in (keys choice.elementmap) {
-                        if (add_comments) {
-                            val{sprintf('^comment%d^', j)} = sprintf("choice [%d]", j);
-                        }
-                        val += getMessage(choice.elementmap{name2}, add_comments, string_values, only_one_choice);
-                        j++;
-                        if (only_one_choice) {
-                            break;
-                        }
-                    }
-                }
-            } else {
-                if (add_comments && vi.comment) {
-                    comments += vi.comment;
-                }
-                val = string_values ? vi.xvalue : vi.value;
-            }
-        }
-
-        my any v;
-        if (comments || vi.attrs) {
-            v = hash();
-            if (comments) {
-                v{'^comment^'} = comments.join(';');
-            }
-            if (vi.attrs) {
-                v{'^attributes^'} = ();
-                foreach my name2 in (keys elem.type.attrs) {
-                    my hash vi2 = getTypeInfo(elem.type.attrs{name2}.type);
-                    if (vi2.type) {
-                        v{'^attributes^'}{name2} = string_values ? vi2.xvalue : vi2.value;
-                    }
-                }
-            }
-            if (exists val) {
-                if (vi.type == 'hash') {
-                    v += val;
-                } else {
-                    v{'^value^'} = val;
-                }
-            }
-        } else {
-            v = val;
-        }
-        my n = elem.maxOccurs;
-        if (n == -1 || n > 3) {
-            n = 3;
-        }
-        if (n > 1) {
-            my list l;
-            while (n > 0) {
-                push l, v;
-                n--;
-            }
-            return (elem.name: l);
-        } else {
-            return (elem.name: v);
-        }
-    }
-
-    hash getMessage(string name, bool add_comments = True, bool string_values = False, bool only_one_choice = False) {
-        return getMessage(ws.idocmap{name}, add_comments, string_values, only_one_choice);
-    }
-
-    hash getMessage(WSMessage msg, bool add_comments = True, bool string_values = False, bool only_one_choice = False) {
-        return getMessage(msg.args.firstValue().element, add_comments, string_values, only_one_choice);
-    }
-
-    private getOperationParams(WSMessage msg) {
-        return sprintf("%s(%s)", msg.name, (keys msg.args).join(','));
-    }
-    nothing makeReport(File output, string wsdl_name) {
-        output.printf("wsdl: %s\n", wsdl_name);
-        foreach my hash svc in (ws.listServices()) {
-            output.printf("  service: %s\n", svc.name);
-            #my hash svc = ws.getService(svc_name);
-            foreach my string port in (keys svc.port) {
-                output.printf("    port: %s\n", port);
-                output.printf("      binding: %s\n", svc.port{port}.binding.name);
-                output.printf("      address: %s\n", svc.port{port}.address);
-                my hash portType = ws.portType{svc.port{port}.binding.getPort()};
-            output.print("      operations:\n");
-                foreach my string name in (keys portType.operations) {
-                    my WSOperation op = portType.operations{name};
-                    output.printf("        %s\n", name);
-                    if (op.input) {
-                        output.printf("          input: %s\n", getOperationParams(op.input));
-                    }
-                    if (op.output) {
-                        output.printf("          output: %s\n", getOperationParams(op.output));
-                    }
-                }
-            }
-        }
-    }
-}
-
-
 %exec-class WSDLTools
 class WSDLTools {
     private {
@@ -278,8 +35,9 @@ class WSDLTools {
             'msg': (
                 'opts': (
                     'format': 'f=s',
-                    'comment': 'c',
+                    'comments': 'c',
                     'choices': 'm',
+                    'max_items': 'n=s',
                 ),
                 'params': (
                     True,
@@ -295,7 +53,7 @@ class WSDLTools {
         );
         int verbose = 0;
         WebService ws;
-        WSDLHelper wh;
+        WSDL::WSMessageHelper wh;
     }
 
     constructor () {
@@ -398,7 +156,7 @@ class WSDLTools {
 
             info(sprintf("getFileFromURL(%y)\n", url));
             hash h = Qore::parse_url(url);
-            wsdlContent = WSDLLib::getFileFromURL(url, h, 'file', NOTHING, NOTHING, True);
+            wsdlContent = WSDL::WSDLLib::getFileFromURL(url, h, 'file', NOTHING, NOTHING, True);
         }
 
         my File output = stdout;
@@ -412,19 +170,25 @@ class WSDLTools {
             return;
         }
 
-        ws = new WebService(wsdlContent, ws_opts);
+        ws = new WSDL::WebService(wsdlContent, ws_opts);
 
         if (operation == 'dump' && params[0] == 'ws') {
             ws.wsdl = '';
             output.printf("%N\n", ws);
             return;
         }
-        wh = new WSDLHelper(ws);
-
+        hash o = (
+            "comments": opt.comments,
+            "choices": opt.choices,
+        );
+        if (opt.max_items != '') {
+            o.max_items = int(opt.max_items);
+        }
+        wh = new WSDL::WSMessageHelper(ws, o);
         switch (operation) {
             case 'report':
                 info(sprintf("%s()\n", operation));
-                wh.makeReport(output, wsdl_file);
+                output.print(ws.getReport(wsdl_file));
                 break;
             case 'msg': {
                 my list names;
@@ -433,24 +197,20 @@ class WSDLTools {
                 } else {
                     names = keys ws.opmap;
                 }
-                info(sprintf("%s(%y,%y,%y,%y,%y)\n", operation, names, params[1], opt.format, opt.comment, opt.choices));
+                info(sprintf("%s(%y,%y,%y,%y)\n", operation, names, params[1], opt.format, o));
                 foreach my string name in (names) {
                     if (!ws.opmap{name}) {
                         throw "WSDL-TOOL-ERROR", sprintf("Value %y is not in the list of operations %y\n", name, keys ws.opmap);
                     }
-                    my WSOperation op = ws.opmap{name};
+                    my WSDL::WSOperation op = ws.opmap{name};
                     foreach my int request in ((MSG_REQUEST, MSG_RESPONSE)) {
                         if ((request & params[1]) != 0 && ((request==MSG_REQUEST) ? op.input : op.output)) {
-                            my hash msg = wh.getMessage((request==MSG_REQUEST) ? op.input : op.output, opt.comment && opt.format != 'xml', False, !opt.choices || opt.format == 'xml');
+                            my hash msg = wh.getMessage((request==MSG_REQUEST) ? op.input : op.output);
                             switch (opt.format) {
                             case 'xml':
-                                if (opt.comment) {
-                                    info("Comment options is ignored\n");
+                                if (!opt.choices) {
+                                    info("Only the first choice is considered\n");
                                 }
-                                if (opt.choices) {
-                                    info("Multiple choices options is ignored\n");
-                                }
-                                info("Only the first choice is considered\n");
                                 output.print(request == MSG_REQUEST ?
                                     op.serializeRequest(msg, NOTHING, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body :
                                     op.serializeResponse(msg, NOTHING, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body
@@ -495,6 +255,7 @@ class WSDLTools {
             "    options:\n"
             "      -c     output comments\n"
             "      -m     output multiple choices\n"
+            "      -n <n> max.array elements, default: 3\n"
             "\n"
             "  dump <what>\n"
             "    dump specified information\n"

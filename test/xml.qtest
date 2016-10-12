@@ -67,6 +67,7 @@ class XmlTest inherits QUnit::Test {
         addTestCase("XmlTestCase", \xmlTestCase());
         addTestCase("DeprecatedXmlTestCase", \deprecatedXmlTestCase());
         addTestCase("FileSaxIteratorTestCase", \fileSaxIteratorTestCase());
+        addTestCase("XmlCommentTestCase", \xmlCommentTestCase());
         set_return_value(main());
     }
 
@@ -130,6 +131,11 @@ class XmlTest inherits QUnit::Test {
         xr.read();
         assertEq(Xml::XML_NODE_TYPE_ELEMENT, xr.nodeType(), "XmlReader::read(), XmlReader::Type()");
         assertEq(True, xr.toQore() == mo.o, "XmlReader::toQoreData()");
+
+        # #1326: module-xml: make_xml() is too strict for tag names, resulting in MAKE-XML-ERROR: tag: "_some_tag" is not a valid XML tag element name if tag starts with underscore
+        hash underscore = ( "foo" : ("_underscore_test" : 1, ) );
+        string underscoreResult = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><foo><_underscore_test>1</_underscore_test></foo>";
+        assertEq(underscoreResult, make_xml(underscore), "_underscore_test");
     }
 
     deprecatedXmlTestCase() {
@@ -180,5 +186,49 @@ class XmlTest inherits QUnit::Test {
         FileSaxIterator i(fn, "record");
         assertEq(True, i.next());
         assertEq(Rec, i.getValue());
+    }
+
+    xmlCommentTestCase() {
+        string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<file>
+  <!--file-->
+  <record id=\"1\">
+    <!--rec1-->
+    <name><!--test1 comment-->test1</name>
+    <!--rec1 c2-->
+  </record>
+  <record id=\"2\">
+    <!--rec2-->
+    <name>test2</name>
+  </record>
+  <!--file 2-->
+</file>";
+
+        hash rec = (
+            "file": (
+                "^comment^": "file",
+                "record": (
+
+                    (
+                        "^attributes^": ("id": "1"),
+                        "^comment^": "rec1",
+                        "name": (
+                            "^comment^": "test1 comment",
+                            "^value^": "test1",
+                        ),
+                        "^comment1^": "rec1 c2",
+                    ),
+                    (
+                        "^attributes^": ("id": "2"),
+                        "^comment^": "rec2",
+                        "name": "test2",
+                    )
+                ),
+                "^comment1^": "file 2",
+            )
+        );
+
+        assertEq(xml, make_xml(rec, XGF_ADD_FORMATTING), "make_xml()");
+        assertEq(rec, parse_xml(xml, XPF_PRESERVE_ORDER | XPF_ADD_COMMENTS), "parse_xml()");
     }
 }

@@ -1,13 +1,8 @@
-*************
-version 1.3.1
-*************
-
-* fixed a memory leak in XML-RPC parsing (issue 1214)
-
-
 ***********
 version 1.4
 ***********
+
+* fixed a bug in make_xml to support underscores at start of tags (issue 1326)
 
 * WSDL module fixes and enhancements
   + fixed a bug in late resolution of complexTypes (issue 975)
@@ -21,6 +16,34 @@ version 1.4
     unsupported bindings (ex: HTTP verb-based bindings, issue 1116)
 
 * Added InputStreamSaxIterator class
+
+
+*************
+version 1.3.2
+*************
+
+* WSDL module updates:
+  + suppress emitting a SOAPAction header in requests if the binding gives an
+    empty string (issue 1226)
+  + updated WSOperation::serializeRequest() to allow the SOAPAction header to
+    be overridden in each request (issue 1226)
+  + respect XML generation flags in request generation
+  + fixed parsing empty base64Binary and hexBinary elements (issue 1227)
+* SoapClient update:
+  + added the SoapClient::callOperation() method to provide a more flexible
+    API for SOAP request message generating including overriding the
+    SOAPAction header on a per-request basis (issue 1226)
+  + updated SOAP response processing to throw an exception when the server
+    responds with an error code
+
+
+
+*************
+version 1.3.1
+*************
+
+* fixed a memory leak in XML-RPC parsing (issue 1214)
+
 
 ***********
 version 1.3
