@@ -3448,24 +3448,25 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         @return human readable text report
     */
     getReport(StringOutputStream stream, *string wsdl_name) {
-        stream.write(sprintf("wsdl: %s\n", wsdl_name));
+        StreamWriter w(stream);
+        w.printf("wsdl: %s\n", wsdl_name);
         foreach hash svc in (listServices()) {
-            stream.printf("  service: %s\n", svc.name);
+            w.printf("  service: %s\n", svc.name);
             #hash svc = getService(svc_name);
             foreach string port in (keys svc.port) {
-                stream.printf("    port: %s\n", port);
-                stream.printf("      binding: %s\n", svc.port{port}.binding.name);
-                stream.printf("      address: %s\n", svc.port{port}.address);
+                w.printf("    port: %s\n", port);
+                w.printf("      binding: %s\n", svc.port{port}.binding.name);
+                w.printf("      address: %s\n", svc.port{port}.address);
                 hash pt = portType{svc.port{port}.binding.getPort()};
-                stream.printf("      operations:\n");
+                w.printf("      operations:\n");
                 foreach string name in (keys pt.operations) {
                     WSOperation op = pt.operations{name};
-                    stream.printf("        %s\n", name);
+                    w.printf("        %s\n", name);
                     if (op.input) {
-                        stream.printf("          input: %s\n", getOperationParams(op.input));
+                        w.printf("          input: %s\n", getOperationParams(op.input));
                     }
                     if (op.output) {
-                        stream.printf("          output: %s\n", getOperationParams(op.output));
+                        w.printf("          output: %s\n", getOperationParams(op.output));
                     }
                 }
             }
