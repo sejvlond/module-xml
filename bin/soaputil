@@ -13,19 +13,19 @@ class WSDLTools {
         const MSG_REQUEST = 0x1;
         const MSG_RESPONSE = 0x2;
         hash opts = (
-            'help': 'h',
-            'verbose': 'v:i+',
-            'output': 'o=s',
+            'help':    'h,help',
+            'verbose': 'v,verbose:i+',
+            'output':  'o,output=s',
         );
         hash operations = (
             'report': (
             ),
             'msg': (
                 'opts': (
-                    'format': 'f=s',
-                    'comments': 'c',
-                    'choices': 'm',
-                    'max_items': 'n=s',
+                    'format':    'f,format=s',
+                    'comments':  'c,comments',
+                    'choices':   'm,choices',
+                    'max_items': 'n,items=s',
                 ),
                 'params': (
                     True,
@@ -200,7 +200,7 @@ class WSDLTools {
                                     info("Only the first choice is considered\n");
                                 }
                                 output.print(request == MSG_REQUEST ?
-                                    op.serializeRequest(msg, NOTHING, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body :
+                                    op.serializeRequest(msg, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body :
                                     op.serializeResponse(msg, NOTHING, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING).body
                                 );
                                 break;
@@ -221,36 +221,34 @@ class WSDLTools {
 
     private help() {
         stderr.printf(
-            "WSDL tools, ver 0.1\n"
-            "usage: %s [options] [-o <output>] [-f <format>] <wsdl> [<cmd> [params]]\n"
-            "  options\n"
-            "  -v     verbose\n"
-            "  -h     help\n"
-            "  wsdl   WSDL file or URL. If '-' specified then expected at STDIN\n"
-            "  output unless file specified then goes to STDOUT\n"
+            "usage: %s [options] <wsdl> [<cmd> [params]]\n"
+            " -o,--output=ARG  output file (if not present, defaults to STDOUT)\n"
+            " -v,--verbose     verbose\n"
+            " -h,--help        help\n"
             "\n"
-            "Commands:\n"
-            "  report\n"
-            "    report supported services, operations, etc.\n"
+            " <wsdl> = WSDL file or URL; if '-' then expected at STDIN\n"
             "\n"
-            "  msg [<operation> [both|request|response]]\n"
-            "    print request or response message related to operation\n"
-            "    operation    unless specified (or '-') print all operations\n"
-            "    format:\n"
-            "      human  human-readable, default\n"
-            "      qore   Qore source file\n"
-            "      xml    XML SOAP message\n"
-            "    options:\n"
-            "      -c     output comments\n"
-            "      -m     output multiple choices\n"
-            "      -n <n> max.array elements, default: 3\n"
+            " <cmd> = (report|msg|dump)\n"
+            "   report\n"
+            "     ** (default) report supported services, operations, etc.\n"
             "\n"
-            "  dump <what>\n"
-            "    dump specified information\n"
-            "    What:\n"
-            "      wsdl   print WSDL on output\n"
-            "      ws     print WebService on output\n"
+            "   msg [<operation> [both|request|response]]\n"
+            "     ** print request or response message related to operation\n"
+            "     <operation>: the SOAP operation (or '-' = all operations)\n"
+            "     msg options:\n"
+            "      -c,--comments      output comments\n"
+            "      -f,--format=ARG    format options as follows:\n"
+            "                           human: human readable\n"
+            "                           qore:  Qore source\n"
+            "                           xml:   XML SOAP message\n"
+            "      -m,--choices       output multiple choices\n"
+            "      -n,--elements=ARG  max.array elements, default: 3\n"
             "\n"
+            "   dump <what>\n"
+            "     ** dump specified information\n"
+            "     <what>:\n"
+            "       wsdl      print WSDL on output\n"
+            "       ws        print WebService on output\n"
             "\n"
             "Example:\n"
             "  %s MaterialMovementInterface_v13.wsdl msg exportMaterialMovementData request -f qore\n"
