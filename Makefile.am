@@ -40,6 +40,7 @@ EXTRA_DIST = COPYING.LGPL COPYING.MIT AUTHORS README \
 ACLOCAL_AMFLAGS=-I m4
 
 dist_mod_DATA = $(USER_MODULES)
+dist_bin_SCRIPTS = bin/soaputil
 
 if COND_DOXYGEN
 DOX = xml SoapClient SoapHandler WSDL XmlRpcHandler
