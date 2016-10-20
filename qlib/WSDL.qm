@@ -370,7 +370,7 @@ public class WSDL::WSDLLib {
             # check content-type
             WSDLLib::checkSOAPContentType(mpmsg.body.hdr."content-type");
 
-            #printf("part %d hh: %Y\nbody: %s (%d)\n", i, hh, type(b), elements(b)); #exit();
+            #printf("part %d hh: %y\nbody: %s (%d)\n", i, hh, type(b), elements(b)); #exit();
             hash xmldata = parse_xml(mpmsg.body.body);
 
             # parse entire data structure to find "href"s or href attributes
@@ -1167,7 +1167,7 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
         else
             throw "XSD-SIMPLETYPE-ERROR", sprintf("missing restriction element in simpleType %y", name);
 
-        #printf("DEBUG: st: %Y\n", self); exit();
+        #printf("DEBUG: st: %y\n", self); exit();
     }
 
     any serialize(any val, *softbool omit_type) {
@@ -1264,7 +1264,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                             array.val = aa.arrayType;
 
                         delete d.restriction.attribute;
-                        #printf("DEBUG: ans: %y atn: %y aa: %Y\n", ans, atn, aa);
+                        #printf("DEBUG: ans: %y atn: %y aa: %y\n", ans, atn, aa);
                         return;
                     }
                     else {
@@ -1981,8 +1981,8 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
             delete body.multiRef;
         }
-        #printf("mrh: %Y\n", mrh.mrh);
-        #printf("operation: %Y\n", self);
+        #printf("mrh: %y\n", mrh.mrh);
+        #printf("operation: %y\n", self);
 
         # remove namespace tags from element names
         WSDL::XsdBase::removeNS2(\body);
@@ -2158,7 +2158,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         else
             throw WSDL_ERROR, sprintf("cannot parse part: %y", part);
 
-        #printf("DEBUG: part: %Y\nmsg: %Y\n", part, msg);#exit();
+        #printf("DEBUG: part: %y\nmsg: %y\n", part, msg);#exit();
     }
 
     addOutputPart(any part) {
@@ -2528,7 +2528,7 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                     throw WSDL_ERROR, sprintf("input binding %y for operation %y references unknown message %y in the soap header element", name, opname, msg);
 
                 #printf("header msg: %y part: %y use: %y\n", ma.message, ma.part, ma.use);
-                #printf("op.input: %Y\n", input);
+                #printf("op.input: %y\n", input);
 
                 op.setInputHeader(ma.part, msg, ma.use == "encoded");
             }
@@ -3015,7 +3015,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         WSDL::XsdBase::removeNS(\h.definitions);
         nsc = new Namespaces(h.definitions."^attributes^");
         #getNSPrefixes(h.definitions."^attributes^");
-        #printf("%Y\n", h.definitions.types);
+        #printf("%y\n", h.definitions.types);
 
         if (exists h.definitions.types)
             parseTypes(h.definitions.types, opts.http_client instanceof HTTPClient ? opts.http_client : NOTHING, opts.http_headers);
@@ -3115,7 +3115,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
     }
 
     hash getType(string name, any v) {
-        #printf("DBG getType() %y: %Y\n", name, tmap);
+        #printf("DBG getType() %y: %y\n", name, tmap);
         return ("^type^": tmap.get(name), "^val^": v);
     }
 
@@ -3177,7 +3177,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
 
             #printf("DEBUG: schema tn: %y\n", schema."^attributes^"."targetNamespace");
             WSDL::XsdBase::removeNS(\schema);
-            #printf("DEBUG: WebService::parseTypes() schema: %Y\n", schema);
+            #printf("DEBUG: WebService::parseTypes() schema: %y\n", schema);
 
             # process XSD import if present
             foreach hash import in (schema.import) {
@@ -3334,7 +3334,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         # setup list of services defined in this WSDL
         foreach hash port in (data) {
             WSDL::XsdBase::removeNS(\port);
-            #printf("DEBUG: portType: %Y\n", port);
+            #printf("DEBUG: portType: %y\n", port);
             string name = port."^attributes^".name;
             wsdl_services += name;
             foreach any p in (port.operation) {
