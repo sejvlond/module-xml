@@ -272,6 +272,21 @@ static int concat_simple_cdata_value(QoreString &str, const AbstractQoreNode* n,
    return concat_simple_value(xsink, str, n);
 }
 
+static int concat_simple_comment(QoreString &str, const AbstractQoreNode* n, ExceptionSink* xsink) {
+   //printd(5, "concat_simple_comment() n: %p (%s) %s\n", n, n->getTypeName(), n->getType() == NT_STRING ? ((QoreStringNode*)n)->getBuffer() : "unknown");
+   if (n && n->getType() == NT_STRING) {
+      const QoreStringNode* qsn = reinterpret_cast<const QoreStringNode*>(n);
+      if (strstr(qsn->getBuffer(), "-->")) {
+	 xsink->raiseException("MAKE-XML-ERROR", "Comment text contains illegal '-->' sequence");
+	 return -1;
+      }
+      str.concat(qsn, xsink);
+      return *xsink ? -1 : 0;
+   }
+
+   return concat_simple_value(xsink, str, n);
+}
+
 static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int format = XGF_NONE);
 
 QoreStringNode* make_xml(ExceptionSink* xsink, const QoreEncoding* enc, const QoreHashNode &h, int format) {
@@ -327,28 +342,52 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
       qore_size_t inc = 0;
       int vn = 0;
       bool exists;
-      const AbstractQoreNode* value = h->getKeyValueExistence("^value^", exists);
+      const AbstractQoreNode* value;
+      const AbstractQoreNode* v = h->getKeyValueExistence("^value^", exists);
       if (!exists)
 	 value = 0;
       else {
 	 vn++;
-	 if (is_nothing(value))
+	 if (is_nothing(v)) {
 	    inc++;
+            value = 0;
+         } else
+	    value = v;
 	 // find all ^value*^ nodes
 	 QoreString val;
 	 while (true) {
 	    val.sprintf("^value%d^", vn);
-	    value = h->getKeyValueExistence(val.getBuffer(), exists);
+	    v = h->getKeyValueExistence(val.getBuffer(), exists);
 	    if (!exists) {
-	       value = 0;
 	       break;
 	    }
-	    else if (is_nothing(value)) // if the node exists but there is no value, then skip
+	    else if (is_nothing(v)) // if the node exists but there is no value, then skip
 	       inc++;
+	    else
+               value = v;
 	    vn++;
 	 }
       }
 
+      int cn = 0;
+      v = h->getKeyValueExistence("^comment^", exists);
+      if (exists) {
+	 cn++;
+	 if (is_nothing(v))
+	    inc++;
+	 // find all ^comment*^ nodes
+	 QoreString val;
+	 while (true) {
+	    val.sprintf("^comment%d^", cn);
+	    v = h->getKeyValueExistence(val.getBuffer(), exists);
+	    if (!exists) {
+	       break;
+	    }
+	    else if (is_nothing(v)) // if the node exists but there is no value, then skip
+	       inc++;
+	    cn++;
+	 }
+      }
       const AbstractQoreNode* attrib = h->getKeyValueExistence("^attributes^", exists);
       if (!exists)
 	 attrib = 0;
@@ -389,14 +428,15 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
       // close node
       str.concat('>');
 
+      // print value without CRLF
       if (!is_nothing(value) && h->size() == (inc + 1)) {
 	 if (concat_simple_value(xsink, str, value, format))
 	    return;
       }
       else { // add additional elements and formatting only if the additional elements exist
-	 if ((format & XGF_ADD_FORMATTING) && !vn)
+	 if ((format & XGF_ADD_FORMATTING) && !vn) {
 	    str.concat('\n');
-
+	 }
 	 make_xml(xsink, str, *h, indent + 2, !vn ? format : (format & ~XGF_ADD_FORMATTING));
 	 // indent closing entry
 	 if ((format & XGF_ADD_FORMATTING) && !vn) {
@@ -438,7 +478,7 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
    ConstHashIterator hi(h);
    bool done = false;
    while (hi.next()) {
-      std::auto_ptr<QoreString> keyStr(hi.getKeyString());
+      std::unique_ptr<QoreString> keyStr(hi.getKeyString());
       // convert string if needed
       if (keyStr->getEncoding() != str.getEncoding()) {
 	 QoreString* ns = keyStr->convertEncoding(str.getEncoding(), xsink);
@@ -457,11 +497,26 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
 	 continue;
       }
 
-      if (!strncmp(key, "^cdata", 5)) {
+      if (!strncmp(key, "^cdata", 6)) {
 	 str.concat("<![CDATA[");
 	 if (concat_simple_cdata_value(str, hi.getValue(), xsink))
 	    return -1;
 	 str.concat("]]>");
+	 continue;
+      }
+
+      if (!strncmp(key, "^comment", 8)) {
+         if (format & XGF_ADD_FORMATTING) {
+	    if (done) {
+	      str.concat('\n');
+            }
+            str.addch(' ', indent);
+         }
+	 str.concat("<!--");
+	 if (concat_simple_comment(str, hi.getValue(), xsink))
+	    return -1;
+	 str.concat("-->");
+	 done = true;
 	 continue;
       }
 
@@ -474,10 +529,10 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
       // process key name - remove ^# from end of key name if present
       qore_size_t l = keyStr->strlen() - 1;
       while (isdigit(key[l]))
-	 l--;
+        l--;
 
       if (l != (keyStr->strlen() - 1) && key[l] == '^')
-	 keyStr->terminate(l);
+	   keyStr->terminate(l);
 
       // indent entry
       if (format) {
@@ -514,7 +569,8 @@ static bool hash_ok(const QoreHashNode* h) {
 static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int format = XGF_NONE) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(ccs));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", ccs->getCode());
-
+   if (format)
+      str->concat('\n');
    if (pstr) {
       TempEncodingHelper key(pstr, QCS_UTF8, xsink);
       if (!key)
@@ -541,7 +597,7 @@ static int add_xmlrpc_value_intern_hash(QoreString* str, const QoreHashNode* h, 
       str->concat('\n');
    ConstHashIterator hi(h);
    while (hi.next()) {
-      std::auto_ptr<QoreString> member(hi.getKeyString());
+      std::unique_ptr<QoreString> member(hi.getKeyString());
       // here we allow hashes with empty key names to be serialized
       if (!member->strlen())
 	 member.reset(new QoreString(EMPTY_KEY_STRING, ccs));
@@ -780,7 +836,7 @@ QoreStringNode* make_xmlrpc_call_args(ExceptionSink* xsink, const QoreEncoding* 
       if (l->size()) {
          str->sprintf("%s<params>%s", fmt ? "  " : "", fmt ? "\n" : "");
 
-         for (int i = 0 ; i < l->size(); ++i) {
+         for (unsigned int i = 0 ; i < l->size(); ++i) {
             const AbstractQoreNode* p = l->retrieve_entry(i);
             str->sprintf("%s<param>%s", fmt ? "    " : "", fmt ? "\n" : "");
             if (add_xmlrpc_value(*str, p, fmt ? 6 : 0, ccs, flags, xsink))
@@ -803,26 +859,6 @@ QoreStringNode* make_xmlrpc_call_args(ExceptionSink* xsink, const QoreEncoding* 
    str->concat("</methodCall>");
 
    return str.release();
-}
-
-// returns true if the key names are equal, ignoring any possible "^" suffix in k2
-static bool keys_are_equal(const char* k1, const char* k2, bool &get_value) {
-   while (true) {
-      if (!(*k1)) {
-	 if (!(*k2))
-	    return true;
-	 if ((*k2) == '^') {
-	    get_value = true;
-	    return true;
-	 }
-	 return false;
-      }
-      if ((*k1) != (*k2))
-	 break;
-      k1++;
-      k2++;
-   }
-   return false;
 }
 
 // NOTE: the libxml2 library requires all input to be in UTF-8 encoding
@@ -930,7 +966,7 @@ static AbstractQoreNode* make_xmlrpc_response_args(ExceptionSink* xsink, const Q
       if (arg.getType() == NT_LIST) {
          const QoreListNode* l = arg.get<QoreListNode>();
          // now loop through the params
-         for (int i = 0; i < l->size(); ++i) {
+         for (unsigned int i = 0; i < l->size(); ++i) {
             const AbstractQoreNode* p = l->retrieve_entry(i);
             if (fmt)
                str->concat("    <param>\n");
@@ -1042,7 +1078,7 @@ QoreHashNode* parse_xmlrpc_response(ExceptionSink* xsink, const QoreString* msg,
       return 0;
    }
 
-   XmlRpcValue v;
+   Qore::Xml::intern::XmlRpcValue v;
    bool fault = false;
    if (!strcmp(name, "params")) {
       int depth = reader.depth();
@@ -1356,7 +1392,7 @@ static QoreHashNode* parse_xmlrpc_call(const QoreStringNode* xml, const QoreStri
       if ((nt = reader.readXmlRpcNode(xsink)) == -1)
 	 return (QoreHashNode*)qore_xml_exception("PARSE-XMLRPC-CALL-ERROR", xsink);
 
-      XmlRpcValue v;
+      Qore::Xml::intern::XmlRpcValue v;
       if (reader.depth()) {
 	 if (nt != XML_READER_TYPE_END_ELEMENT) {
 	    if (nt != XML_READER_TYPE_ELEMENT)
@@ -1398,7 +1434,7 @@ static QoreValue parse_xmlrpc_value(const QoreStringNode* xml, const QoreStringN
    if (reader.read(xsink) != 1)
       return 0;
 
-   XmlRpcValue v;
+   Qore::Xml::intern::XmlRpcValue v;
    if (reader.getValueData(&v, qe, false, xsink))
       return 0;
 
@@ -1441,6 +1477,11 @@ const XPF_NONE = XPF_NONE;
     This option should only be used when it is important to maintain the XML element order in the resulting %Qore data structure (for example, when the data must be re-serialized to an XML string and the element order within a subelement must be maintained), for example, when parsing and reserializing an OSX property list in XML format.
  */
 const XPF_PRESERVE_ORDER = XPF_PRESERVE_ORDER;
+
+//! decode XML comments
+/** If this option is given then parse_xml() creates hash elements with key '^comment^' corresponding to comments found in XML
+ */
+const XPF_ADD_COMMENTS = XPF_ADD_COMMENTS;
 //@}
 
 /** @defgroup xml_functions XML Functions
@@ -1678,6 +1719,8 @@ nothing makeFormattedXMLFragment() [flags=RUNTIME_NOOP,DEPRECATED] {
     @throw PARSE-XML-EXCEPTION Error parsing the XML string
 
     @note the default is to parse XML as serialized data; to preserve key order in XML strings for higher fidelity to the original string when serializing back to XML, use the @ref XPF_PRESERVE_ORDER flag when parsing
+
+    @note use the @ref XPF_ADD_COMMENTS to process XML comments and put them in hash as elements with '^comment^' key
 
     @see @ref serialization
 
