@@ -264,7 +264,6 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
     @subsection xml14 xml Module Version 1.4
     <b>Changes and Bug Fixes in This Release</b>
     - fixed a bug in <tt>make_xml</tt> to support underscores at start of tags (<a href="https://github.com/qorelanguage/qore/issues/1326">issue 1326</a>)
-
     - <a href="../../WSDL/html/index.html">WSDL</a> fixes and enhancements:
       - fixed a bug in late resolution of <tt>complexTypes</tt> (<a href="https://github.com/qorelanguage/qore/issues/975">issue 975</a>)
       - fixed a bug handling empty complexType declarations (<a href="https://github.com/qorelanguage/qore/issues/984">issue 984</a>)
@@ -274,6 +273,10 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
       - added a more user-friendly exception when WSDLs are encountered with unsupported bindings (ex: HTTP verb-based bindings, issue <a href="https://github.com/qorelanguage/qore/issues/1116">issue 1116</a>)
       - added support for XML comments
       - added @ref Wsdl::WSMessageHelper to generate sample messages
+
+    @subsection xml133 xml Module Version 1.3.3
+    <b>Changes and Bug Fixes in This Release</b>
+    - fixed a typo in a debug logging statement (<a href="https://github.com/qorelanguage/qore/issues/1358">issue 1358</a>)
 
     @subsection xml132 xml Module Version 1.3.2
     <b>Changes and Bug Fixes in This Release</b>
