@@ -4,6 +4,7 @@ version 1.3.3
 
 * SoapClient update:
   + fixed a typo in a debug logging statement (issue 1358)
+  + fixed and documented the "info" output hash format (issue 1359)
 
 
 *************
