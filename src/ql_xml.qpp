@@ -914,7 +914,7 @@ static AbstractQoreNode* make_xmlrpc_response(ExceptionSink* xsink, const QoreEn
    QORE_TRACE("make_xmlrpc_response()");
 
    unsigned na = num_args(args);
-   if (na == offset)
+   if (na == (unsigned)offset)
       return 0;
 
    bool fmt = XGF_ADD_FORMATTING & flags;
