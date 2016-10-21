@@ -26,6 +26,7 @@ EXTRA_DIST = COPYING.LGPL COPYING.MIT AUTHORS README \
 	src/QC_XmlRpcClient.qpp \
 	src/QC_SaxIterator.qpp \
 	src/QC_FileSaxIterator.qpp \
+	src/QC_InputStreamSaxIterator.qpp \
 	src/ql_xml.qpp \
 	src/qc_option.qpp \
 	test/xml.qtest \
@@ -39,6 +40,7 @@ EXTRA_DIST = COPYING.LGPL COPYING.MIT AUTHORS README \
 ACLOCAL_AMFLAGS=-I m4
 
 dist_mod_DATA = $(USER_MODULES)
+dist_bin_SCRIPTS = bin/soaputil
 
 if COND_DOXYGEN
 DOX = xml SoapClient SoapHandler WSDL XmlRpcHandler
