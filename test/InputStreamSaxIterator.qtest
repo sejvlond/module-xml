@@ -43,6 +43,16 @@ class TestInputStream inherits InputStream {
         unshift data, a.substr(limit);
         return a.substr(0, limit);
     }
+
+    int peek() {
+        if (!data)
+            return -1;
+        switch (data[0].typeCode()) {
+            case NT_STRING: return ord(data[0][0]);
+            case NT_BINARY: return data[0][0];
+        }
+        throw data[0];
+    }
 }
 
 class InputStreamSaxIteratorTest inherits QUnit::Test {
