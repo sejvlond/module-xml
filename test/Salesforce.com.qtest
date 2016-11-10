@@ -1,0 +1,221 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+# here we add fallback paths to the QORE_MODULE_DIR search path,
+# in case QORE_MODULE_DIR is not set properly for Qorus
+%append-module-path /var/opt/qorus/qlib:$OMQ_DIR/qlib:/opt/qorus/qlib:$OMQ_DIR/user/modules
+
+%requires Util
+%requires QUnit
+%requires ../qlib/SalesforceSoapClient.qm
+
+%requires qore >= 0.8.12
+
+%new-style
+%require-types
+%strict-args
+%enable-all-warnings
+
+%exec-class SalesforceTest
+
+class SalesforceTest inherits QUnit::Test {
+    public {}
+
+    private {
+        SalesforceSoapClient sc;
+
+        # command-line options
+        const MyOpts = Opts + (
+            "wsdl": "w,wsdl=s",
+            "user": "u,user=s",
+            "pass": "p,pass=s",
+            "token": "T,token=s",
+            "timeout": "t,timeout=i",
+            );
+
+        const OptionColumn = 22;
+
+        const AcctNo1 = "DEL_TEST_1";
+        const AcctName1 = "My Test Account 1";
+
+        const AcctNo2 = "DEL_TEST_2";
+    }
+
+    constructor() : Test("SalesforceTest", "1.0", \ARGV, MyOpts) {
+        addTestCase("account", \accountTests());
+
+        try {
+            setupConnection();
+        }
+        catch (hash ex) {
+            if (m_options.verbose)
+                printf("%s: %s\n", ex.err, ex.desc);
+        }
+        on_exit
+            if (sc) sc.logout();
+
+        set_return_value(main());
+    }
+
+    private usageIntern() {
+        TestReporter::usageIntern(OptionColumn);
+        printOption("-p,--pass=ARG", "set Salesforce.com password", OptionColumn);
+        printOption("-t,--timeout=ARG", "set Salesforce.com timeout in seconds", OptionColumn);
+        printOption("-T,--token=ARG", "set Salesforce.com token", OptionColumn);
+        printOption("-u,--user=ARG", "set Salesforce.com user name", OptionColumn);
+        printOption("-w,--wsdl=ARG", "set Salesforce.com WSDL name", OptionColumn);
+    }
+
+    setupConnection() {
+        date now = now_us();
+        doInfo("creating WSDL: ");
+        WebService wsdl(WSDLLib::getFileFromURL(getOption("wsdl")));
+        doInfo("done: %y\n", now_us() - now);
+        hash opts = (
+            "wsdl": wsdl,
+            "username": getOption("user"),
+            "password": getOption("pass"),
+            "token": getOption("token"),
+            "log": sub (string fmt) {
+                if (m_options.verbose > 1)
+                    printf("INFO: %s\n", vsprintf(fmt, argv));
+            },
+            "dbglog": sub (string fmt) {
+                if (m_options.verbose > 5)
+                    printf("DEBUG: %s\n", vsprintf(fmt, argv));
+            },
+            );
+
+        now = now_us();
+        sc = new SalesforceSoapClient(opts);
+        sc.login();
+
+        # delete all objects in case of a previous test failure
+        try {
+            *list ids = getAccountIds(AcctNo1);
+            if (ids)
+                sc.delete(("ids": ids));
+        }
+        catch (hash ex) {
+            printf("%s\n", get_exception_string(ex));
+        }
+    }
+
+    doInfo(string fmt) {
+        stdout.vprintf(fmt, argv);
+        stdout.sync();
+    }
+
+    string getOption(string name) {
+        *string opt = m_options{name} ?? ENV.("SALESFORCE_" + name.upr());
+        if (!opt)
+            throw "ENVIRONMENT-ERROR", sprintf("option --%s not used and environment variable SALESFORCE_%s not set", opt, opt.upr());
+        return opt;
+    }
+
+    accountTests() {
+        if (!sc) testSkip("no Salesforce.com connection");
+
+        string id = createAccount();
+        queryAccount(id);
+        # cannot search since searches do not always work right after object creation
+        #searchAccount();
+        deleteAccount();
+    }
+
+    string createAccount() {
+        #hash del_note = get_qr(sc, "Note", ("Title": "Delete Me", "Body": del_text));
+
+        hash acct1 = (
+            "Name": AcctName1,
+            "AccountNumber": AcctNo1,
+            "Description": "test account",
+            );
+
+        softlist l = acct1;
+
+        hash rh = sc.create(("sObjects": sc.getType("Account", l)));
+        assertEq(True, rh.result.success);
+        assertEq(Type::String, rh.result.id.type());
+        assertEq(NOTHING, rh.result.errors);
+
+        return rh.result.id;
+    }
+
+    queryAccount(string id) {
+        string ss = sprintf("select id, name, description, accountnumber from account where accountnumber = '%s'", AcctNo1);
+        hash rh = sc.query(("queryString": ss));
+        assertEq(True, rh.result.done);
+
+        # DEBUG
+        if (rh.result.records.typeCode() != NT_HASH)
+            printf("rh: %N\n", rh);
+
+        #printf("rh: %N\n", rh);
+        assertEq(Type::Hash, rh.result.records.type());
+        assertEq(id, rh.result.records.Id);
+        assertEq(AcctNo1, rh.result.records.AccountNumber);
+        assertEq(AcctName1, rh.result.records.Name);
+    }
+
+    searchAccount() {
+        string ss = sprintf("FIND {%s} RETURNING Account(Id, Name)", AcctName1);
+        printf("search: %s\n", ss);
+        *hash rh = sc.search(("searchString": ss));
+        printf("got search response: %N\n", rh);
+    }
+
+    deleteAccount() {
+        *string id = getAccountId(AcctNo1);
+        if (!id)
+            throw "ACCOUNT-ERROR", sprintf("account query with AccountNumber %y returned no results", AcctNo1);
+        hash rh = sc.delete(("ids": id));
+        assertEq(True, rh.result.success);
+        assertEq(Type::String, rh.result.id.type());
+        assertEq(NOTHING, rh.result.errors);
+    }
+
+    #! returns a salesforce account ID from an account number
+    /** @throw ACCOUNT-ERROR if more than one account exists with the given account number
+     */
+    private *string getAccountId(string an) {
+        string ss = sprintf("select id from account where accountnumber = '%s'", an);
+        *hash rh = sc.query(("queryString": ss)).result;
+        if (!rh.size)
+            return;
+        if (rh.size > 1)
+            throw "ACCOUNT-ERROR", sprintf("account query with AccountNumber %y returned %d results whereas only 1 was expected; this value must be unique", an, rh.size);
+        *string id = rh.records.Id;
+        #printf("get_account(%y) returning %y\n", an, id);
+        return id;
+    }
+
+    #! returns all salesforce account IDs from a given account number
+    private *softlist getAccountIds(string an) {
+        string ss = sprintf("select id from account where accountnumber = '%s'", an);
+        *hash rh = sc.query(("queryString": ss)).result;
+        if (!rh.size)
+            return;
+        return map $1.Id, rh.records;
+    }
+
+    #! returns all salesforce account info hashes from a given account number
+    private *list getAccounts(string an) {
+        string ss = sprintf("select id from account where accountnumber = '%s'", an);
+        *hash rh = sc.query(("queryString": ss)).result;
+        if (!rh.size)
+            return;
+        return rh.records;
+    }
+
+    /*
+    # returns a data structure to use with serializing QueryResults
+    hash getQr(string type, softlist recs) {
+        return (
+            "done": True,
+            "records": sc.getType(type, recs),
+            "size": recs.size(),
+            );
+    }
+    */
+}

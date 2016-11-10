@@ -23,7 +23,7 @@
 %requires Util
 %requires xml
 
-const DefaultPort = 8088;
+const DefaultPort = 0;
 
 %exec-class SoapClientTest
 
@@ -83,6 +83,7 @@ class SoapClientTest inherits QUnit::Test {
             );
 
         const OptionColumn = 25;
+        int serverPort;
     }
 
     constructor() : QUnit::Test("SoapClientTest", "1.0", \ARGV, MyOpts) {
@@ -91,6 +92,7 @@ class SoapClientTest inherits QUnit::Test {
         # start SOAP server server
         TestSoapServer server(ws, m_options.port ?? DefaultPort, m_options.verbose);
         on_exit server.stop();
+        serverPort = server.getListenerInfo(0).port;
 
         # add test cases
         addTestCase("SoapClientTest", \soapClientTest());
@@ -99,7 +101,7 @@ class SoapClientTest inherits QUnit::Test {
     }
 
     soapClientTest() {
-        string url = sprintf("http://%s:%d", gethostname(), m_options.port ?? DefaultPort);
+        string url = sprintf("http://%s:%d", gethostname(), serverPort);
         #printf("url: %y\n", url);
         SoapClient sc(("wsdl": WsdlUrl, "url": url));
 

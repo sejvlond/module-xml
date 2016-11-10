@@ -19,18 +19,10 @@ version 1.4
 
 
 *************
-version 1.3.3
+version 1.3.1
 *************
 
-* SoapClient update:
-  + fixed a typo in a debug logging statement (issue 1358)
-  + fixed and documented the "info" output hash format (issue 1359)
-
-
-*************
-version 1.3.2
-*************
-
+* fixed a memory leak in XML-RPC parsing (issue 1214)
 * WSDL module updates:
   + suppress emitting a SOAPAction header in requests if the binding gives an
     empty string (issue 1226)
@@ -43,15 +35,12 @@ version 1.3.2
     API for SOAP request message generating including overriding the
     SOAPAction header on a per-request basis (issue 1226)
   + updated SOAP response processing to throw an exception when the server
-    responds with an error code
-
-
-
-*************
-version 1.3.1
-*************
-
-* fixed a memory leak in XML-RPC parsing (issue 1214)
+    responds with an error code (issue 1228)
+  + content-type in exceptional cases follows Soap version (issue 1244)
+  + fixed a typo in a debug logging statement (issue 1358)
+  + fixed and documented the "info" output hash format (issue 1359)
+* added SalesforceSoapClient module
+* added Salesforce.com.qtest and accompanying WSDLs
 
 
 ***********
