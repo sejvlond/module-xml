@@ -1,0 +1,288 @@
+# -*- mode: qore; indent-tabs-mode: nil -*-
+# @file SalesforceSoapClient.qm Salesforce SOAP Client Definition Module
+
+%requires qore >= 0.8.12
+%requires(reexport) SoapClient
+%requires(reexport) WSDL
+
+%new-style
+%require-types
+%strict-args
+%enable-all-warnings
+
+module SalesforceSoapClient {
+    version = "1.0";
+    desc = "Qorus Salesforce SOAP Client Definition module";
+    author = "Qore Technologies, s.r.o.";
+    url = "http://qoretechnologies.com";
+}
+
+public namespace SalesforceSoapClient {
+    public class SalesforceSoapClient {
+        private {
+            Mutex lck();
+            bool logged_in = False;
+
+            string username;
+            string password;
+            string token;
+
+            string serverurl;
+            string sessionid;
+
+            string soapaction = "default";
+
+            SoapClient sc;
+        }
+
+        public {
+            const AuthorizationHash = (
+                "username": True,
+                "password": True,
+                "token": True,
+                );
+
+            const AuthorizationOpts = AuthorizationHash.keys();
+
+            const RequiredOpts = AuthorizationOpts + (
+                "wsdl",
+                );
+        }
+
+        constructor(hash opts) {
+            processOpts(opts);
+            sc = new SoapClient(opts);
+        }
+
+        constructor(SoapClient nsc, hash opts) {
+            processOpts(opts);
+            sc = nsc;
+        }
+
+        destructor() {
+            if (logged_in)
+                logoutIntern();
+        }
+
+        private processOpts(hash opts) {
+            foreach string opt in (AuthorizationOpts) {
+                if (!opts{opt})
+                    throw "SALESFORCE-SOAP-ERROR", sprintf("missing required option %y", opt);
+                # save options
+                self{opt} = opts{opt};
+            }
+        }
+
+        login() {
+            lck.lock();
+            on_exit lck.unlock();
+
+            if (!logged_in)
+                loginIntern();
+        }
+
+        logout() {
+            lck.lock();
+            on_exit lck.unlock();
+
+            if (logged_in)
+                logoutIntern();
+        }
+
+        disconnect() {
+            lck.lock();
+            on_exit lck.unlock();
+
+            if (logged_in)
+                logoutIntern();
+
+            sc.disconnect();
+        }
+
+        #! makes a server call with the given operation, arguments, options, and optional info hash reference and returns the result
+        /** @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying @ref WSDL::WebService "WebService" class, an exception will be thrown
+            @param args the arguments to the SOAP operation
+            @param opts an optional hash of options for the call as follows:
+            - \c soap_header: a hash giving SOAP header information, if required by the message
+            - \c http_header: a hash giving HTTP header information to include in the message (does not override automatically-generated SOAP message headers)
+            - \c xml_opts: an integer XML generation option code; see @ref xml_generation_constants for possible values; combine multiple codes with binary or (\c |)
+            - \c soapaction: an optional string that will override the SOAPAction for the request; en empty string here will prevent the SOAPAction from being sent
+            @param info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers); the following keys are present in this hash:
+            - \c "headers": a hash of HTTP request headers
+            - \c "request-uri": the request URI string (ex: \c "POST /services/Soap/c/29.0 HTTP/1.1")
+            - \c "response-uri": the response URI string (ex: \c "HTTP/1.1 200 OK")
+            - \c "charset": the character encoding string (ex: \c "UTF-8")
+            - \c "body-content-type": the \c Content-Type of the response without any \c charset declaration
+            - \c "accept-charset": the valus of any \c Accept-Charset header in the response
+            - \c "response-headers": a hash of HTTP response headers
+            - \c "response-body": the raw XML response body (in case content encoding is used, this is the decoded value)
+            - \c "request-body": the raw XML request body
+            - \c "request-soap-headers": an optional hash of SOAP headers used in the request (if applicable)
+
+            @return a hash with the following keys:
+            - \c hdr: a hash of message headers
+            - \c body: the serialized message body
+
+            @throw WSDL-OPERATION-ERROR the operation is not defined in the WSDL
+            @throw HTTP-CLIENT-RECEIVE-ERROR this exception is thrown when the SOAP server returns an HTTP error code; if a SOAP fault is returned, then it is deserialized and returned in the \a arg key of the exception hash
+
+            @note this method can throw any exception that @ref Qore::HTTPClient::send() "HTTPClient::send()" can throw as well as any XML parsing errors thrown by @ref Qore::XML::parse_xml() "parse_xml()"
+         */
+        any callOperation(string operation, any args, *hash opts, *reference info) {
+            lck.lock();
+            on_exit lck.unlock();
+
+            if (!logged_in)
+                loginIntern();
+
+            return callIntern(operation, args, opts, \info);
+        }
+
+        #! makes the internal call and returns the deserialized response
+        /** @param operation the SOAP operation to use to serialize the request; if the operation is not known to the underlying @ref WSDL::WebService "WebService" class, an exception will be thrown
+            @param args the arguments to the SOAP operation
+            @param opts an optional hash of options for the call as follows:
+            - \c soap_header: a hash giving SOAP header information, if required by the message
+            - \c http_header: a hash giving HTTP header information to include in the message (does not override automatically-generated SOAP message headers)
+            - \c xml_opts: an integer XML generation option code; see @ref xml_generation_constants for possible values; combine multiple codes with binary or (\c |)
+            - \c soapaction: an optional string that will override the SOAPAction for the request; en empty string here will prevent the SOAPAction from being sent
+            @param info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers); the following keys are present in this hash:
+            - \c "headers": a hash of HTTP request headers
+            - \c "request-uri": the request URI string (ex: \c "POST /services/Soap/c/29.0 HTTP/1.1")
+            - \c "response-uri": the response URI string (ex: \c "HTTP/1.1 200 OK")
+            - \c "charset": the character encoding string (ex: \c "UTF-8")
+            - \c "body-content-type": the \c Content-Type of the response without any \c charset declaration
+            - \c "accept-charset": the valus of any \c Accept-Charset header in the response
+            - \c "response-headers": a hash of HTTP response headers
+            - \c "response-body": the raw XML response body (in case content encoding is used, this is the decoded value)
+            - \c "request-body": the raw XML request body
+            - \c "request-soap-headers": an optional hash of SOAP headers used in the request (if applicable)
+
+            @return a hash with the following keys:
+            - \c hdr: a hash of message headers
+            - \c body: the serialized message body
+
+            @throw WSDL-OPERATION-ERROR the operation is not defined in the WSDL
+            @throw HTTP-CLIENT-RECEIVE-ERROR this exception is thrown when the SOAP server returns an HTTP error code; if a SOAP fault is returned, then it is deserialized and returned in the \a arg key of the exception hash
+
+            @note this method can throw any exception that @ref Qore::HTTPClient::send() "HTTPClient::send()" can throw as well as any XML parsing errors thrown by @ref Qore::XML::parse_xml() "parse_xml()"
+         */
+        private any callIntern(string operation, any args, *hash opts, *reference info) {
+            # add session ID to SOAP call header
+            if (sessionid)
+                opts.soap_header.sessionId = sessionid;
+            opts.soapaction = soapaction;
+
+            return sc.callOperation(operation, args, opts, \info);
+        }
+
+        #! makes a server call with the given operation and arguments and returns the deserialized result
+        /** @param operation the operation name for the SOAP call
+            @param h the operation parameter(s)
+            @param header optional soap headers (if required by the operation)
+
+            @return the deserialized result of the SOAP call to the SOAP server
+        */
+        any call(string operation, any args, *hash header) {
+            return callOperation(operation, args, ("soap_header": header));
+        }
+
+        #! makes a server call with the given operation and arguments and returns the deserialized result
+        /** @param operation the operation name for the SOAP call
+            @param args the arguments to the SOAP operation
+            @param info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers); the following keys are present in this hash:
+            - \c "headers": a hash of HTTP request headers
+            - \c "request-uri": the request URI string (ex: \c "POST /services/Soap/c/29.0 HTTP/1.1")
+            - \c "response-uri": the response URI string (ex: \c "HTTP/1.1 200 OK")
+            - \c "charset": the character encoding string (ex: \c "UTF-8")
+            - \c "body-content-type": the \c Content-Type of the response without any \c charset declaration
+            - \c "accept-charset": the valus of any \c Accept-Charset header in the response
+            - \c "response-headers": a hash of HTTP response headers
+            - \c "response-body": the raw XML response body (in case content encoding is used, this is the decoded value)
+            - \c "request-body": the raw XML request body
+            - \c "request-soap-headers": an optional hash of SOAP headers used in the request (if applicable)
+
+            @return the deserialized result of the SOAP call to the SOAP server
+        */
+        any call(string operation, any args, reference info) {
+            return callOperation(operation, args, NOTHING, \info);
+        }
+
+        #! makes a server call with the given operation and arguments and returns the deserialized result with an output argument giving technical information about the call
+        /** @param info an optional reference to return a hash of technical information about the SOAP call (raw message info and headers); the following keys are present in this hash:
+            - \c "headers": a hash of HTTP request headers
+            - \c "request-uri": the request URI string (ex: \c "POST /services/Soap/c/29.0 HTTP/1.1")
+            - \c "response-uri": the response URI string (ex: \c "HTTP/1.1 200 OK")
+            - \c "charset": the character encoding string (ex: \c "UTF-8")
+            - \c "body-content-type": the \c Content-Type of the response without any \c charset declaration
+            - \c "accept-charset": the valus of any \c Accept-Charset header in the response
+            - \c "response-headers": a hash of HTTP response headers
+            - \c "response-body": the raw XML response body (in case content encoding is used, this is the decoded value)
+            - \c "request-body": the raw XML request body
+            - \c "request-soap-headers": an optional hash of SOAP headers used in the request (if applicable)
+            @param operation the operation name for the SOAP call
+            @param args the arguments to the SOAP operation
+            @param header optional soap headers (if required by the operation)
+
+            @return the deserialized result of the SOAP call to the SOAP server
+        */
+        any call(reference info, string operation, any args, *hash header) {
+            return callOperation(operation, args, ("soap_header": header), \info);
+        }
+
+        nothing setWarningQueue(int warning_ms, int warning_bs, Queue queue, any arg, timeout min_ms = 1s) {
+            lck.lock();
+            on_exit lck.unlock();
+
+            sc.setWarningQueue(warning_ms, warning_bs, queue, arg, min_ms);
+        }
+
+        nothing clearWarningQueue() {
+            lck.lock();
+            on_exit lck.unlock();
+
+            sc.clearWarningQueue();
+        }
+
+        #! returns a hash that can be used to ensure serialization with the XSD type given as the \a type argument
+        hash getType(string type, any v) {
+            return sc.getType(type, v);
+        }
+
+        #! uses SalesforceSoapClient::call() to transparently serialize the argument and make a call to the given operation and return the deserialized results
+        /** @param op the operation name, which is the method name passed to methodGate()
+            @param arg a list or arguments or a single argument (or NOTHING) for the operation
+
+            @return the deserialized result of the SOAP call to the SOAP server
+        */
+        any methodGate(string op, any arg) {
+            return call(op, arg);
+        }
+
+        private logoutIntern() {
+            callIntern("logout");
+            sc.log("logged out of %y", sc.url);
+            logged_in = False;
+            delete serverurl;
+            delete sessionid;
+        }
+
+        # must be called with the lock held
+        private loginIntern() {
+            hash lh = self.("username", "password");
+            lh.password += token;
+
+            lh = callIntern("login", lh).result;
+            serverurl = lh.serverUrl;
+            sessionid = lh.sessionId;
+
+            sc.log("logged in to %y: serverurl: %y sessionid: %y", sc.url, serverurl, sessionid);
+            logged_in = True;
+
+            # disconnect and set new URL
+            sc.disconnect();
+            sc.url = serverurl;
+            sc.setURL(serverurl);
+        }
+    }
+}
