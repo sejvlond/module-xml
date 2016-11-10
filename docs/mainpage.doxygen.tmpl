@@ -261,13 +261,9 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
 
     @section xmlreleasenotes Release Notes
 
-    @subsection xml133 xml Module Version 1.3.3
+    @subsection xml131 xml Module Version 1.3.1
     <b>Changes and Bug Fixes in This Release</b>
-    - fixed a typo in a debug logging statement (<a href="https://github.com/qorelanguage/qore/issues/1358">issue 1358</a>)
-    - fixed and documented the "info" output hash format (<a href="https://github.com/qorelanguage/qore/issues/1359">issue 1359</a>)
-
-    @subsection xml132 xml Module Version 1.3.2
-    <b>Changes and Bug Fixes in This Release</b>
+    - fixed a memory leak in XML-RPC parsing (<a href="https://github.com/qorelanguage/qore/issues/1214">issue 1214</a>)
     - <a href="../../WSDL/html/index.html">WSDL</a> fixes and enhancements:
       - supress emitting a SOAPAction header in requests if the binding gives an empty string (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
       - updated \c WSOperation::serializeRequest() to allow the SOAPAction header to be overridden in each request (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
@@ -276,11 +272,9 @@ printf("%s\n", make_xml($h, XGF_ADD_FORMATTING));@endcode
     - <a href="../../SoapClient/html/index.html">SoapClient</a> fixes and enhancements:
       - added the \c SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
       - updated SOAP response processing to throw an exception when the server responds with an error code (<a href="https://github.com/qorelanguage/qore/issues/1228">issue 1228</a>)
-      - Content-type in exceptional cases follows Soap version (<a href="https://github.com/qorelanguage/qore/issues/1244">issue 1244</a>)
-
-    @subsection xml131 xml Module Version 1.3.1
-    <b>Changes and Bug Fixes in This Release</b>
-    - fixed a memory leak in XML-RPC parsing (<a href="https://github.com/qorelanguage/qore/issues/1214">issue 1214</a>)
+      - content-type in exceptional cases follows Soap version (<a href="https://github.com/qorelanguage/qore/issues/1244">issue 1244</a>)
+      - fixed a typo in a debug logging statement (<a href="https://github.com/qorelanguage/qore/issues/1358">issue 1358</a>)
+      - fixed and documented the "info" output hash format (<a href="https://github.com/qorelanguage/qore/issues/1359">issue 1359</a>)
 
     @subsection xml13 xml Module Version 1.3
     <b>Changes and Bug Fixes in This Release</b>
