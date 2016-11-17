@@ -70,7 +70,7 @@ module SoapHandler {
     @section soaphandler_relnotes SoapHandler Release History
 
     @subsection soaphandler_0_2_6 SoapHandler 0.2.6
-    - added support for logging content of HTML messages
+    - added support for logging content of SOAP messages
 
     @subsection soaphandler_0_2_5 SoapHandler 0.2.5
     - added support for matching requests with soap action values
@@ -304,8 +304,21 @@ public namespace SoapHandler {
             call_function_args(cx.logfunc, msg);
         }
 
-        /** log message passed into hash with keys 'reason' (request/response/error), 'code' in case of error, 'header', 'body'.
-            Method is to be overriden to implement custom logging.
+        /** Method is to be overriden to implement custom logging HTTP messages handled by this object.
+            @par cx context passed from @ref HttpServer::HttpServer "HttpServer"
+            @par msg information about message to be logged. There are keys 'reason' with value 'request', 'response' or 'error',
+                 'header' (HTTP header, in casew ) and 'body' containing XML data in readable form, i.e. uncompressed and in case of
+                 multipart message only the related part is passed. Method is executed before message is sent or after 
+                 has been received. Do not allow exception raising in method not to interrupt handler function.
+
+            @par Example:
+            @code{.py}
+private nothing msglog(hash cx, hash msg) {
+    log(sprintf("%s:\n%s\n", msg.reason, msg.body));
+}
+            @endcode
+
+            @since %SoapClient 0.2.6
         */
         private/*:hierarchy*/ nothing msglog(hash cx, hash msg) {
             # implement functionality in descendant class

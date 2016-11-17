@@ -92,8 +92,8 @@ any result = sc.call("SubmitDocument", msg);
 
     @section soapclientrelnotes SoapClient Release Notes
 
-    @subsection soapclient_0_2_6 SoapClient v0.2.6
-    - added support for logging content of HTML messages
+    @subsection soapclient_0_2_5 SoapClient v0.2.5
+    - added support for logging content of SOAP messages
 
     @subsection soapclient_0_2_4_1 SoapClient v0.2.4.1
     - added the @ref SoapClient::SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
@@ -586,8 +586,20 @@ hash h = soap.getDefaultHeaders();
             if (dbglogc)
                 call_function(dbglogc, "SoapClient: " + trim(vsprintf(msg, argv)));
         }
-        /** log message passed into hash with keys 'reason' (request/response/error), 'code' in case of error, 'header', 'body'. 
-            Method is to be overriden to implement custom logging.
+        /** Method is to be overriden to implement custom logging HTTP message sent and received from this object.
+            @par msg information about message to be logged. There are keys 'reason' with value 'request', 'response' or 'error',
+                 'header' (HTTP header, in casew ) and 'body' containing XML data in readable form, i.e. uncompressed and in case of
+                 multipart message only the related part is passed. Method is executed before message is sent or after
+                 has been received. Do not allow exception raising in method not to interrupt client function.
+
+            @par Example:
+            @code{.py}
+private nothing msglog(hash msg) {
+    log(sprintf("%s:\n%s\n", msg.reason, msg.body));
+}
+            @endcode
+
+            @since %SoapClient 0.2.5
         */
         private/*:hierarchy*/ nothing msglog(hash msg) {
             # implement functionality in descendant class
