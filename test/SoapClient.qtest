@@ -22,6 +22,7 @@
 
 %requires Util
 %requires xml
+%requires HttpServerUtil >= 0.3.11
 
 const DefaultPort = 0;
 
@@ -29,8 +30,22 @@ const DefaultPort = 0;
 
 const ResponseBody = ("result": 99.9);
 
+class TestSoapHandler inherits SoapHandler {
+    public {
+        list msglogs;
+    }
+    constructor(HttpServer::AbstractAuthenticator auth, *code n_getLogMessage, bool dbg = False): SoapHandler(auth, n_getLogMessage, dbg) {}
+
+    nothing msglog(hash cx, hash msg) {
+        push msglogs, msg;
+    }
+}
+
 class TestSoapServer inherits HttpServer {
-    public {}
+
+    public {
+        TestSoapHandler soap;
+    }
 
     private {
         int verbose;
@@ -40,7 +55,7 @@ class TestSoapServer inherits HttpServer {
         self.verbose = verbose;
 
         # setup SOAP handler
-        SoapHandler soap(new PermissiveAuthenticator(), NOTHING, verbose > 2);
+        soap = new TestSoapHandler(new PermissiveAuthenticator(), NOTHING, verbose > 2);
         setDefaultHandler("soap", soap);
 
         # setup operation handler
@@ -68,10 +83,22 @@ class TestSoapServer inherits HttpServer {
         if (verbose > 2)
             vprintf(fmt + "\n", argv);
     }
+
+}
+
+class TestSoapClient inherits SoapClient {
+    public {
+        list msglogs;
+    }
+    constructor(hash h): SoapClient(h) {}
+    nothing msglog(hash msg) {
+        push msglogs, msg;
+    }
 }
 
 class SoapClientTest inherits QUnit::Test {
     public {
+        TestSoapServer server;
     }
 
     private {
@@ -80,6 +107,7 @@ class SoapClientTest inherits QUnit::Test {
         #! command-line options
         const MyOpts = Opts + (
             "port": "p,port=i",
+            "verbose": "v,verbose=i",
             );
 
         const OptionColumn = 25;
@@ -90,7 +118,7 @@ class SoapClientTest inherits QUnit::Test {
         WebService ws(WSDLLib::getFileFromURL(WsdlUrl));
 
         # start SOAP server server
-        TestSoapServer server(ws, m_options.port ?? DefaultPort, m_options.verbose);
+        server = new TestSoapServer(ws, m_options.port ?? DefaultPort, m_options.verbose);
         on_exit server.stop();
         serverPort = server.getListenerInfo(0).port;
 
@@ -103,23 +131,42 @@ class SoapClientTest inherits QUnit::Test {
     soapClientTest() {
         string url = sprintf("http://%s:%d", gethostname(), serverPort);
         #printf("url: %y\n", url);
-        SoapClient sc(("wsdl": WsdlUrl, "url": url));
+        TestSoapClient sc(("wsdl": WsdlUrl, "url": url));
 
         hash h = sc.callOperation("getInfo", ("GetInfo": ("tickerSymbol": "ABC")), ("soapaction": ""));
         assertEq(99.9, h.body.result);
         assertEq("ABC", h.docs);
         assertEq(binary(), h.logo);
+        assertEq("request", sc.msglogs[0].reason);
+        assertEq(True, sc.msglogs[0].body =~ /GetInfo/);
+        assertEq("response", sc.msglogs[1].reason);
+        assertEq(True, sc.msglogs[1].body =~ /GetInfoResult/);
+        assertEq(server.soap.msglogs[0].('reason', 'code', 'body'), sc.msglogs[0].('reason', 'code', 'body'));
+        assertEq(server.soap.msglogs[1].('reason', 'code', 'body'), sc.msglogs[1].('reason', 'code', 'body'));
+
+        sc.msglogs = ();
+        server.soap.msglogs = ();
 
         h = sc.callOperation("getInfo", ("GetInfo": ("tickerSymbol": "QOR")), ("soapaction": "TestAction"));
         assertEq(99.9, h.body.result);
         assertEq("QOR", h.docs);
         assertEq(binary("TestAction"), h.logo);
 
+        sc.msglogs = ();
+        server.soap.msglogs = ();
+
         assertThrows("HTTP-CLIENT-RECEIVE-ERROR", \sc.callOperation(), ("getInfo", ("GetInfo": ("tickerSymbol": "ERR"))));
+        assertEq("error", sc.msglogs[1].reason);
+        assertEq(500, sc.msglogs[1].code);
+        assertEq(True, sc.msglogs[1].body =~ /Fault/);
+        assertEq(server.soap.msglogs[0].('reason', 'code', 'body'), sc.msglogs[0].('reason', 'code', 'body'));
+        assertEq(server.soap.msglogs[1].('reason', 'code', 'body'), sc.msglogs[1].('reason', 'code', 'body'));
+
         assertThrows("WSDL-OPERATION-ERROR", \sc.callOperation(), "xxx");
 
         WebService ws(WSDLLib::getWSDL(WsdlUrl));
-        sc = new SoapClient(("wsdl": ws));
+        sc = new TestSoapClient(("wsdl": ws));
         assertEq(True, sc instanceof SoapClient, "issue 1424");
     }
 }
+
