@@ -38,7 +38,7 @@
 %new-style
 
 module SoapClient {
-    version = "0.2.4.1";
+    version = "0.2.6";
     desc = "SoapClient module";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
@@ -91,6 +91,9 @@ any result = sc.call("SubmitDocument", msg);
     - \c "timeout"
 
     @section soapclientrelnotes SoapClient Release Notes
+
+    @subsection soapclient_0_2_6 SoapClient v0.2.6
+    - added support for logging content of HTML messages
 
     @subsection soapclient_0_2_4_1 SoapClient v0.2.4.1
     - added the @ref SoapClient::SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
@@ -410,7 +413,7 @@ public namespace SoapClient {
             # we have to write the request key after the HTTPClient::post() call but before the log message above
             # (on_exit statements are executed in reverse order when the block is exited)
             on_exit info += ("request-body": msg.body, "request-soap-headers": header);
-
+            msglog(('reason': 'request', 'header': hdr, 'body': msg.body));
             # apply content encoding here
             data body = msg.body;
             if (seh.ce && body.size() > CompressionThreshold) {
@@ -425,12 +428,18 @@ public namespace SoapClient {
             }
             catch (hash ex) {
                 # allow fault responses returned with a 500-series status code to be processed as a SOAP fault so that error information is returned in the exception
-                if (ex.err == "HTTP-CLIENT-RECEIVE-ERROR" && ex.arg.status_code >= 500 && ex.arg.status_code < 600 && ex.arg.body =~ /<\?xml.*Fault/)
-                    info."response-body" = ex.arg.body;
+                if (ex.err == "HTTP-CLIENT-RECEIVE-ERROR") {
+                    if (ex.arg.status_code >= 500 && ex.arg.status_code < 600 && ex.arg.body =~ /<\?xml.*Fault/) {
+                        info."response-body" = ex.arg.body;
+                    }
+                    msglog(('reason': 'error', 'code': ex.arg.status_code, 'header': ex.arg.header, 'body': ex.arg.body));
+                }
                 rethrow;
             }
 
-            hash xmldata = WSDLLib::parseSOAPMessage(rh);
+            hash rmsg = WSDLLib::parseMultiPartSOAPMessage(rh);
+            msglog(('reason': 'response', 'header': rmsg.header, 'body': rmsg.body));
+            hash xmldata = WSDLLib::parseSOAPMessage(rmsg);
             #printf("DEBUG ans: %s\n", rh);
             return op.deserializeResponse(xmldata);
         }
@@ -576,6 +585,12 @@ hash h = soap.getDefaultHeaders();
         dbglog(string msg) {
             if (dbglogc)
                 call_function(dbglogc, "SoapClient: " + trim(vsprintf(msg, argv)));
+        }
+        /** log message passed into hash with keys 'reason' (request/response/error), 'code' in case of error, 'header', 'body'. 
+            Method can be overriden to implement custom logging.
+        */
+        nothing msglog(hash msg) {
+            dbglog(sprintf('%y', msg));
         }
     }
 }
