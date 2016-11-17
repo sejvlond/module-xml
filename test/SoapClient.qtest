@@ -107,7 +107,6 @@ class SoapClientTest inherits QUnit::Test {
         #! command-line options
         const MyOpts = Opts + (
             "port": "p,port=i",
-            "verbose": "verbose=i",  # do not add "v" because Jenkins raises short option requires argument
             );
 
         const OptionColumn = 25;
