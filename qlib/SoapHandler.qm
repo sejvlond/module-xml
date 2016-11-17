@@ -50,7 +50,7 @@
 %strict-args
 
 module SoapHandler {
-    version = "0.2.6";
+    version = "0.2.5";
     desc = "SoapHandler module";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
@@ -69,15 +69,13 @@ module SoapHandler {
 
     @section soaphandler_relnotes SoapHandler Release History
 
-    @subsection soaphandler_0_2_6 SoapHandler 0.2.6
-    - added support for logging content of SOAP messages
-
     @subsection soaphandler_0_2_5 SoapHandler 0.2.5
     - added support for matching requests with soap action values
     - added the err_func argument so SOAP response serialization errors can be logged at the source
     - added support for debugging (verbose exception info/logging)
     - fixes to service creation and GET WSDL handling
     - Content-type in exceptional cases follows Soap version
+    - added support for logging content of SOAP messages
 
     @subsection soaphandler_0_2_4 SoapHandler 0.2.4
     - updated to a user module
@@ -103,7 +101,7 @@ public namespace SoapHandler {
     #! SoapHandler implementation; to be registered as a request handler in the HttpServer class
     public class SoapHandler inherits public AbstractHttpRequestHandler {
         #! version of the SoapHandler implementation
-        const Version = "0.2.6";
+        const Version = "0.2.5";
 
         #! @cond nodoc
         private {
