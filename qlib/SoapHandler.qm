@@ -305,14 +305,14 @@ public namespace SoapHandler {
         }
 
         /** log message passed into hash with keys 'reason' (request/response/error), 'code' in case of error, 'header', 'body'.
-            Method can be overriden to implement custom logging.
+            Method is to be overriden to implement custom logging.
         */
-        nothing msglog(hash cx, hash msg) {
-            log(cx, sprintf('%y', msg));
+        private/*:hierarchy*/ nothing msglog(hash cx, hash msg) {
+            # implement functionality in descendant class
         }
 
         # don't reimplement this method; fix/enhance it in the module
-        private string makeSoapFaultResponse(hash cx, int code, string errLog, bool soap12, string err, string desc, *bool fmt) {
+        private hash makeSoapFaultResponse(hash cx, int code, string errLog, bool soap12, string err, string desc, *bool fmt) {
             hash o;
             if (soap12) {
                 o = ENVELOPE_12_NS;

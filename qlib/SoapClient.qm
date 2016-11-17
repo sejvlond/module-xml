@@ -587,10 +587,10 @@ hash h = soap.getDefaultHeaders();
                 call_function(dbglogc, "SoapClient: " + trim(vsprintf(msg, argv)));
         }
         /** log message passed into hash with keys 'reason' (request/response/error), 'code' in case of error, 'header', 'body'. 
-            Method can be overriden to implement custom logging.
+            Method is to be overriden to implement custom logging.
         */
-        nothing msglog(hash msg) {
-            dbglog(sprintf('%y', msg));
+        private/*:hierarchy*/ nothing msglog(hash msg) {
+            # implement functionality in descendant class
         }
     }
 }
