@@ -103,7 +103,7 @@ public namespace SoapHandler {
     #! SoapHandler implementation; to be registered as a request handler in the HttpServer class
     public class SoapHandler inherits public AbstractHttpRequestHandler {
         #! version of the SoapHandler implementation
-        const Version = "0.2.5";
+        const Version = "0.2.6";
 
         #! @cond nodoc
         private {
