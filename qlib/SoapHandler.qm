@@ -316,7 +316,7 @@ private nothing msglog(hash cx, hash msg) {
 }
             @endcode
 
-            @since %SoapClient 0.2.5
+            @since %SoapHandler 0.2.5
         */
         private/*:hierarchy*/ nothing msglog(hash cx, hash msg) {
             # implement functionality in descendant class
