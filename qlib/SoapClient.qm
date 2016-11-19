@@ -38,7 +38,7 @@
 %new-style
 
 module SoapClient {
-    version = "0.2.4.2";
+    version = "0.2.4.1";
     desc = "SoapClient module";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
@@ -53,7 +53,7 @@ module SoapClient {
 
     The SoapClient module implements a minimal SOAP client using WSDL, XSD, SOAP support implemented in the WSDL module.
 
-    Create outgoing request messages by setting up a Qore data structure corresponding to the SOAP message.  Exceptions will be thrown if either the outgoing or the response message do not corespond to the WSDL.   The exceptions should be fairly verbose to allow you to quickly correct any mistakes.
+    Create outgoing request messages by setting up a Qore data structure corresponding to the SOAP message.  Exceptions will be thrown if either the outgoing or the response message do not corespond to the WSDL.  The exceptions should be fairly verbose to allow you to quickly correct any mistakes.
 
     Currently the WSDL implementation is fairly basic so any messages using unimplemented features of SOAP or XSD will fail.
 
@@ -92,13 +92,12 @@ any result = sc.call("SubmitDocument", msg);
 
     @section soapclientrelnotes SoapClient Release Notes
 
-    @subsection soapclient_0_2_4_2 SoapClient v0.2.4.2
-    - fixed a typo in a debug logging statement (<a href="https://github.com/qorelanguage/qore/issues/1358">issue 1358</a>)
-    - fixed and documented the "info" output hash format (<a href="https://github.com/qorelanguage/qore/issues/1359">issue 1359</a>)
-
     @subsection soapclient_0_2_4_1 SoapClient v0.2.4.1
     - added the @ref SoapClient::SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
     - updated SOAP response processing to throw an exception when the server responds with an error code (<a href="https://github.com/qorelanguage/qore/issues/1228">issue 1228</a>)
+    - fixed a typo in a debug logging statement (<a href="https://github.com/qorelanguage/qore/issues/1358">issue 1358</a>)
+    - fixed and documented the "info" output hash format (<a href="https://github.com/qorelanguage/qore/issues/1359">issue 1359</a>)
+    - fixed a bug in the SoapClient::constructor() where a WebService object was not supported (<a href="https://github.com/qorelanguage/qore/issues/1424">issue 1424</a>)
 
     @subsection soapclient_0_2_4 SoapClient v0.2.4
     - handle SOAP fault messages returned with 500-series error codes as Fault messages
@@ -121,7 +120,7 @@ public namespace SoapClient {
     #! SOAP client class implementation, publically inherits qore's HTTPClient class
     public class SoapClient inherits HTTPClient {
         #! version of the implementation of this class
-        const Version = "0.2.4.2";
+        const Version = "0.2.4.1";
 
         #! default HTTP headers
         const Headers = ("Accept": (MimeTypeSoapXml + "," + MimeTypeXml + "," + MimeTypeXmlApp), "User-Agent": ("Qore-Soap-Client/" + SoapClient::Version));
@@ -200,20 +199,25 @@ public namespace SoapClient {
             if (h.event_queue)
                 setEventQueue(h.event_queue);
 
-            *string def_path;
-            any twsdl;
-            # get web service definition
-            if (exists h.wsdl_file)
-                twsdl = WSDLLib::getWSDL(h.wsdl_file, self, h.headers, \def_path);
-            else if (exists h.wsdl)
-                twsdl = WSDLLib::getWSDL(h.wsdl, self, h.headers, \def_path);
-            else
-                throw "SOAP-CLIENT-ERROR", "neither one of required 'wsdl' or 'wsdl_file' keys is present in the hash argument to SoapClient::constructor()";
+            if (h.wsdl instanceof WebService) {
+                wsdl = h.wsdl;
+            }
+            else {
+                *string def_path;
+                any twsdl;
+                # get web service definition
+                if (exists h.wsdl_file)
+                    twsdl = WSDLLib::getWSDL(h.wsdl_file, self, h.headers, \def_path);
+                else if (exists h.wsdl)
+                    twsdl = WSDLLib::getWSDL(h.wsdl, self, h.headers, \def_path);
+                else
+                    throw "SOAP-CLIENT-ERROR", "neither one of required 'wsdl' or 'wsdl_file' keys is present in the hash argument to SoapClient::constructor()";
 
-            if (!exists twsdl)
-                throw "SOAP-CLIENT-ERROR", "missing wsdl in SoapClient::constructor()";
+                if (!exists twsdl)
+                    throw "SOAP-CLIENT-ERROR", "missing wsdl in SoapClient::constructor()";
 
-            wsdl = twsdl = twsdl instanceof WebService ? twsdl : new WebService(twsdl, ("http_client" : self, "http_headers" : h.headers, "def_path": def_path) + h.wsdl_opt);
+                wsdl = twsdl = twsdl instanceof WebService ? twsdl : new WebService(twsdl, ("http_client" : self, "http_headers" : h.headers, "def_path": def_path) + h.wsdl_opt);
+            }
 
             # set service
             # get list of services in this wsdl
