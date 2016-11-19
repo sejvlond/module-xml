@@ -106,12 +106,6 @@ rm -rf $RPM_BUILD_ROOT
 * Thu Oct 20 2016 David Nichols <david@qore.org> - 1.4
 - updated to version 1.4
 
-* Thu Oct 20 2016 David Nichols <david@qore.org> - 1.3.3
-- updated to version 1.3.3
-
-* Thu Sep 8 2016 David Nichols <david@qore.org> - 1.3.2
-- updated to version 1.3.2
-
 * Mon Sep 5 2016 David Nichols <david@qore.org> - 1.3.1
 - updated to version 1.3.1
 
