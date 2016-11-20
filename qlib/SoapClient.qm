@@ -65,7 +65,7 @@ module SoapClient {
     @section Example
 
     Here is an example of how to use this module:
-    @code
+    @code{.py}
 %requires SoapClient
 SoapClient sc = new SoapClient(("wsdl" : "http://soap.server.org:8080/my-service?wsdl"));
 hash msg = getMessage();

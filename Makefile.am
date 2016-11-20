@@ -41,14 +41,15 @@ ACLOCAL_AMFLAGS=-I m4
 dist_mod_DATA = $(USER_MODULES)
 
 if COND_DOXYGEN
-DOX = xml SoapClient SoapHandler WSDL XmlRpcHandler
-DOXYGEN_OUTPUT=docs/xml/html docs/XmlRpcHandler/html docs/WSDL/html docs/SoapClient/html docs/SoapHandler/html
+DOX = xml SoapClient SoapHandler WSDL XmlRpcHandler SalesforceSoapClient
+DOXYGEN_OUTPUT=docs/xml/html docs/XmlRpcHandler/html docs/WSDL/html docs/SoapClient/html docs/SoapHandler/html docs/SalesforceSoapClient/html
 DOXYFILES = docs/doxyfile docs/mainpage.doxygen
 DOXYFILES_SRC = docs/doxyfile.tmpl docs/qlib/Doxyfile.tmpl docs/footer_template.html
 QLIB_TMP_DOXYFILES = docs/qlib/XmlRpcHandler.qm.dox.h docs/qlib/Doxyfile.XmlRpcHandler \
 	docs/qlib/SoapClient.qm.dox.h docs/qlib/Doxyfile.SoapClient \
 	docs/qlib/SoapHandler.qm.dox.h docs/qlib/Doxyfile.SoapHandler \
-	docs/qlib/WSDL.qm.dox.h docs/qlib/Doxyfile.WSDL
+	docs/qlib/WSDL.qm.dox.h docs/qlib/Doxyfile.WSDL \
+	docs/qlib/SalesforceSoapClient.qm.dox.h docs/qlib/Doxyfile.SalesforceSoapClient
 QDX = qdx
 DX_CLEANFILES = ${DOXYFILES} $(QLIB_TMP_DOXYFILES)
 
@@ -61,6 +62,16 @@ docs/qlib/SoapClient.qm.dox.h: qlib/SoapClient.qm
 docs/SoapClient/html: docs/qlib/SoapClient.qm.dox.h docs/qlib/Doxyfile.SoapClient
 	cd docs; $(DOXYGEN_CMD) qlib/Doxyfile.SoapClient
 	$(QDX) --post docs/SoapClient/html docs/SoapClient/html/search
+
+docs/qlib/Doxyfile.SalesforceSoapClient: docs/qlib/Doxyfile.tmpl
+	$(QDX) -M=qlib/SalesforceSoapClient.qm:qlib/SalesforceSoapClient.qm.dox.h -txml.tag=../../xml/html -tWSDL.tag=../../WSDL/html -tSoapClient.tag=../../SoapClient/html $< $@
+
+docs/qlib/SalesforceSoapClient.qm.dox.h: qlib/SalesforceSoapClient.qm
+	$(QDX) $< $@
+
+docs/SalesforceSoapClient/html: docs/qlib/SalesforceSoapClient.qm.dox.h docs/qlib/Doxyfile.SalesforceSoapClient
+	cd docs; $(DOXYGEN_CMD) qlib/Doxyfile.SalesforceSoapClient
+	$(QDX) --post docs/SalesforceSoapClient/html docs/SalesforceSoapClient/html/search
 
 docs/qlib/Doxyfile.SoapHandler: docs/qlib/Doxyfile.tmpl
 	$(QDX) -M=qlib/SoapHandler.qm:qlib/SoapHandler.qm.dox.h $< $@
