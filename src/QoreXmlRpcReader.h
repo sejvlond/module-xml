@@ -26,7 +26,9 @@
 
 #include "QoreXmlReader.h"
 
-namespace { // make classes local
+namespace Qore {
+namespace Xml {
+namespace intern { // make classes local
    class XmlRpcValue {
    private:
       QoreValue val;
@@ -69,9 +71,10 @@ namespace { // make classes local
       int depth;
       int vcount;
       int cdcount;
+      int commentcount;
 
       DLLLOCAL xml_node(AbstractQoreNode** n, int d)
-	 : node(n), next(0), depth(d), vcount(0), cdcount(0) {
+	 : node(n), next(0), depth(d), vcount(0), cdcount(0), commentcount(0) {
       }
    };
 
@@ -136,8 +139,16 @@ namespace { // make classes local
       DLLLOCAL void incCDataCount() {
 	 tail->cdcount++;
       }
+      DLLLOCAL int getCommentCount() const {
+	 return tail->commentcount;
+      }
+      DLLLOCAL void incCommentCount() {
+	 tail->commentcount++;
+      }
    };
-} // anonymous namespace
+}
+}
+}
 
 class QoreXmlRpcReader : public QoreXmlReader {
 public:
@@ -173,16 +184,16 @@ public:
       return 0;
    }
 
-   DLLLOCAL int getArray(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
-   DLLLOCAL int getStruct(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
-   DLLLOCAL int getString(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
-   DLLLOCAL int getBoolean(XmlRpcValue *v, ExceptionSink* xsink);
-   DLLLOCAL int getInt(XmlRpcValue *v, ExceptionSink* xsink);
-   DLLLOCAL int getDouble(XmlRpcValue *v, ExceptionSink* xsink);
-   DLLLOCAL int getDate(XmlRpcValue *v, ExceptionSink* xsink);
-   DLLLOCAL int getBase64(XmlRpcValue *v, ExceptionSink* xsink);
-   DLLLOCAL int getValueData(XmlRpcValue *v, const QoreEncoding* data_ccsid, bool read_next, ExceptionSink* xsink);
-   DLLLOCAL int getParams(XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
+   DLLLOCAL int getArray(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
+   DLLLOCAL int getStruct(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
+   DLLLOCAL int getString(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
+   DLLLOCAL int getBoolean(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getInt(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getDouble(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getDate(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getBase64(Qore::Xml::intern::XmlRpcValue *v, ExceptionSink* xsink);
+   DLLLOCAL int getValueData(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, bool read_next, ExceptionSink* xsink);
+   DLLLOCAL int getParams(Qore::Xml::intern::XmlRpcValue *v, const QoreEncoding* data_ccsid, ExceptionSink* xsink);
 };
 
 #endif
