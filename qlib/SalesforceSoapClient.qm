@@ -40,7 +40,7 @@ module SalesforceSoapClient {
     url = "http://qoretechnologies.com";
 }
 
-/** @mainpage SoapClient Module
+/** @mainpage SalesforceSoapClient Module
 
     @tableofcontents
 
