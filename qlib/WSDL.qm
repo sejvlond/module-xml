@@ -301,8 +301,8 @@ public class WSDL::WSDLLib {
         return WSDLLib::getFileFromURL(wsdl, "file", http_client, http_headers, NOTHING, NOTHING, \new_def_path);
     }
 
-    #! takes a hash representation of a SOAP message and parses it to a Qore data structure; handles multipart messages, checks the content-type, and handles hrefs in the message
-    static hash parseSOAPMessage(hash msg) {
+    #! takes a hash representation of a SOAP message and  handles multipart messages, checks the content-type, and handles hrefs in the message
+    static hash parseMultiPartSOAPMessage(hash msg) {
         if (exists msg."_qore_multipart") {
             if (msg."_qore_multipart" != "related")
                 throw "SOAP-MESSAGE-ERROR", sprintf("don't understand multipart/%s messages, expected multipart/related", msg."_qore_multipart");
@@ -370,20 +370,31 @@ public class WSDL::WSDLLib {
                     mpmsg.part{id} = p;
                 }
             }
-            # check content-type
-            WSDLLib::checkSOAPContentType(mpmsg.body.hdr."content-type");
-
-            #printf("part %d hh: %y\nbody: %s (%d)\n", i, hh, type(b), elements(b)); #exit();
-            hash xmldata = parse_xml(mpmsg.body.body);
-
-            # parse entire data structure to find "href"s or href attributes
-            WSDLLib::substHref(\xmldata, mpmsg.part);
-            return xmldata;
+            return {
+                'content-type': mpmsg.body.hdr."content-type",
+                'header': msg.header + mpmsg.body.hdr,
+                'body': mpmsg.body.body,
+                'parts': mpmsg.part,
+            };
+        } else {
+            return {
+                'content-type': msg."_qore_orig_content_type",
+                'header': msg.header,
+                'body': msg.body,
+            };
         }
+    }
 
-        WSDLLib::checkSOAPContentType(msg."_qore_orig_content_type");
-
-        return parse_xml(msg.body);
+    #! takes a hash representation returned by parseMultiPartSOAPMessage and parses it to a Qore data structure, checks the content-type, and handles hrefs in the message
+    static hash parseSOAPMessage(hash msg) {
+        # check content-type
+        WSDLLib::checkSOAPContentType(msg."content-type");
+        hash xmldata = parse_xml(msg.body);
+        if (msg.parts) {
+            # parse entire data structure to find "href"s or href attributes
+            WSDLLib::substHref(\xmldata, msg.parts);
+        }
+        return xmldata;
     }
 
     private static checkSOAPContentType(string ct) {
