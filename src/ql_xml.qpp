@@ -2484,4 +2484,72 @@ hash parseXMLRPCResponse(string xml, *string encoding) [flags=RET_VALUE_ONLY,DEP
  */
 nothing parseXMLRPCResponse() [flags=RUNTIME_NOOP,DEPRECATED] {
 }
+
+//! Helper function returning XML value.
+/** XML value parsed in hash where the value is referenced by element name as key. But when an attribute appears
+    in element or a comment is parsed (@ref XPF_ADD_COMMENTS) then nested hash is created and value appears under "^value^".
+	Note that only "^value^" is returned even when there are more values as result of @ref XPF_PRESERVE_ORDER flag.
+
+	@param n element data node of hash/simple type. When node is list or hash without value then result is nothing.
+
+    @par Example:
+    @code
+	string $xml = "
+		<elem attr="a1">
+		  <!-- comment -->
+		  My value
+		  <!-- comment 2 -->
+		  is splitted
+		</elem>
+	";
+	my hash $h = parse_xml($xml);
+	string $val = get_xml_value($xml.elem);
+	@endcode
+
+    @since xml 1.6
+ */
+*string get_xml_value(any n) [flags=RET_VALUE_ONLY] {
+	if (n.isNothing()) {
+		return reinterpret_cast<AbstractQoreNode*> (0);
+	}
+	SimpleRefHolder<QoreStringNode> str;
+
+	switch (n.getType()) {
+		case NT_HASH: {
+			const QoreHashNode* h = reinterpret_cast<const QoreHashNode*>(n.getInternalNode());
+			const AbstractQoreNode* v = h->getKeyValue("^value^");
+			if (is_nothing(v)) {
+				return reinterpret_cast<AbstractQoreNode*> (0);
+			}
+			switch (v->getType()) {
+				case NT_STRING:
+					// increment refeerence as we return part of hash
+					str = reinterpret_cast<QoreStringNode*>(v->refSelf());
+					break;
+				case NT_HASH:
+				case NT_LIST:
+					return reinterpret_cast<AbstractQoreNode*> (0);
+				default:
+					// cast as string
+					bool del;
+					const QoreString *qs = v->getAsString(del, -1, xsink);
+					str = new QoreStringNode(qs);
+			}
+			break;
+		}
+		case NT_STRING:
+			// just return parameter as-is, we need inc reference
+			str = reinterpret_cast<QoreStringNode*>(n.getInternalNode()->refSelf());
+			break;
+		case NT_LIST:
+			return reinterpret_cast<AbstractQoreNode*> (0);
+		default:
+			// cast as string
+			bool del;
+			const QoreString *qs = n.getAsString(del, -1, xsink);
+			str = new QoreStringNode(qs);
+	}
+	return str.release();
+}
+
 //@}
