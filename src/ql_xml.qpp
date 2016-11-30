@@ -2508,46 +2508,34 @@ nothing parseXMLRPCResponse() [flags=RUNTIME_NOOP,DEPRECATED] {
 
     @since xml 1.6
  */
-*string get_xml_value(any n) [flags=RET_VALUE_ONLY] {
+any get_xml_value(any n) [flags=CONSTANT] {
 	if (n.isNothing()) {
-		return reinterpret_cast<AbstractQoreNode*> (0);
+		return QoreValue();
 	}
-	SimpleRefHolder<QoreStringNode> str;
+	SimpleRefHolder<SimpleQoreNode> str;
 
 	switch (n.getType()) {
 		case NT_HASH: {
 			const QoreHashNode* h = reinterpret_cast<const QoreHashNode*>(n.getInternalNode());
 			const AbstractQoreNode* v = h->getKeyValue("^value^");
 			if (is_nothing(v)) {
-				return reinterpret_cast<AbstractQoreNode*> (0);
+				return QoreValue();
 			}
 			switch (v->getType()) {
-				case NT_STRING:
-					// increment refeerence as we return part of hash
-					str = reinterpret_cast<QoreStringNode*>(v->refSelf());
-					break;
 				case NT_HASH:
 				case NT_LIST:
-					return reinterpret_cast<AbstractQoreNode*> (0);
+					return QoreValue();
 				default:
-					// cast as string
-					bool del;
-					const QoreString *qs = v->getAsString(del, -1, xsink);
-					str = new QoreStringNode(qs);
+					str = reinterpret_cast<SimpleQoreNode*>(v->refSelf());
 			}
 			break;
 		}
-		case NT_STRING:
-			// just return parameter as-is, we need inc reference
-			str = reinterpret_cast<QoreStringNode*>(n.getInternalNode()->refSelf());
-			break;
 		case NT_LIST:
-			return reinterpret_cast<AbstractQoreNode*> (0);
+			return QoreValue();
 		default:
-			// cast as string
-			bool del;
-			const QoreString *qs = n.getAsString(del, -1, xsink);
-			str = new QoreStringNode(qs);
+			// just return parameter as-is, we need inc reference
+			str = reinterpret_cast<SimpleQoreNode*>(n.getInternalNode()->refSelf());
+			break;
 	}
 	return str.release();
 }

@@ -262,10 +262,10 @@ class XmlTest inherits QUnit::Test {
         assertEq(rec.listOfStrings[0], get_xml_value(rec.listOfStrings[0]), "get_xml_value list[0]");
         assertEq(rec.withAttributes."^value^", get_xml_value(rec.withAttributes), "get_xml_value withAttributes");
         assertEq(NOTHING, get_xml_value(rec.withAttributesNothing), "get_xml_value withAttributesNothing");
-        assertEq(string(rec.integer), get_xml_value(rec.integer), "get_xml_value integer");
-        assertEq("True", get_xml_value(rec.bool), "get_xml_value bool");
+        assertEq(rec.integer, get_xml_value(rec.integer), "get_xml_value integer");
+        assertEq(rec.bool, get_xml_value(rec.bool), "get_xml_value bool");
         assertEq(rec.multiValue."^value^", get_xml_value(rec.multiValue), "get_xml_value multivalue");  # core dump
-        assertEq(string(rec.integerValue."^value^"), get_xml_value(rec.integerValue), "get_xml_value integervalue");
+        assertEq(rec.integerValue."^value^", get_xml_value(rec.integerValue), "get_xml_value integervalue");
         assertEq(NOTHING, get_xml_value(rec.listValue), "get_xml_value listvalue");
         assertEq(NOTHING, get_xml_value(rec.hashValue), "get_xml_value hashvalue");
     }
