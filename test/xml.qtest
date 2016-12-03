@@ -68,6 +68,7 @@ class XmlTest inherits QUnit::Test {
         addTestCase("DeprecatedXmlTestCase", \deprecatedXmlTestCase());
         addTestCase("FileSaxIteratorTestCase", \fileSaxIteratorTestCase());
         addTestCase("XmlCommentTestCase", \xmlCommentTestCase());
+        addTestCase("get_xml_valueTestCase", \getXmlValueTestCase());
         set_return_value(main());
     }
 
@@ -230,5 +231,42 @@ class XmlTest inherits QUnit::Test {
 
         assertEq(xml, make_xml(rec, XGF_ADD_FORMATTING), "make_xml()");
         assertEq(rec, parse_xml(xml, XPF_PRESERVE_ORDER | XPF_ADD_COMMENTS), "parse_xml()");
+    }
+
+    getXmlValueTestCase() {
+        hash rec = (
+            "normal": "normal elem",
+            "nothing": NOTHING,
+            "listOfString": ( "list item1", "list item2"),
+            "withAtriibutes": (
+                "^attributes^": ("a": "a"),
+                "^value^": "value with attr",
+            ),
+            "withAttributesNothing": (
+                "^attributes^": ("a": "a"),
+            ),
+            "integer": 999,
+            "bool": True,
+            "multiValue": (
+                "^value^": "val1",
+                "^comment^": "aaa",
+                "^value2^": "val2",
+            ),
+            "integerValue": ("^value^": 888),
+            "listValue": ("^value^": (1,2)),
+            "hashValue": ("^value^": ("a":"a")),
+        );
+        assertEq(rec.normal, get_xml_value(rec.normal), "get_xml_value normal");  # coredump
+        assertEq(NOTHING, get_xml_value(rec.nothing), "get_xml_value nothing");
+        assertEq(NOTHING, get_xml_value(rec.listOfStrings), "get_xml_value list");
+        assertEq(rec.listOfStrings[0], get_xml_value(rec.listOfStrings[0]), "get_xml_value list[0]");
+        assertEq(rec.withAttributes."^value^", get_xml_value(rec.withAttributes), "get_xml_value withAttributes");
+        assertEq(NOTHING, get_xml_value(rec.withAttributesNothing), "get_xml_value withAttributesNothing");
+        assertEq(rec.integer, get_xml_value(rec.integer), "get_xml_value integer");
+        assertEq(rec.bool, get_xml_value(rec.bool), "get_xml_value bool");
+        assertEq(rec.multiValue."^value^", get_xml_value(rec.multiValue), "get_xml_value multivalue");  # core dump
+        assertEq(rec.integerValue."^value^", get_xml_value(rec.integerValue), "get_xml_value integervalue");
+        assertEq(NOTHING, get_xml_value(rec.listValue), "get_xml_value listvalue");
+        assertEq(NOTHING, get_xml_value(rec.hashValue), "get_xml_value hashvalue");
     }
 }
