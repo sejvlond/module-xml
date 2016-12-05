@@ -557,12 +557,19 @@ static bool hash_ok(const QoreHashNode* h) {
    while (hi.next()) {
       const char* k = hi.getKey();
       if (!k[0] || k[0] == '^')
-	 continue;
-
+         continue;
       if (++count > 1)
-	 break;
-   }
+         break;
+      const AbstractQoreNode *n = hi.getValue();
+      if (n->getType() == NT_LIST) {
+         // top level hash value of list type does not generate valid xml as one root element is mandatory
+         const QoreListNode *l = reinterpret_cast<const QoreListNode*>(n);
+         if (l->size() > 1) {
+            return false;
+         }
 
+      }
+   }
    return count == 1;
 }
 
@@ -1531,7 +1538,7 @@ string make_xml(string key, hash h, *int format, *string encoding) [flags=RET_VA
 string make_xml(hash h, *int format, *string encoding) [flags=RET_VALUE_ONLY] {
    if (!hash_ok(h)) {
       xsink->raiseException("MAKE-XML-STRING-PARAMETER-EXCEPTION",
-			    "this variant of make_xml() expects a hash with a single key for the top-level XML element name");
+			    "this variant of make_xml() expects a hash with a single key for the top-level XML element name without multi-list value");
       return 0;
    }
 
@@ -1573,7 +1580,7 @@ string makeXMLString(string key, hash h, *string encoding) [flags=RET_VALUE_ONLY
 string makeXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
    if (!hash_ok(h)) {
       xsink->raiseException("MAKE-XML-STRING-PARAMETER-EXCEPTION",
-			    "this variant of makeXMLString() expects a hash with a single key for the top-level XML element name");
+			    "this variant of makeXMLString() expects a hash with a single key for the top-level XML element name without multi-list value");
       return 0;
    }
 
@@ -1616,7 +1623,7 @@ string makeFormattedXMLString(string key, hash h, *string encoding) [flags=RET_V
 string makeFormattedXMLString(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATED] {
    if (!hash_ok(h)) {
       xsink->raiseException("MAKE-FORMATTED-XML-STRING-PARAMETER-EXCEPTION",
-			    "this variant of makeFormattedXMLString() expects a hash with a single key for the top-level XML element name");
+			    "this variant of makeFormattedXMLString() expects a hash with a single key for the top-level XML element name without multi-list value");
       return 0;
    }
 

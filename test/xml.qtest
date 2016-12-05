@@ -137,6 +137,9 @@ class XmlTest inherits QUnit::Test {
         hash underscore = ( "foo" : ("_underscore_test" : 1, ) );
         string underscoreResult = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><foo><_underscore_test>1</_underscore_test></foo>";
         assertEq(underscoreResult, make_xml(underscore), "_underscore_test");
+
+        assertThrows("MAKE-XML-STRING-PARAMETER-EXCEPTION", \make_xml(), ( ("a": 1, "b": 2)), "top-level multi hash");
+        assertThrows("MAKE-XML-STRING-PARAMETER-EXCEPTION", \make_xml(), ( ("a": (1, 2))), "top-level multi list");
     }
 
     deprecatedXmlTestCase() {
