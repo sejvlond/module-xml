@@ -7,7 +7,7 @@ QPP=qpp
 endif
 
 .qpp.cpp:
-	$(QPP) $<
+	$(QPP) -V $<
 
 GENERATED_SOURCES = QC_XmlDoc.cpp QC_XmlNode.cpp QC_XmlReader.cpp QC_XmlRpcClient.cpp QC_SaxIterator.cpp QC_FileSaxIterator.cpp ql_xml.cpp qc_option.cpp
 CLEANFILES = $(GENERATED_SOURCES)
