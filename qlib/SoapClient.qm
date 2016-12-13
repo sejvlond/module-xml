@@ -38,7 +38,7 @@
 %new-style
 
 module SoapClient {
-    version = "0.2.4.1";
+    version = "0.2.5";
     desc = "SoapClient module";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
@@ -92,6 +92,9 @@ any result = sc.call("SubmitDocument", msg);
 
     @section soapclientrelnotes SoapClient Release Notes
 
+    @subsection soapclient_0_2_5 SoapClient v0.2.5
+    - added support for logging content of SOAP messages
+
     @subsection soapclient_0_2_4_1 SoapClient v0.2.4.1
     - added the @ref SoapClient::SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
     - updated SOAP response processing to throw an exception when the server responds with an error code (<a href="https://github.com/qorelanguage/qore/issues/1228">issue 1228</a>)
@@ -120,7 +123,7 @@ public namespace SoapClient {
     #! SOAP client class implementation, publically inherits qore's HTTPClient class
     public class SoapClient inherits HTTPClient {
         #! version of the implementation of this class
-        const Version = "0.2.4.1";
+        const Version = "0.2.5";
 
         #! default HTTP headers
         const Headers = ("Accept": (MimeTypeSoapXml + "," + MimeTypeXml + "," + MimeTypeXmlApp), "User-Agent": ("Qore-Soap-Client/" + SoapClient::Version));
@@ -410,7 +413,7 @@ public namespace SoapClient {
             # we have to write the request key after the HTTPClient::post() call but before the log message above
             # (on_exit statements are executed in reverse order when the block is exited)
             on_exit info += ("request-body": msg.body, "request-soap-headers": header);
-
+            msglog(('reason': 'request', 'header': hdr, 'body': msg.body));
             # apply content encoding here
             data body = msg.body;
             if (seh.ce && body.size() > CompressionThreshold) {
@@ -425,12 +428,18 @@ public namespace SoapClient {
             }
             catch (hash ex) {
                 # allow fault responses returned with a 500-series status code to be processed as a SOAP fault so that error information is returned in the exception
-                if (ex.err == "HTTP-CLIENT-RECEIVE-ERROR" && ex.arg.status_code >= 500 && ex.arg.status_code < 600 && ex.arg.body =~ /<\?xml.*Fault/)
-                    info."response-body" = ex.arg.body;
+                if (ex.err == "HTTP-CLIENT-RECEIVE-ERROR") {
+                    if (ex.arg.status_code >= 500 && ex.arg.status_code < 600 && ex.arg.body =~ /<\?xml.*Fault/) {
+                        info."response-body" = ex.arg.body;
+                    }
+                    msglog(('reason': 'error', 'code': ex.arg.status_code, 'header': ex.arg.header, 'body': ex.arg.body));
+                }
                 rethrow;
             }
 
-            hash xmldata = WSDLLib::parseSOAPMessage(rh);
+            hash rmsg = WSDLLib::parseMultiPartSOAPMessage(rh);
+            msglog(('reason': 'response', 'header': rmsg.header, 'body': rmsg.body));
+            hash xmldata = WSDLLib::parseSOAPMessage(rmsg);
             #printf("DEBUG ans: %s\n", rh);
             return op.deserializeResponse(xmldata);
         }
@@ -576,6 +585,24 @@ hash h = soap.getDefaultHeaders();
         dbglog(string msg) {
             if (dbglogc)
                 call_function(dbglogc, "SoapClient: " + trim(vsprintf(msg, argv)));
+        }
+        /** Method is to be overriden to implement custom logging HTTP message sent and received from this object.
+            @par msg information about message to be logged. There are keys 'reason' with value 'request', 'response' or 'error',
+                 'header' (HTTP header, in casew ) and 'body' containing XML data in readable form, i.e. uncompressed and in case of
+                 multipart message only the related part is passed. Method is executed before message is sent or after
+                 has been received. Do not allow exception raising in method not to interrupt client function.
+
+            @par Example:
+            @code{.py}
+private nothing msglog(hash msg) {
+    log(sprintf("%s:\n%s\n", msg.reason, msg.body));
+}
+            @endcode
+
+            @since %SoapClient 0.2.5
+        */
+        private/*:hierarchy*/ nothing msglog(hash msg) {
+            # implement functionality in descendant class
         }
     }
 }
