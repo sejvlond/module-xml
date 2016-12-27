@@ -17,6 +17,8 @@ version 1.4
 * Added the XmlRpcConnection user module
 * SoapClient enhancements:
   + added the SoapConnection class
+* SalesforceSoapClient enhancements:
+  + added the SalesforceSoapConnection class
 
 
 *************
