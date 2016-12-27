@@ -76,7 +76,7 @@ module XmlRpcConnection {
 public namespace XmlRpcConnection {
     #! class for XML-RPC connections; returns @ref Qore::Xml::XmlRpcClient objects
     /** supports the following options:
-    - \c "http_version": HTTP version to use (\c "1.0" or \c "1.1", defaults to \c "1.1")
+        - \c "http_version": HTTP version to use (\c "1.0" or \c "1.1", defaults to \c "1.1")
         - \c "max_redirects": maximum redirects to support
         - \c "proxy": proxy URL to use
         - \c "timeout": transfer timeout to use in milliseconds
@@ -113,7 +113,7 @@ public namespace XmlRpcConnection {
 
         #! gets options
         /** @return returns a hash with the following supported options:
-        - \c "http_version": HTTP version to use (\c "1.0" or \c "1.1", defaults to \c "1.1")
+            - \c "http_version": HTTP version to use (\c "1.0" or \c "1.1", defaults to \c "1.1")
             - \c "max_redirects": maximum redirects to support
             - \c "proxy": proxy URL to use
             - \c "timeout": transfer timeout to use in milliseconds
