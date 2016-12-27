@@ -57,6 +57,7 @@ set(CPP_SRC
 )
 
 set(QMOD
+    qlib/SalesforceSoapClient.qm
     qlib/SoapClient.qm
     qlib/SoapHandler.qm
     qlib/WSDL.qm
