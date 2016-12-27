@@ -102,7 +102,7 @@ class SoapClientTest inherits QUnit::Test {
     }
 
     private {
-        const WsdlUrl = "file://" + get_script_dir() + "/test.wsdl";
+        const WsdlUrl = "file://" + normalize_dir(get_script_dir()) + "/test.wsdl";
 
         #! command-line options
         const MyOpts = Opts + (
@@ -110,6 +110,7 @@ class SoapClientTest inherits QUnit::Test {
             );
 
         const OptionColumn = 25;
+        string url;
         int serverPort;
     }
 
@@ -120,15 +121,17 @@ class SoapClientTest inherits QUnit::Test {
         server = new TestSoapServer(ws, m_options.port ?? DefaultPort, m_options.verbose);
         on_exit server.stop();
         serverPort = server.getListenerInfo(0).port;
+        url = sprintf("http://%s:%d", gethostname(), serverPort);
 
         # add test cases
         addTestCase("SoapClientTest", \soapClientTest());
+        addTestCase("SoapConnectionTest", \soapConnectionTest());
+
         # execute tests
         set_return_value(main());
     }
 
     soapClientTest() {
-        string url = sprintf("http://%s:%d", gethostname(), serverPort);
         #printf("url: %y\n", url);
         TestSoapClient sc(("wsdl": WsdlUrl, "url": url));
 
@@ -167,5 +170,18 @@ class SoapClientTest inherits QUnit::Test {
         sc = new TestSoapClient(("wsdl": ws));
         assertEq(True, sc instanceof SoapClient, "issue 1424");
     }
-}
 
+    soapConnectionTest() {
+        string conn_url = WsdlUrl;
+        conn_url =~ s/^file/soap/;
+
+        printf("conn_url: %y\n", conn_url);
+
+        SoapConnection conn("test", "test", conn_url, False, ("target_url": url), parse_url(conn_url));
+        SoapClient sc = conn.get();
+        hash h = sc.callOperation("getInfo", ("GetInfo": ("tickerSymbol": "ABC")), ("soapaction": ""));
+        assertEq(99.9, h.body.result);
+        assertEq("ABC", h.docs);
+        assertEq(binary(), h.logo);
+    }
+}
