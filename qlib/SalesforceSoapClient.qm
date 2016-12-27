@@ -490,7 +490,10 @@ public namespace SalesforceSoapClient {
         private synchronized WSDL::WebService getWsdlFromCache(string path) {
             *hash h = cache{path};
             # get mtime of file
-            date mtime = hstat(path).mtime;
+            *hash hh = hstat(path);
+            if (!hh)
+                throw "SALESFORCE-WSDL-ERROR", sprintf("Salesforce.com WSDL %y file does not exist or is inaccessible", path);
+            date mtime = hh.mtime;
 
             # return WebService object from the cache if the file has the same mtime as the cached version
             if (h && h.mtime == mtime)
