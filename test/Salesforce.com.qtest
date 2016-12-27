@@ -7,6 +7,8 @@
 
 %requires Util
 %requires QUnit
+%requires ../qlib/WSDL.qm
+%requires ../qlib/SoapClient.qm
 %requires ../qlib/SalesforceSoapClient.qm
 
 %requires qore >= 0.8.12
@@ -23,6 +25,8 @@ class SalesforceTest inherits QUnit::Test {
 
     private {
         SalesforceSoapClient sc;
+
+        hash opts;
 
         # command-line options
         const MyOpts = Opts + (
@@ -43,6 +47,7 @@ class SalesforceTest inherits QUnit::Test {
 
     constructor() : Test("SalesforceTest", "1.0", \ARGV, MyOpts) {
         addTestCase("account", \accountTests());
+        addTestCase("salesforceSoapConnectionTest", \salesforceSoapConnectionTest());
 
         try {
             setupConnection();
@@ -71,7 +76,7 @@ class SalesforceTest inherits QUnit::Test {
         doInfo("creating WSDL: ");
         WebService wsdl(WSDLLib::getFileFromURL(getOption("wsdl")));
         doInfo("done: %y\n", now_us() - now);
-        hash opts = (
+        opts = (
             "wsdl": wsdl,
             "username": getOption("user"),
             "password": getOption("pass"),
@@ -135,6 +140,8 @@ class SalesforceTest inherits QUnit::Test {
         softlist l = acct1;
 
         hash rh = sc.create(("sObjects": sc.getType("Account", l)));
+        on_error
+            printf("rh: %N\n", rh);
         assertEq(True, rh.result.success);
         assertEq(Type::String, rh.result.id.type());
         assertEq(NOTHING, rh.result.errors);
@@ -218,4 +225,14 @@ class SalesforceTest inherits QUnit::Test {
             );
     }
     */
+
+    salesforceSoapConnectionTest() {
+        string conn_url = "sfsoap://ignored";
+        SalesforceSoapConnection conn("test", "test", conn_url, False, opts - ("log", "dbglog"), parse_url(conn_url));
+        SalesforceSoapClient sc = conn.get(False, opts.("log", "dbglog"));
+
+        string url = sc.getURL();
+        hash uh = parse_url(url);
+        assertEq("https", uh.protocol);
+    }
 }
