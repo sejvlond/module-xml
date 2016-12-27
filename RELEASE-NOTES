@@ -15,6 +15,8 @@ version 1.4
     unsupported bindings (ex: HTTP verb-based bindings, issue 1116)
 * Added InputStreamSaxIterator class
 * Added the XmlRpcConnection user module
+* SoapClient enhancements:
+  + added the SoapConnection class
 
 
 *************
