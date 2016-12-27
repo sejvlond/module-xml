@@ -16,7 +16,7 @@ noinst_HEADERS = src/QC_XmlDoc.h \
 	src/ql_xml.h \
 	src/qore-xml-module.h
 
-USER_MODULES = qlib/XmlRpcHandler.qm qlib/WSDL.qm qlib/SoapClient.qm qlib/SoapHandler.qm
+USER_MODULES = qlib/XmlRpcHandler.qm qlib/WSDL.qm qlib/SoapClient.qm qlib/SoapHandler.qm qlib/XmlRpcConnection.qm
 
 EXTRA_DIST = COPYING.LGPL COPYING.MIT AUTHORS README \
 	RELEASE-NOTES \
@@ -43,15 +43,16 @@ dist_mod_DATA = $(USER_MODULES)
 dist_bin_SCRIPTS = bin/soaputil
 
 if COND_DOXYGEN
-DOX = xml SoapClient SoapHandler WSDL XmlRpcHandler SalesforceSoapClient
-DOXYGEN_OUTPUT=docs/xml/html docs/XmlRpcHandler/html docs/WSDL/html docs/SoapClient/html docs/SoapHandler/html docs/SalesforceSoapClient/html
+DOX = xml SoapClient SoapHandler WSDL XmlRpcHandler SalesforceSoapClient XmlRpcConnection
+DOXYGEN_OUTPUT=docs/xml/html docs/XmlRpcHandler/html docs/WSDL/html docs/SoapClient/html docs/SoapHandler/html docs/SalesforceSoapClient/html docs/XmlRpcConnection/html
 DOXYFILES = docs/doxyfile docs/mainpage.doxygen
 DOXYFILES_SRC = docs/doxyfile.tmpl docs/qlib/Doxyfile.tmpl docs/footer_template.html
 QLIB_TMP_DOXYFILES = docs/qlib/XmlRpcHandler.qm.dox.h docs/qlib/Doxyfile.XmlRpcHandler \
 	docs/qlib/SoapClient.qm.dox.h docs/qlib/Doxyfile.SoapClient \
 	docs/qlib/SoapHandler.qm.dox.h docs/qlib/Doxyfile.SoapHandler \
 	docs/qlib/WSDL.qm.dox.h docs/qlib/Doxyfile.WSDL \
-	docs/qlib/SalesforceSoapClient.qm.dox.h docs/qlib/Doxyfile.SalesforceSoapClient
+	docs/qlib/SalesforceSoapClient.qm.dox.h docs/qlib/Doxyfile.SalesforceSoapClient \
+	docs/qlib/XmlRpcConnection.qm.dox.h
 QDX = qdx
 DX_CLEANFILES = ${DOXYFILES} $(QLIB_TMP_DOXYFILES)
 
@@ -76,7 +77,7 @@ docs/SalesforceSoapClient/html: docs/qlib/SalesforceSoapClient.qm.dox.h docs/qli
 	$(QDX) --post docs/SalesforceSoapClient/html docs/SalesforceSoapClient/html/search
 
 docs/qlib/Doxyfile.SoapHandler: docs/qlib/Doxyfile.tmpl
-	$(QDX) -M=qlib/SoapHandler.qm:qlib/SoapHandler.qm.dox.h $< $@
+	$(QDX) -M=qlib/SoapHandler.qm:qlib/SoapHandler.qm.dox.h -txml.tag=../../xml/html $< $@
 
 docs/qlib/SoapHandler.qm.dox.h: qlib/SoapHandler.qm
 	$(QDX) $< $@
@@ -86,7 +87,7 @@ docs/SoapHandler/html: docs/qlib/SoapHandler.qm.dox.h docs/qlib/Doxyfile.SoapHan
 	$(QDX) --post docs/SoapHandler/html docs/SoapHandler/html/search
 
 docs/qlib/Doxyfile.WSDL: docs/qlib/Doxyfile.tmpl
-	$(QDX) -M=qlib/WSDL.qm:qlib/WSDL.qm.dox.h $< $@
+	$(QDX) -M=qlib/WSDL.qm:qlib/WSDL.qm.dox.h -txml.tag=../../xml/html $< $@
 
 docs/qlib/WSDL.qm.dox.h: qlib/WSDL.qm
 	$(QDX) $< $@
@@ -96,7 +97,7 @@ docs/WSDL/html: docs/qlib/WSDL.qm.dox.h docs/qlib/Doxyfile.WSDL
 	$(QDX) --post docs/WSDL/html docs/WSDL/html/search
 
 docs/qlib/Doxyfile.XmlRpcHandler: docs/qlib/Doxyfile.tmpl
-	$(QDX) -M=qlib/XmlRpcHandler.qm:qlib/XmlRpcHandler.qm.dox.h $< $@
+	$(QDX) -M=qlib/XmlRpcHandler.qm:qlib/XmlRpcHandler.qm.dox.h -txml.tag=../../xml/html $< $@
 
 docs/qlib/XmlRpcHandler.qm.dox.h: qlib/XmlRpcHandler.qm
 	$(QDX) $< $@
@@ -104,6 +105,16 @@ docs/qlib/XmlRpcHandler.qm.dox.h: qlib/XmlRpcHandler.qm
 docs/XmlRpcHandler/html: docs/qlib/XmlRpcHandler.qm.dox.h docs/qlib/Doxyfile.XmlRpcHandler
 	cd docs; $(DOXYGEN_CMD) qlib/Doxyfile.XmlRpcHandler
 	$(QDX) --post docs/XmlRpcHandler/html docs/XmlRpcHandler/html/search
+
+docs/qlib/Doxyfile.XmlRpcConnection: docs/qlib/Doxyfile.tmpl
+	$(QDX) -M=qlib/XmlRpcConnection.qm:qlib/XmlRpcConnection.qm.dox.h -txml.tag=../../xml/html $< $@
+
+docs/qlib/XmlRpcConnection.qm.dox.h: qlib/XmlRpcConnection.qm
+	$(QDX) $< $@
+
+docs/XmlRpcConnection/html: docs/qlib/XmlRpcConnection.qm.dox.h docs/qlib/Doxyfile.XmlRpcConnection
+	cd docs; $(DOXYGEN_CMD) qlib/Doxyfile.XmlRpcConnection
+	$(QDX) --post docs/XmlRpcConnection/html docs/XmlRpcConnection/html/search
 
 docs/xml/html: $(DOXYFILES)
 	cd docs; $(DOXYGEN_CMD) doxyfile;
