@@ -623,7 +623,7 @@ private nothing msglog(hash msg) {
 
     #! class for SOAP connections; returns an object of class @ref SoapClient for connecting to SOAP servers
     /** supports the following static initialization options:
-    - \c "connect_timeout": connection timeout to use in milliseconds
+        - \c "connect_timeout": connection timeout to use in milliseconds
         - \c "content_encoding": this sets the send encoding (if the \c "send_encoding" option is not set) and the requested response encoding; for possible values, see @ref SoapClient::EncodingSupport  "EncodingSupport"
         - \c "http_version": HTTP version to use (\c "1.0" or \c "1.1", defaults to \c "1.1")
         - \c "max_redirects": maximum redirects to support
