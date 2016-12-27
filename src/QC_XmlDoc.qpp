@@ -5,7 +5,7 @@
 
   Qore Programming Language
 
-  Copyright 2003 - 2012 David Nichols
+  Copyright 2003 - 2016 Qore Technologies, s.r.o.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -109,7 +109,7 @@ qclass XmlDoc [arg=QoreXmlDocData* xd; ns=Qore::Xml];
 /** @param data the must have only one top-level key, as the XML string that will be used for the XmlDoc object will be created directly from the hash
 
     @par Example:
-    @code my XmlDoc $xd($hash); @endcode
+    @code XmlDoc xd(hash); @endcode
 
     @throw XMLDOC-CONSTRUCTOR-ERROR error parsing XML string
  */
@@ -130,7 +130,7 @@ XmlDoc::constructor(hash data) {
 /** @param xml the XML string to use as a basis for the XmlDoc object
 
     @par Example:
-    @code my XmlDoc $xd($xml); @endcode
+    @code XmlDoc xd(xml); @endcode
  */
 XmlDoc::constructor(string xml) {
    SimpleRefHolder<QoreXmlDocData> xd(new QoreXmlDocData(xml));
@@ -146,7 +146,7 @@ XmlDoc::constructor(string xml) {
 /** @return a copy of the current object
 
     @par Example:
-    @code my XmlDoc $xdcopy = $xd.copy(); @endcode
+    @code XmlDoc xdcopy = xd.copy(); @endcode
 */
 XmlDoc::copy() {
    self->setPrivate(CID_XMLDOC, new QoreXmlDocData(*xd));
@@ -156,7 +156,7 @@ XmlDoc::copy() {
 /** @return the XML version of the contained XML document (normally \c "1.0")
 
     @par Example:
-    @code my string $xmlver = $xd.getVersion(); @endcode
+    @code string xmlver = xd.getVersion(); @endcode
  */
 string XmlDoc::getVersion() [flags=CONSTANT] {
    return new QoreStringNode(xd->getVersion());
@@ -164,7 +164,7 @@ string XmlDoc::getVersion() [flags=CONSTANT] {
 
 //! Returns a hash corresponding to the data contained in the XML document with out-of-order keys preserved by appending a suffix to hash keys
 /** @par Example:
-    @code my hash $h = $xd.toQore(); @endcode
+    @code hash h = xd.toQore(); @endcode
 
     Returns a hash structure correponding to the XML data contained by the XmlDoc object.
 
@@ -187,7 +187,7 @@ hash XmlDoc::toQore(int pflags = XPF_PRESERVE_ORDER) [flags=RET_VALUE_ONLY] {
 
 //! Returns a Qore hash corresponding to the data contained in the XML document; out-of-order keys are not preserved but are instead collapsed to the same Qore list
 /** @par Example:
-    @code my hash $h = $xd.toQoreData(); @endcode
+    @code hash h = xd.toQoreData(); @endcode
 
     @param pflags XML parsing flags; see @ref xml_parsing_constants for more information;
 
@@ -211,7 +211,7 @@ hash XmlDoc::toQoreData(*int pflags) [flags=RET_VALUE_ONLY] {
     @throw XML-DOC-TOSTRING-ERROR libxml2 reported an error while attempting to export the XmlDoc object's contents as an XML string
 
     @par Example:
-    @code my string $xml = $xd.toString(); @endcode
+    @code string xml = xd.toString(); @endcode
 
     @throw XML-DOC-TOSTRING-ERROR an error occurred converting the XmlDoc object to an XML string
 */
@@ -228,7 +228,7 @@ string XmlDoc::toString() [flags=RET_VALUE_ONLY] {
     @throw XPATH-ERROR an error occured evaluating the XPath expression
 
     @par Example:
-    @code my list $list = $xd.evalXPath("//list[2]"); @endcode
+    @code list list = xd.evalXPath("//list[2]"); @endcode
  */
 list XmlDoc::evalXPath(string xpath) [flags=RET_VALUE_ONLY] {
    QoreXPath xp(xd, xsink);
@@ -242,7 +242,7 @@ list XmlDoc::evalXPath(string xpath) [flags=RET_VALUE_ONLY] {
 /** @return an XmlNode object representing the root element of the document, if any exists, otherwise returns \c NOTHING
 
     @par Example:
-    @code my *XmlNode $xn = $xd.getRootElement(); @endcode
+    @code *XmlNode xn = xd.getRootElement(); @endcode
  */
 *XmlNode XmlDoc::getRootElement() [flags=CONSTANT] {
    QoreXmlNodeData *n = xd->getRootElement();
@@ -259,7 +259,7 @@ list XmlDoc::evalXPath(string xpath) [flags=RET_VALUE_ONLY] {
     @throw RELAXNG-ERROR The document failed RelaxNG validation
 
     @par Example:
-    @code $xd.validateRelaxNG($relaxng); @endcode
+    @code xd.validateRelaxNG(relaxng); @endcode
  */
 nothing XmlDoc::validateRelaxNG(string relaxng) {
 #ifdef HAVE_XMLTEXTREADERRELAXNGSETSCHEMA
@@ -286,7 +286,7 @@ nothing XmlDoc::validateRelaxNG(string relaxng) {
     @throw XSD-ERROR The document failed XSD validation
 
     @par Example:
-    @code $xd.validateSchema($xsd); @endcode
+    @code xd.validateSchema(xsd); @endcode
  */
 nothing XmlDoc::validateSchema(string xsd) {
 #ifdef HAVE_XMLTEXTREADERSETSCHEMA

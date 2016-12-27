@@ -77,6 +77,7 @@ set(QMOD
     qlib/SoapHandler.qm
     qlib/WSDL.qm
     qlib/XmlRpcHandler.qm
+    qlib/XmlRpcConnection.qm
 )
 
 set(SCRIPTS

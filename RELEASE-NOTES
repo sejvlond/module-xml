@@ -3,7 +3,6 @@ version 1.4
 ***********
 
 * fixed a bug in make_xml to support underscores at start of tags (issue 1326)
-
 * WSDL module fixes and enhancements
   + fixed a bug in late resolution of complexTypes (issue 975)
   + fixed a bug handling empty complexType declarations (issue 984)
@@ -14,8 +13,8 @@ version 1.4
     (issue 1120)
   + added a more user-friendly exception when WSDLs are encountered with
     unsupported bindings (ex: HTTP verb-based bindings, issue 1116)
-
 * Added InputStreamSaxIterator class
+* Added the XmlRpcConnection user module
 
 
 *************
