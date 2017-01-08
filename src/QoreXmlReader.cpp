@@ -22,6 +22,26 @@
 */
 
 #include "QoreXmlReader.h"
+#include "QoreXmlRpcReader.h"
+
+static bool keys_are_equal(const char* k1, const char* k2, bool &get_value) {
+   while (true) {
+      if (!(*k1)) {
+	 if (!(*k2))
+	    return true;
+	 if ((*k2) == '^') {
+	    get_value = true;
+	    return true;
+	 }
+	 return false;
+      }
+      if ((*k1) != (*k2))
+	 break;
+      k1++;
+      k2++;
+   }
+   return false;
+}
 
 QoreHashNode* QoreXmlReader::parseXmlData(const QoreEncoding* data_ccsid, int pflags, ExceptionSink* xsink) {
    if (read(xsink) != 1)
@@ -40,7 +60,7 @@ QoreHashNode* QoreXmlReader::parseXmlData(const QoreEncoding* data_ccsid, int pf
 }
 
 AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEncoding* data_ccsid, int pflags, int min_depth) {
-   xml_stack xstack;
+   Qore::Xml::intern::xml_stack xstack;
 
    QORE_TRACE("getXMLData()");
    int rc = 1;
@@ -220,6 +240,39 @@ AbstractQoreNode* QoreXmlReader::getXmlData(ExceptionSink* xsink, const QoreEnco
 	       h->setKeyValue("^cdata^", val, xsink);
 	    }
 	    xstack.incCDataCount();
+	 }
+      } else if (nt == XML_READER_TYPE_COMMENT && (pflags & XPF_ADD_COMMENTS)) {
+	 int depth = QoreXmlReader::depth();
+	 xstack.checkDepth(depth);
+
+	 const char* str = constValue();
+	 if (str) {
+	    QoreStringNode* val = getValue(data_ccsid, xsink);
+	    if (!val)
+	       return 0;
+
+	    AbstractQoreNode* n = xstack.getNode();
+	    if (n && n->getType() == NT_HASH) {
+	       QoreHashNode* h = reinterpret_cast<QoreHashNode*>(n);
+	       if (!xstack.getCommentCount())
+		  h->setKeyValue("^comment^", val, xsink);
+	       else {
+		  QoreString kstr;
+		  kstr.sprintf("^comment%d^", xstack.getCommentCount());
+		  h->setKeyValue(kstr.getBuffer(), val, xsink);
+	       }
+	    }
+	    else { // convert value to hash and save value node
+	       QoreHashNode* h = new QoreHashNode;
+	       xstack.setNode(h);
+	       if (n) {
+		  h->setKeyValue("^value^", n, 0);
+		  xstack.incValueCount();
+	       }
+
+	       h->setKeyValue("^comment^", val, xsink);
+	    }
+	    xstack.incCommentCount();
 	 }
       }
       rc = read();

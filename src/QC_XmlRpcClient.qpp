@@ -5,7 +5,7 @@
 
   Qore Programming Language
 
-  Copyright (C) 2006 - 2012 Qore Technologies
+  Copyright (C) 2006 - 2016 Qore Technologies, s.r.o.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -128,7 +128,9 @@ static QoreHashNode *make_xmlrpc_call(QoreHttpClientObject* client, QoreStringNo
     |\c User-Agent|\c Qore-XML-RPC-Client/1.1
     |\c Connection|\c Keep-Alive
 
-    @note This class is not available with the \c PO_NO_NETWORK parse option.
+    @note
+    - if no \c default_path is given in the constructor(), then \c "RPC2" is used
+    - This class is not available with the \c PO_NO_NETWORK parse option.
 */
 qclass XmlRpcClient [arg=QoreHttpClientObject* client; ns=Qore::Xml; default_base=QC_HTTPCLIENT];
 
@@ -136,8 +138,8 @@ qclass XmlRpcClient [arg=QoreHttpClientObject* client; ns=Qore::Xml; default_bas
 /** No connection is made because no connection parameters are set with this call; connection parameters must be set afterwards using the appropriate HTTPClient methods.
     @par Example:
     @code
-my XmlRpcClient $xrc();
-$xrc.setURL("http://localhost:8080");@endcode
+XmlRpcClient xrc();
+xrc.setURL("http://localhost:8080");@endcode
 */
 XmlRpcClient::constructor() {
    // get HTTPClient object
@@ -151,11 +153,11 @@ XmlRpcClient::constructor() {
 //! Creates the XmlRpcClient object based on the parameters passed
 /** By default the object will immediately attempt to establish a connection to the server
     @param opts HTTPClient constructor options:
-    - \c url: A string giving the URL to connect to.
+    - \c url: A string giving the URL to connect to; if no default path is given here or in the \c default_path option, then \c "RPC2" is used
     - \c default_port: The default port number to connect to if none is given in the URL.
     - \c protocols: A hash describing new protocols, the key is the protocol name and the value is either an integer giving the default port number or a hash with \c 'port' and \c 'ssl' keys giving the default port number and a boolean value to indicate that an SSL connection should be established.
     - \c http_version: Either \c '1.0' or \c '1.1' for the claimed HTTP protocol version compliancy in outgoing message headers.
-    - \c default_path: The default path to use for new connections if a path is not otherwise specified in the connection URL.
+    - \c default_path: The default path to use for new connections if a path is not otherwise specified in the connection URL; if this option is not given and no path appears in the URL, then \c "RPC2" is used instead
     - \c max_redirects: The maximum number of redirects before throwing an exception (the default is 5).
     - \c proxy: The proxy URL for connecting through a proxy.
     - \c timeout: The timeout value in milliseconds (also can be a relative date-time value for clarity, ex: \c 5m)
@@ -165,7 +167,7 @@ XmlRpcClient::constructor() {
     @see HTTPClient::constructor() and HTTPClient::connect() for information on possible exceptions
 
     @par Example:
-    @code my XmlRpcClient $xrc(("url": "http://authuser:authpass@otherhost:8080/XMLRPC"));@endcode
+    @code XmlRpcClient xrc(("url": "http://authuser:authpass@otherhost:8080/XMLRPC"));@endcode
 */
 XmlRpcClient::constructor(hash opts, softbool no_connect = False) {
    // get HTTPClient object
@@ -209,7 +211,7 @@ XmlRpcClient::copy() {
     @note other exceptions may be thrown related to communication errors (ex: SSL errors, etc)
 
     @par Example:
-    @code my hash $result = $xrc.callArgs("method.name", $arg_list); @endcode
+    @code hash result = xrc.callArgs("method.name", arg_list); @endcode
 */
 hash XmlRpcClient::callArgs(string[doc] method, any[doc] args) {
    // create the outgoing message in XML-RPC call format
@@ -240,7 +242,7 @@ hash XmlRpcClient::callArgs(string[doc] method, any[doc] args) {
     @note other exceptions may be thrown related to communication errors (ex: SSL errors, etc)
 
     @par Example:
-    @code my hash $result = $xrc.call("method.name", $arg1, $arg2); @endcode
+    @code hash result = xrc.call("method.name", arg1, arg2); @endcode
 */
 hash XmlRpcClient::call(string[doc] method, ...) {
    // create the outgoing message in XML-RPC call format
@@ -279,8 +281,8 @@ hash XmlRpcClient::call(string[doc] method, ...) {
 
     @par Example:
     @code
-my hash $info;
-my hash $result = $xrc.callArgsWithInfo(\$info, "method.name", $arg_list);@endcode
+hash info;
+hash result = xrc.callArgsWithInfo(\info, "method.name", arg_list);@endcode
 */
 hash XmlRpcClient::callArgsWithInfo(reference info, string[doc] method, any[doc] args) {
    // get arguments
@@ -324,8 +326,8 @@ hash XmlRpcClient::callArgsWithInfo(reference info, string[doc] method, any[doc]
 
     @par Example:
     @code
-my hash $info;
-my hash $result = $xrc.callWithInfo(\$info, "method.name", $arg1, $arg2);@endcode
+hash info;
+hash result = xrc.callWithInfo(\info, "method.name", arg1, arg2);@endcode
 */
 hash XmlRpcClient::callWithInfo(reference info, string[doc] method, ...) {
    // get arguments
@@ -344,7 +346,7 @@ hash XmlRpcClient::callWithInfo(reference info, string[doc] method, ...) {
 
 //! clears the event queue for the XmlRpcClient object
 /** @par Example:
-    @code $xrc.setEventQueue(); @endcode
+    @code xrc.setEventQueue(); @endcode
  */
 nothing XmlRpcClient::setEventQueue() {
    client->setEventQueue(0, xsink);
@@ -354,8 +356,8 @@ nothing XmlRpcClient::setEventQueue() {
 /** @param queue the Queue object to receive network events from the XmlRpcClient object
     @par Example:
     @code
-my Queue $queue();
-$xrc.setEventQueue($queue); @endcode
+Queue queue();
+xrc.setEventQueue(queue); @endcode
  */
 nothing XmlRpcClient::setEventQueue(Queue[Queue] queue) {
    // pass reference from QoreObject::getReferencedPrivateData() to function
