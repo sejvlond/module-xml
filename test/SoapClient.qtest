@@ -61,7 +61,8 @@ class TestSoapServer inherits HttpServer {
         # setup operation handler
         soap.addMethod(ws, ws.getOperation("getInfo"), \getInfo(),
                 NOTHING, NOTHING, NOTHING, "InfoService");
-
+        soap.addMethod(ws, ws.getOperation("urlRepl"), \urlRepl(),
+                NOTHING, NOTHING, NOTHING, /*path*/NOTHING, NOTHING, NOTHING, "b2");
         addListener(port);
     }
 
@@ -73,6 +74,10 @@ class TestSoapServer inherits HttpServer {
             "docs": h.tickerSymbol,
             "logo": binary(cx.http_header.soapaction),
             );
+    }
+
+    hash urlRepl(hash cx, hash h) {
+printf("URLREPL\n");
     }
 
     errlog(string fmt) {
@@ -129,6 +134,7 @@ class SoapClientTest inherits QUnit::Test {
 
         # add test cases
         addTestCase("SoapClientTest", \soapClientTest());
+        addTestCase("HttpGetClientTest", \httpGetClientTest());
         addTestCase("SoapConnectionTest", \soapConnectionTest());
 
         # execute tests
@@ -137,7 +143,9 @@ class SoapClientTest inherits QUnit::Test {
 
     soapClientTest() {
         #printf("url: %y\n", url);
-        TestSoapClient sc(("wsdl": WsdlUrl, "url": url));
+        TestSoapClient sc(("wsdl": WsdlUrl, "port": "SoapPort", "url": url));
+
+        server.soap.msglogs = ();
 
         hash h = sc.callOperation("getInfo", ("GetInfo": ("tickerSymbol": "ABC")), ("soapaction": ""));
         assertEq(99.9, h.body.result);
@@ -171,7 +179,7 @@ class SoapClientTest inherits QUnit::Test {
         assertThrows("WSDL-OPERATION-ERROR", \sc.callOperation(), "xxx");
 
         WebService ws(WSDLLib::getWSDL(WsdlUrl));
-        sc = new TestSoapClient(("wsdl": ws));
+        sc = new TestSoapClient(("wsdl": ws, "port": "SoapPort"));
         assertEq(True, sc instanceof SoapClient, "issue 1424");
 
         HTTPClient hc(("url": url));
@@ -180,13 +188,35 @@ class SoapClientTest inherits QUnit::Test {
         assertEq(True, str && str =~ /http:\/\/[^\/]*\/SOAP\/InfoService/, "issue 1631");
     }
 
+    httpGetClientTest() {
+        #printf("url: %y\n", url);
+        TestSoapClient sc(("wsdl": WsdlUrl, "port": "HttpGetPort", "url": url));
+
+        server.soap.msglogs = ();
+        hash h;
+        try {
+        h = sc.callOperation("urlRepl", ("country": "CZ", "city": "Prague 2", "zip": 12000), ("soapaction": ""));
+        } catch (ex) {
+            printf("Exception: %N\n\n", ex);
+        }
+
+printf("client: %N\n", sc.msglogs);
+printf("server: %N\n", server.soap.msglogs);
+printf("result: %N\n", h);
+        assertEq("get/CZ/12000-Prague%202", sc.msglogs[0].path);
+
+        sc.msglogs = ();
+        server.soap.msglogs = ();
+
+    }
+
     soapConnectionTest() {
         string conn_url = WsdlUrl;
         conn_url =~ s/^file/soap/;
 
         printf("conn_url: %y\n", conn_url);
 
-        SoapConnection conn("test", "test", conn_url, False, ("target_url": url), parse_url(conn_url));
+        SoapConnection conn("test", "test", conn_url, False, ("target_url": url, "port": "SoapPort"), parse_url(conn_url));
         SoapClient sc = conn.get();
         hash h = sc.callOperation("getInfo", ("GetInfo": ("tickerSymbol": "ABC")), ("soapaction": ""));
         assertEq(99.9, h.body.result);
