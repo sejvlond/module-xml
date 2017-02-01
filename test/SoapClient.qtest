@@ -56,10 +56,11 @@ class TestSoapServer inherits HttpServer {
 
         # setup SOAP handler
         soap = new TestSoapHandler(new PermissiveAuthenticator(), NOTHING, verbose > 2);
-        setDefaultHandler("soap", soap);
+        setHandler("soap", "SOAP", MimeTypeSoapXml, soap, "soapaction", False);
 
         # setup operation handler
-        soap.addMethod(ws, ws.getOperation("getInfo"), \getInfo());
+        soap.addMethod(ws, ws.getOperation("getInfo"), \getInfo(),
+                NOTHING, NOTHING, NOTHING, "InfoService");
 
         addListener(port);
     }
@@ -169,6 +170,11 @@ class SoapClientTest inherits QUnit::Test {
         WebService ws(WSDLLib::getWSDL(WsdlUrl));
         sc = new TestSoapClient(("wsdl": ws));
         assertEq(True, sc instanceof SoapClient, "issue 1424");
+
+        HTTPClient hc(("url": url));
+        hash info;
+        *string str = hc.get("/SOAP/InfoService", NOTHING, \info);
+        assertEq(True, str && str =~ /http:\/\/[^\/]*\/SOAP\/InfoService/, "issue 1631");
     }
 
     soapConnectionTest() {

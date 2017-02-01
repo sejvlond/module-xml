@@ -3434,8 +3434,11 @@ public class WSDL::WebService inherits WSDL::XsdBase {
     }
 
     #! returns the XML string for the WSDL, adjusting the URLs for binding locations depending on the caller
-    /** @return the XML string for the WSDL
-    */
+    /** @param base_url the url to be prepended before the service name;
+                        it must include all the handler prefixes (like \c /SOAP)
+                        to produce valid URL
+        @return the XML string for the WSDL
+     */
     string getWSDL(string base_url) {
         string wstr = wsdl;
 

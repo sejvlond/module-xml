@@ -548,6 +548,9 @@ private nothing msglog(hash cx, hash msg) {
                     else if (port != 80)
                         base_url += ":" + port;
                 }
+                if (cx.root_path) {
+                    base_url += "/" + cx.root_path;
+                }
 
                 return (
                     "code": 200,
