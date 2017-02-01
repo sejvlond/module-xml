@@ -1,0 +1,45 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+%new-style
+%require-types
+%strict-args
+%enable-all-warnings
+
+%requires ../qlib/XmlRpcConnection.qm
+%requires QUnit
+
+%exec-class XmlRpcClientTest
+
+class XmlRpcClientTest inherits QUnit::Test {
+    constructor() : Test("XmlRpcClient test", "1.0") {
+        addTestCase("XML-RPC client test", \testXmlRpcClient());
+        addTestCase("XML-RPC connection test", \testXmlRpcConnection());
+
+        # Return for compatibility with test harness that checks return value.
+        set_return_value(main());
+    }
+
+    testXmlRpcClient() {
+        XmlRpcClient client(("url": "http://localhost:80"), True);
+
+        assertEq(True, client instanceof XmlRpcClient);
+    }
+
+    testXmlRpcConnection() {
+        string url = "xmlrpcs://localhost:8099/";
+        XmlRpcConnection conn("test", "test", url, False, NOTHING, parse_url(url));
+        XmlRpcClient client = conn.get(False);
+        string yurl = url;
+        yurl =~ s/^xmlrpc/http/;
+        assertEq(yurl, client.getURL());
+
+        # test default path
+        url = "xmlrpcs://localhost:8099";
+        conn = new XmlRpcConnection("test", "test", url, False, NOTHING, parse_url(url));
+        client = conn.get(False);
+        yurl = url;
+        yurl =~ s/^xmlrpc/http/;
+        assertEq(yurl + "/RPC2", client.getURL());
+    }
+}
