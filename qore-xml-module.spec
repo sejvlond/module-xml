@@ -103,8 +103,11 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING.LGPL COPYING.MIT README RELEASE-NOTES AUTHORS
 
 %changelog
-* Thu Oct 20 2016 David Nichols <david@qore.org> - 1.4
+* Thu Feb 2 2017 David Nichols <david@qore.org> - 1.4
 - updated to version 1.4
+
+* Thu Feb 2 2017 David Nichols <david@qore.org> - 1.3.2
+- updated to version 1.3.2
 
 * Mon Sep 5 2016 David Nichols <david@qore.org> - 1.3.1
 - updated to version 1.3.1
