@@ -34,11 +34,23 @@
 # need mime definitions
 %requires(reexport) Mime >= 1.1
 
+# provides a connection class
+%requires(reexport) ConnectionProvider
+
 # do not use $ for vars
 %new-style
 
+# do not ignore argument errors
+%strict-args
+
+# require type declarations
+%require-types
+
+# enable all warnings
+%enable-all-warnings
+
 module SoapClient {
-    version = "0.2.4.1";
+    version = "0.2.5";
     desc = "SoapClient module";
     author = "David Nichols <david@qore.org>";
     url = "http://qore.org";
@@ -51,15 +63,17 @@ module SoapClient {
 
     @section soapclientintro Introduction to the SoapClient Module
 
-    The SoapClient module implements a minimal SOAP client using WSDL, XSD, SOAP support implemented in the WSDL module.
+    The %SoapClient module implements a SOAP client for %Qore using WSDL, XSD, and SOAP support implemented in the <a href="../../WSDL/html/index.html">WSDL</a> module.
 
     Create outgoing request messages by setting up a Qore data structure corresponding to the SOAP message.  Exceptions will be thrown if either the outgoing or the response message do not corespond to the WSDL.  The exceptions should be fairly verbose to allow you to quickly correct any mistakes.
 
-    Currently the WSDL implementation is fairly basic so any messages using unimplemented features of SOAP or XSD will fail.
+    This module provides the following classes:
+    - @ref SoapClient::SoapClient "SoapClient"
+    - @ref SoapClient::SoapConnection "SoapConnection"
 
     This module requires the following modules which are also reexported to the program context:
-    - <a href="../../xml/html/index.html">xml binary module</a>
-    - <a href="../../WSDL/html/index.html">WSDL user module</a>
+    - <a href="../../xml/html/index.html">xml</a> binary module
+    - <a href="../../WSDL/html/index.html">WSDL</a> user module
     - @ref mimeintro "Mime user module"
 
     @section Example
@@ -92,6 +106,10 @@ any result = sc.call("SubmitDocument", msg);
 
     @section soapclientrelnotes SoapClient Release Notes
 
+    @subsection soapclient_0_2_5 SoapClient v0.2.5
+    - added support for logging content of SOAP messages
+    - added the @ref SoapClient::SoapConnection "SoapConnection" class
+
     @subsection soapclient_0_2_4_1 SoapClient v0.2.4.1
     - added the @ref SoapClient::SoapClient::callOperation() method (<a href="https://github.com/qorelanguage/qore/issues/1226">issue 1226</a>)
     - updated SOAP response processing to throw an exception when the server responds with an error code (<a href="https://github.com/qorelanguage/qore/issues/1228">issue 1228</a>)
@@ -120,7 +138,7 @@ public namespace SoapClient {
     #! SOAP client class implementation, publically inherits qore's HTTPClient class
     public class SoapClient inherits HTTPClient {
         #! version of the implementation of this class
-        const Version = "0.2.4.1";
+        const Version = "0.2.5";
 
         #! default HTTP headers
         const Headers = ("Accept": (MimeTypeSoapXml + "," + MimeTypeXml + "," + MimeTypeXmlApp), "User-Agent": ("Qore-Soap-Client/" + SoapClient::Version));
@@ -410,7 +428,7 @@ public namespace SoapClient {
             # we have to write the request key after the HTTPClient::post() call but before the log message above
             # (on_exit statements are executed in reverse order when the block is exited)
             on_exit info += ("request-body": msg.body, "request-soap-headers": header);
-
+            msglog(('reason': 'request', 'header': hdr, 'body': msg.body));
             # apply content encoding here
             data body = msg.body;
             if (seh.ce && body.size() > CompressionThreshold) {
@@ -425,12 +443,18 @@ public namespace SoapClient {
             }
             catch (hash ex) {
                 # allow fault responses returned with a 500-series status code to be processed as a SOAP fault so that error information is returned in the exception
-                if (ex.err == "HTTP-CLIENT-RECEIVE-ERROR" && ex.arg.status_code >= 500 && ex.arg.status_code < 600 && ex.arg.body =~ /<\?xml.*Fault/)
-                    info."response-body" = ex.arg.body;
+                if (ex.err == "HTTP-CLIENT-RECEIVE-ERROR") {
+                    if (ex.arg.status_code >= 500 && ex.arg.status_code < 600 && ex.arg.body =~ /<\?xml.*Fault/) {
+                        info."response-body" = ex.arg.body;
+                    }
+                    msglog(('reason': 'error', 'code': ex.arg.status_code, 'header': ex.arg.header, 'body': ex.arg.body));
+                }
                 rethrow;
             }
 
-            hash xmldata = WSDLLib::parseSOAPMessage(rh);
+            hash rmsg = WSDLLib::parseMultiPartSOAPMessage(rh);
+            msglog(('reason': 'response', 'header': rmsg.header, 'body': rmsg.body));
+            hash xmldata = WSDLLib::parseSOAPMessage(rmsg);
             #printf("DEBUG ans: %s\n", rh);
             return op.deserializeResponse(xmldata);
         }
@@ -473,8 +497,8 @@ sc.setSendEncoding("gzip");
             @throw SOAPCLIENT-ERROR invalid or unsupported data content encoding / compression option
 
             @see
-            - @ref SoapClient::SoapClient::setContentEncoding() "SoapClient::setContentEncoding()"
-            - @ref SoapClient::SoapClient::getSendEncoding() "SoapClient::getSendEncoding()"
+            - @ref SoapClient::setContentEncoding()
+            - @ref SoapClient::getSendEncoding()
         */
         setSendEncoding(string enc = "auto") {
             if (enc == "auto")
@@ -497,8 +521,8 @@ soap.setContentEncoding("gzip");
             @throw SOAPCLIENT-ERROR invalid or unsupported data content encoding / compression option
 
             @see
-            - @ref SoapClient::SoapClient::getSendEncoding() "SoapClient::getSendEncoding()"
-            - @ref SoapClient::SoapClient::setSendEncoding() "SoapClient::setSendEncoding()"
+            - @ref SoapClient::getSendEncoding()
+            - @ref SoapClient::setSendEncoding()
 
             @since %SoapClient 0.2.4
         */
@@ -540,7 +564,7 @@ hash h = soap.getDefaultHeaders();
 
             @note default headers can be set in the constructor and in addDefaultHeaders()
 
-            @see @ref SoapClient::SoapClient::addDefaultHeaders() "SoapClient::addDefaultHeaders()"
+            @see @ref SoapClient::addDefaultHeaders()
 
             @since %SoapClient 0.2.4
         */
@@ -557,8 +581,8 @@ hash h = soap.getDefaultHeaders();
             @return the current data content encoding (compression) object or @ref nothing if no encoding option is set; see @ref EncodingSupport for valid options
 
             @see
-            - @ref SoapClient::SoapClient::setContentEncoding() "SoapClient::setContentEncoding()"
-            - @ref SoapClient::SoapClient::setSendEncoding() "SoapClient::setSendEncoding()"
+            - @ref SoapClient::setContentEncoding()
+            - @ref SoapClient::setSendEncoding()
 
             @since %SoapClient 0.2.4
         */
@@ -576,6 +600,130 @@ hash h = soap.getDefaultHeaders();
         dbglog(string msg) {
             if (dbglogc)
                 call_function(dbglogc, "SoapClient: " + trim(vsprintf(msg, argv)));
+        }
+        /** Method is to be overriden to implement custom logging HTTP message sent and received from this object.
+            @par msg information about message to be logged. There are keys 'reason' with value 'request', 'response' or 'error',
+                 'header' (HTTP header, in casew ) and 'body' containing XML data in readable form, i.e. uncompressed and in case of
+                 multipart message only the related part is passed. Method is executed before message is sent or after
+                 has been received. Do not allow exception raising in method not to interrupt client function.
+
+            @par Example:
+            @code{.py}
+private nothing msglog(hash msg) {
+    log(sprintf("%s:\n%s\n", msg.reason, msg.body));
+}
+            @endcode
+
+            @since %SoapClient 0.2.5
+        */
+        private nothing msglog(hash msg) {
+            # implement functionality in derived class
+        }
+    }
+
+    #! class for SOAP connections; returns an object of class @ref SoapClient for connecting to SOAP servers
+    /** supports the following static initialization options:
+        - \c "connect_timeout": connection timeout to use in milliseconds
+        - \c "content_encoding": this sets the send encoding (if the \c "send_encoding" option is not set) and the requested response encoding; for possible values, see @ref SoapClient::EncodingSupport  "EncodingSupport"
+        - \c "http_version": HTTP version to use (\c "1.0" or \c "1.1", defaults to \c "1.1")
+        - \c "max_redirects": maximum redirects to support
+        - \c "port": in case multiple port entries are found in the WSDL, give the one to be used here
+        - \c "portType": in case multiple portType entries are found in the WSDL, give the one to be used here
+        - \c "proxy": proxy URL to use
+        - \c "send_encoding": a @ref SoapClient::EncodingSupport "send data encoding option" or the value \c "auto" which means to use automatic encoding; if not present defaults to no content-encoding on sent message bodies
+        - \c "target_url": overrides the URL in the WSDL (mapped to \c "url" in the @ref SoapClient::constructor(hash) "SoapClient::constructor()" argument)
+        - \c "timeout": transfer timeout to use in milliseconds
+        - \c "wsdl": overrides the WSDL URL provided by the connection URL; \c "wsdl" values with a \c "file://" scheme are subject to environment variable substitution
+
+        @see @ref SoapClient::constructor(hash) for more information on the above options
+
+        @note additionally supports the following runtime options in getImpl() for connection logging:
+        - \c "log": a closure accepting a single string for logging
+        - \c "dbglog": a closure taking a single string for detailed technical connection logging
+    */
+    public class SoapConnection inherits HttpBasedConnection {
+        public {
+            hash real_opts;
+        }
+
+        public {
+            const Options = HttpConnection::Options + (
+                "content_encoding": True,
+                "port": True,
+                "portType": True,
+                "send_encoding": True,
+                "target_url": True,
+                "wsdl": True,
+                );
+        }
+
+        #! creates the SoapConnection object
+        /** @param name the name of the connection
+            @param desc connection description
+            @param url connection URL
+            @param monitor monitoring flag
+            @param n_opts connection options
+            @param urlh broken down URL hash (as returned by @ref Qore::parse_url())
+        */
+        constructor(string name, string desc, string url, bool monitor, *hash n_opts, hash urlh) : HttpBasedConnection(name, desc, url, monitor, n_opts, urlh) {
+            # do environment variable substitution in wsdl option if applicable
+            if (!opts.wsdl) {
+                # check if we have a local path to the WSDL
+                hash h = parse_url(real_url);
+                if (h.protocol == "http" && h.size() == 2 && h.path)
+                    real_url =~ s/^http/file/;
+            }
+
+            real_opts = ("wsdl": real_url) + opts;
+            # rename "target_url" to "url"
+            real_opts.url = remove opts.target_url;
+        }
+
+        #! returns \c "soap"
+        string getType() {
+            return "soap";
+        }
+
+        #! returns runtime options
+        /** @return a hash with the following keys reflecting support for the corresponding runtime options in getImpl() for connection logging:
+            - \c "log": a closure accepting a single string for logging
+            - \c "dbglog": a closure taking a single string for detailed technical connection logging
+        */
+        *hash getRuntimeOptions() {
+            return (
+                "log": True,
+                "dbglog": True,
+                );
+        }
+
+        #! returns a @ref SoapClient object
+        /** @param connect if @ref Qore::True "True", then @ref Qore::HTTPClient::connect() "SoapClient::connect()" is called
+            @param rtopts supports the following runtime options in getImpl() for connection logging:
+            - \c "log": a closure accepting a single string for logging
+            - \c "dbglog": a closure taking a single string for detailed technical connection logging
+
+            @return a @ref SoapClient object
+        */
+        private SoapClient getImpl(bool connect = True, *hash rtopts) {
+            SoapClient sc(real_opts + rtopts.("log", "dbglog"));
+            if (connect)
+                sc.connect();
+            return sc;
+        }
+
+        #! gets options
+        hash getOptions() {
+            return Options;
+        }
+
+        #! returns default options
+        *hash getDefaultOptions() {
+            return HttpConnection::DefaultOptions;
+        }
+
+        #! static constructor
+        static SoapConnection make(string name, string desc, string url, bool monitor, *hash opts, hash urlh) {
+            return new SoapConnection(name, desc, url, monitor, opts, urlh);
         }
     }
 }
