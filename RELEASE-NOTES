@@ -1,1 +1,144 @@
-see doxygen release notes - source in docs/mainpage.dox.tmpl
+***********
+version 1.4
+***********
+
+* fixed a bug in make_xml to support underscores at start of tags (issue 1326)
+* WSDL module fixes and enhancements
+  + fixed a bug in late resolution of complexTypes (issue 975)
+  + fixed a bug handling empty complexType declarations (issue 984)
+  + fixed a bug handling complexType extentions (issue 985)
+  + fixed bugs handling elementFormDefault=qualified declarations in multiple
+    schemas when the value differs between schemas (issue 1112)
+  + fixed a bug where xsi:type information was serialized when not necessary
+    (issue 1120)
+  + added a more user-friendly exception when WSDLs are encountered with
+    unsupported bindings (ex: HTTP verb-based bindings, issue 1116)
+* Added InputStreamSaxIterator class
+* Added the XmlRpcConnection user module
+* SoapClient enhancements:
+  + added the SoapConnection class
+* SalesforceSoapClient enhancements:
+  + added the SalesforceSoapConnection class
+
+
+*************
+version 1.3.1
+*************
+
+* fixed a memory leak in XML-RPC parsing (issue 1214)
+* WSDL module updates:
+  + suppress emitting a SOAPAction header in requests if the binding gives an
+    empty string (issue 1226)
+  + updated WSOperation::serializeRequest() to allow the SOAPAction header to
+    be overridden in each request (issue 1226)
+  + respect XML generation flags in request generation
+  + fixed parsing empty base64Binary and hexBinary elements (issue 1227)
+* SoapClient update:
+  + added the SoapClient::callOperation() method to provide a more flexible
+    API for SOAP request message generating including overriding the
+    SOAPAction header on a per-request basis (issue 1226)
+  + updated SOAP response processing to throw an exception when the server
+    responds with an error code (issue 1228)
+  + content-type in exceptional cases follows Soap version (issue 1244)
+  + fixed a typo in a debug logging statement (issue 1358)
+  + fixed and documented the "info" output hash format (issue 1359)
+* added SalesforceSoapClient module
+* added Salesforce.com.qtest and accompanying WSDLs
+
+
+***********
+version 1.3
+***********
+
+* requires Qore 0.8.12+ to build & run
+* added SaxIterator and FileSaxIterator classes
+* WSDL module fixes and enhancements:
+  + many WSDL handling/SOAP messaging fixes including major namespace handling
+    and serialization/deserialization fixes
+  + complexType attributes are now serialized and deserialized correctly
+  + elements with the same names in different namespaces are now handled
+    correctly
+  + complexTypes wtih a sequence of choice and element elements are now handled
+    correctly
+  + allow for XSD imports without a URI scheme to be imported with custom logic
+  + perform environment-variable substitution on the file path in
+    WSDLLib::getWSDL()
+  + better support for empty elements; correct de/serialization depending on
+    element and type properties
+  + allow for XSD imports without a URI scheme to be imported with custom logic
+  + allow for schema definitions to temporarily override namespace prefixes
+    within that schema
+  + implemented support for default namespace handling for base types
+  + implemented support for operations with either a missing input or output
+    message
+  + XSD "integer" types are returned as integers when possible
+  + fixed XSD namespace handling
+  + fixed a bug deserializing nil elements (issue 468)
+  + fixed a bug handling types with more than two levels of nested references
+    (issue 560)
+  + fixed namespace prefix generation with elements in different schemas and
+    for elements based on references (issue 561)
+  + added new APIs for WebService introspection and WSDL retrieving (issue 571)
+  + fixed a bug handling empty lists for optional elements (issue 663)
+  + fixed setting the charset=... value in HTTP headers (issue 906)
+* SoapClient fixes:
+  + fixed URI request path
+  + fixed agent string
+  + added optional logging closures
+  + added SOAP headers to info hash when available
+  + fixed parsing messages with multiple input parts
+  + required modules are also reexported
+  + added the SoapClient::getWebService() method
+  + updated for new WebService APIs
+* SoapHandler changes:
+  + allow SOAP serialization errors to be logged at the source
+  + added support for matching requests by soap action values
+  + allow "^header^" key in top-level hash response to specify SOAP headers in
+    the response message
+  + 500 HTTP response code returned with SOAP faults
+  + added support for debugging (verbose exception info/logging)
+  + updated for new WebService APIs; improved URL matching
+  + improved service URL generation
+  + WSDLs are now returned with the correct service URLs (issue 571)
+* SoapClient changes:
+  + added support for configurable content-encoding (message compression)
+    (issue 904)
+* user modules moved to top-level qore module directory from version-specific
+  module directory since they are valid for multiple versions of qore
+* camel-case function names deprecated and replaced with new functions with
+  more flexible XML generation and parsing options
+* SOAP and WSDL test infrastructure
+
+
+***********
+version 1.2
+***********
+
+* implemented dynamic unbinding of SOAP methods in SoapHandler
+* fixed XmlReader::toQore() and XmlReader::toQoreData() for SAX parsing
+* implemented enhanced logging for the XmlRpcHandler module
+* doc updates
+* added the MIT license as a source license option
+
+
+***********
+version 1.1
+***********
+
+* fixed internal XMl to Qore processing for extreme cases
+* fixed makeFormattedXMLString() to really format the output
+* fixed XML-RPC parsing with empty elements in structures
+* added additional validation to XML-RPC parsing (checking close elements)
+* set the character encoding correctly in the outgoing Content-Type request
+  header
+* added suport for the new arbitrary-precision numeric type introduced with
+  Qore 0.8.6
+
+
+***********
+version 1.0
+***********
+
+Initial release of the xml module
+Requires qore 0.8.1+ to build and run
+see README and docs for more information
