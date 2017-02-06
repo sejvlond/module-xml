@@ -450,13 +450,13 @@ public namespace SoapClient {
             # we have to write the request key after the HTTPClient::post() call but before the log message above
             # (on_exit statements are executed in reverse order when the block is exited)
             on_exit info += ("request-body": msg.body, "request-soap-headers": header);
-            if (url_path) {
-                if (msg.path) {
-                    if (msg.path !~ /^[\/\?]/ ) {
-                        msg.path = "/" + msg.path;
-                    }
+            if (msg.path) {
+                if (msg.path !~ /^[\/\?]/ ) {
+                    msg.path = "/" + msg.path;
                 }
-                msg.path = url_path + msg.path;
+            }
+            if (url_path) {
+                msg.path = rtrim(url_path, "/") + msg.path;
             }
             msglog(('reason': 'request', 'method': msg.method, 'path': msg.path, 'header': hdr, 'content-type': msg."content-type", 'accept': msg.accept, 'body': msg.body));
             # apply content encoding here
@@ -468,6 +468,7 @@ public namespace SoapClient {
 
             hash rh;
             try {
+                #printf("SoapClient::makeCallIntern: msg: %y\n", msg);
                 rh = send(body, msg.method, msg.path, hdr, True, \info);
                 info."response-body" = rh.body;
                 #printf("response: %y\n", rh);

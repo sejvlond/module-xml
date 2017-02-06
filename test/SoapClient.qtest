@@ -59,13 +59,15 @@ class TestSoapServer inherits HttpServer {
 
         # setup SOAP handler
         soap = new TestSoapHandler(new PermissiveAuthenticator(), NOTHING, verbose > 2);
-        setHandler("soap", "SOAP", MimeTypeSoapXml, soap, "soapaction", False);
+        setHandler("soap_prefix", "SOAP", MimeTypeSoapXml, soap, "soapaction", False);
+        setDefaultHandler("soap", soap);
 
         # setup operation handler
         soap.addMethod(ws, ws.getOperation("getInfo"), \getInfo(), NOTHING, NOTHING, NOTHING, "InfoService");
+
         # not yet supported
         soap.addMethod(ws, ws.getOperation("urlRepl"), \generalInputOnly(), NOTHING, NOTHING, NOTHING, /*path*/NOTHING, NOTHING, NOTHING, "b2");
-        soap.addMethod(ws, ws.getOperation("urlEncoded1"), \generalInputOnly(), NOTHING, NOTHING, NOTHING, /*path*/NOTHING, NOTHING, NOTHING, "b2");
+        soap.addMethod(ws, ws.getOperation("urlEncoded1"), \generalInputOnly(), NOTHING, NOTHING, NOTHING, /*path*/, NOTHING, NOTHING, "b2");
 #        soap.addMethod(ws, ws.getOperation("urlEncoded2"), \generalInputOnly(), NOTHING, NOTHING, NOTHING, /*path*/NOTHING, NOTHING, NOTHING, "b2");
         soap.addMethod(ws, ws.getOperation("getMimeXml"), \generalOutputOnly(), NOTHING, NOTHING, NOTHING, /*path*/NOTHING, NOTHING, NOTHING, "b2");
         soap.addMethod(ws, ws.getOperation("getBinary"), \generalOutputOnly(), NOTHING, NOTHING, NOTHING, /*path*/NOTHING, NOTHING, NOTHING, "b2");
@@ -151,7 +153,7 @@ class SoapClientTest inherits QUnit::Test {
         on_exit server.stop();
         serverPort = server.getListenerInfo(0).port;
         # when dual IPv4/IPv6 stack then may resolve gethostname() with unsupposed IP address where server is not listening
-        url = sprintf("http://%s:%d", m_options.host ? m_options.host : gethostname(), serverPort);
+        url = sprintf("http://%s:%d/", m_options.host ? m_options.host : gethostname(), serverPort);
 
         # add test cases
         addTestCase("SoapClientTest", \soapClientTest());
@@ -220,7 +222,7 @@ class SoapClientTest inherits QUnit::Test {
         cleanMsgLog();
         *hash h;
         assertThrows("HTTP-CLIENT-RECEIVE-ERROR", \sc.callOperation(), ("urlRepl", ("country": "CZ", "city": "Prague 2", "zip": 12000)));
-        assertEq("get/CZ/12000-Prague%202", sc.msglogs[0].path);
+        assertEq("/get/CZ/12000-Prague%202", sc.msglogs[0].path);
         assertEq(sc.msglogs[0].method, "GET");
 
         try {
@@ -229,7 +231,6 @@ class SoapClientTest inherits QUnit::Test {
             h = sc.callOperation("urlEncoded1", hi);
             assertEq(server.opname, "urlEncoded1");
             assertEq(server.mdata, hi);
-            assertEq(server.soap.msglogs[0].('reason', 'method', 'path'), sc.msglogs[0].('reason', 'method', 'path'));
 
             cleanMsgLog();
             server.rdata = ("STR": "AbCdEf");
