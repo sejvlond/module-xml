@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(qore-xml-module)
 
 set (VERSION_MAJOR 1)
-set (VERSION_MINOR 3)
+set (VERSION_MINOR 4)
 set (VERSION_PATCH 0)
 
 
@@ -15,6 +15,18 @@ list(APPEND CMAKE_REQUIRED_INCLUDES ${LIBXML2_INCLUDE_DIR})
 
 include_directories( ${CMAKE_SOURCE_DIR}/src )
 include_directories( ${LIBXML2_INCLUDE_DIR} )
+include_directories( ${QORE_INCLUDE_DIR} )
+
+# Check for C++11.
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+if(COMPILER_SUPPORTS_CXX11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+else()
+    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+
+set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 #include(CheckSymbolExists)
 include(CheckFunctionExists)
@@ -43,17 +55,21 @@ qore_check_symbol(xmlTextReaderGetParserLineNumber HAVE_XMLTEXTREADERGETPARSERLI
 
 
 set(QPP_SRC
-    src/QC_FileSaxIterator.qpp
-    src/QC_XmlDoc.qpp
-    src/QC_XmlReader.qpp
-    src/ql_xml.qpp
     src/QC_SaxIterator.qpp
+    src/QC_FileSaxIterator.qpp
+    src/QC_InputStreamSaxIterator.qpp
+    src/QC_XmlDoc.qpp
     src/QC_XmlNode.qpp
+    src/QC_XmlReader.qpp
     src/QC_XmlRpcClient.qpp
+    src/ql_xml.qpp
+    src/qc_option.qpp
 )
 
 set(CPP_SRC
     src/xml-module.cpp
+    src/QoreXmlRpcReader.cpp
+    src/QoreXmlReader.cpp
 )
 
 set(QMOD
@@ -62,6 +78,11 @@ set(QMOD
     qlib/SoapHandler.qm
     qlib/WSDL.qm
     qlib/XmlRpcHandler.qm
+    qlib/XmlRpcConnection.qm
+)
+
+set(SCRIPTS
+	bin/soaputil
 )
 
 qore_wrap_qpp_value(QPP_SOURCES ${QPP_SRC})
@@ -72,6 +93,7 @@ add_library(${module_name} SHARED ${QPP_SOURCES} ${CPP_SRC})
 
 qore_binary_module(${module_name} "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}" ${LIBXML2_LIBRARIES})
 qore_user_modules("${QMOD}")
+install(PROGRAMS ${SCRIPTS} DESTINATION bin)
 
 qore_dist("${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 

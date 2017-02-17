@@ -75,6 +75,7 @@ module SoapHandler {
     - added support for debugging (verbose exception info/logging)
     - fixes to service creation and GET WSDL handling
     - Content-type in exceptional cases follows Soap version
+    - added support for logging content of SOAP messages
 
     @subsection soaphandler_0_2_4 SoapHandler 0.2.4
     - updated to a user module
@@ -301,8 +302,28 @@ public namespace SoapHandler {
             call_function_args(cx.logfunc, msg);
         }
 
+        /** Method is to be overriden to implement custom logging HTTP messages handled by this object.
+            @par cx context passed from @ref HttpServer::HttpServer "HttpServer"
+            @par msg information about message to be logged. There are keys 'reason' with value 'request', 'response' or 'error',
+                 'header' (HTTP header, in casew ) and 'body' containing XML data in readable form, i.e. uncompressed and in case of
+                 multipart message only the related part is passed. Method is executed before message is sent or after 
+                 has been received. Do not allow exception raising in method not to interrupt handler function.
+
+            @par Example:
+            @code{.py}
+private nothing msglog(hash cx, hash msg) {
+    log(sprintf("%s:\n%s\n", msg.reason, msg.body));
+}
+            @endcode
+
+            @since %SoapHandler 0.2.5
+        */
+        private/*:hierarchy*/ nothing msglog(hash cx, hash msg) {
+            # implement functionality in descendant class
+        }
+
         # don't reimplement this method; fix/enhance it in the module
-        private static string makeSoapFaultResponse(bool soap12, string err, string desc, *bool fmt) {
+        private hash makeSoapFaultResponse(hash cx, int code, string errLog, bool soap12, string err, string desc, *bool fmt) {
             hash o;
             if (soap12) {
                 o = ENVELOPE_12_NS;
@@ -319,8 +340,14 @@ public namespace SoapHandler {
                        "faultstring": desc,
                        "desc": ""));
             }
-
-            return make_xml(o, fmt ? XGF_ADD_FORMATTING: 0);
+            hash msg = (
+                "code": code,
+                "errlog": errLog,
+                "body": make_xml(o, fmt ? XGF_ADD_FORMATTING: 0),
+                "hdr": ("Content-Type" : soap12 ? MimeTypeSoapXml : MimeTypeXml),
+            );
+            msglog(cx, ('reason': 'error', 'code': code, 'header': msg.hdr, 'body': msg.body));
+            return msg;
         }
 
         # don't reimplement this method; fix/enhance it in the module
@@ -370,14 +397,10 @@ public namespace SoapHandler {
                     nex.desc = sprintf("error deserializing incoming SOAP request: %s", ex.desc);
                     call_function(method.err_func, cx, nex);
                 }
-                return (
-		    "code": 500,
-		    "errlog": debug
+		        string str = debug
                     ? get_exception_string(ex)
-                    : sprintf("%s: %s: %s", get_ex_pos(ex), ex.err, ex.desc),
-		    "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
-		    "hdr": ("Content-Type": reqsoap12 ? MimeTypeSoapXml : MimeTypeXml),
-		    );
+                    : sprintf("%s: %s: %s", get_ex_pos(ex), ex.err, ex.desc);
+                return makeSoapFaultResponse(cx, 500, str, reqsoap12, ex.err, ex.desc);
             }
 
             if ((method.logopt & HttpServer::LP_LEVELMASK) <= loglevel && exists cx.logfunc) {
@@ -432,6 +455,7 @@ public namespace SoapHandler {
                 try {
                     any header = remove rv."^header^";
                     h += method.operation.serializeResponse(rv, header, NOTHING, NOTHING, reqsoap12);
+                    msglog(cx, ('reason': 'response', 'header': h.hdr, 'body': h.body));
                 }
                 catch (hash ex) {
                     if (method.err_func)
@@ -553,8 +577,9 @@ public namespace SoapHandler {
                         hdr."_qore_multipart_boundary" = x;
                     #printf("hdr=%N\n", hdr);
                 }
-
-                args = WSDLLib::parseSOAPMessage(hdr + ("body" : body));
+                hash msg = WSDLLib::parseMultiPartSOAPMessage(hdr + ("body" : body));
+                msglog(cx, ('reason': 'request', 'header': msg.header, 'body': msg.body));
+                args = WSDLLib::parseSOAPMessage(msg);
                 WSDL::XsdBase::removeNS(\args);
                 WSDL::XsdBase::removeNS(\args.Envelope);
 
@@ -594,14 +619,10 @@ public namespace SoapHandler {
             catch (ex) {
                 log(cx, "exception parsing SOAP msg: %y", body);
                 #string str = sprintf("exception in %s:%d: %s: %s (1: %N)", ex.file, ex.line, ex.err, ex.desc, ex.callstack);
-                return (
-                    "code": 500,
-                    "errlog": debug
+                string str = debug
                     ? get_exception_string(ex)
-                    : sprintf("%s: %s: %s", get_ex_pos(ex), ex.err, ex.desc),
-                    "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
-                    "hdr": ("Content-Type" : reqsoap12 ? MimeTypeSoapXml : MimeTypeXml),
-                    );
+                    : sprintf("%s: %s: %s", get_ex_pos(ex), ex.err, ex.desc);
+                return makeSoapFaultResponse(cx, 500, str, reqsoap12, ex.err, ex.desc);
             }
             try {
                 #printf("DEBUG: context: %N\nargs: %N\n", cx, args);
@@ -611,12 +632,7 @@ public namespace SoapHandler {
                 string str = debug
                     ? get_exception_string(ex)
                     : sprintf("exception in %s: %s: %s", get_ex_pos(ex), ex.err, ex.desc);
-                return (
-                    "code": 500,
-                    "errlog": str,
-                    "body": SoapHandler::makeSoapFaultResponse(reqsoap12, ex.err, ex.desc),
-                    "hdr": ("Content-Type" : reqsoap12 ? MimeTypeSoapXml : MimeTypeXml)
-                    );
+                return makeSoapFaultResponse(cx, 500, str, reqsoap12, ex.err, ex.desc);
             }
         }
 
