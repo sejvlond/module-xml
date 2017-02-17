@@ -5,7 +5,7 @@
 
   Qore Programming Language
 
-  Copyright (C) 2003 - 2016 David Nichols
+  Copyright (C) 2003 - 2016 Qore Technologies, s.r.o.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -37,8 +37,8 @@ qclass SaxIterator [arg=QoreSaxIterator* i; ns=Qore::Xml; vparent=AbstractIterat
 
     @par Example:
     @code
-my SaxIterator $i($xml, "DetailRecord");
-map printf("record %d: %y\n", $#, $1), $i;
+SaxIterator i(xml, "DetailRecord");
+map printf("record %d: %y\n", $#, $1), i;
     @endcode
 
     @throw XMLDOC-CONSTRUCTOR-ERROR error parsing XML string
@@ -54,7 +54,7 @@ SaxIterator::constructor(string xml, string element_name) {
 /** @return a copy of the current object (the copy will be reset to the beginning of the XML string)
 
     @par Example:
-    @code my SaxIterator icopy = i.copy(); @endcode
+    @code SaxIterator icopy = i.copy(); @endcode
 */
 SaxIterator::copy() {
    ReferenceHolder<QoreSaxIterator> holder(new QoreSaxIterator(*i, xsink), xsink);
@@ -72,8 +72,8 @@ SaxIterator::copy() {
 
     @par Example:
     @code
-while ($i.next()) {
-    printf(" + %y\n", $i.getValue());
+while (i.next()) {
+    printf(" + %y\n", i.getValue());
 }
     @endcode
 
@@ -90,8 +90,8 @@ bool SaxIterator::next() {
 
     @par Example:
     @code
-while ($i.next()) {
-    printf("+ %y\n", $i.getValue());
+while (i.next()) {
+    printf("+ %y\n", i.getValue());
 }
     @endcode
 
@@ -109,8 +109,8 @@ any SaxIterator::getValue() [flags=RET_VALUE_ONLY] {
 
     @par Example:
     @code
-if ($i.valid())
-    printf("current value: %y\n", $i.getValue());
+if (i.valid())
+    printf("current value: %y\n", i.getValue());
     @endcode
  */
 bool SaxIterator::valid() [flags=CONSTANT] {
@@ -122,7 +122,7 @@ bool SaxIterator::valid() [flags=CONSTANT] {
 
    @par Example
    @code
-$i.reset();
+i.reset();
    @endcode
 
     @throw ITERATOR-THREAD-ERROR this exception is thrown if this method is called from any thread other than the thread that created the object
