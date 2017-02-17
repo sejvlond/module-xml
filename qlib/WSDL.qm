@@ -1696,26 +1696,61 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 #! web service operation class
 public class WSDL::WSOperation inherits WSDL::XsdNamedData {
     public {
+        #! request message
         WSMessage input;
+        #! response message
         WSMessage output;
+        #! request message name
         *string input_name;
+        #! response message name
         *string output_name;
+        #! internal type map
         TypeMap tmap;
 
+        #! namespace container
         Namespaces nsc;
 
+        #! the SOAPAction header value to send with this operation
         *string soapAction;
-        *string request_name;
+
+        #! request multipart hash
+        /** this has has the following keys:
+            - \c "multipart": the multipart type name (ex: \c "related")
+            - \c "body": a hash of the XML attributes of the body declaration in the part
+            - \c "parts": a hash keyed by part name with values of types for the part
+         */
         *hash inp;
-         outp;
+
+        #! response multipart hash
+        /** this has has the following keys:
+            - \c "multipart": the multipart type name (ex: \c "related")
+            - \c "body": a hash of the XML attributes of the body declaration in the part
+            - \c "parts": a hash keyed by part name with values of types for the part
+         */
+        *hash outp;
+
+        #! if the operation requires document style encoding
         bool docstyle = False;
 
-        # info about soap header requirements
+        #! a hash with info about soap header requirements for request messages
+        /** the hash has the following keys:
+            - \c "part": the part name to use for the header
+            - \c "msg": a WSMessage object to use for serialization
+            - \c "encoded": currently ignored
+         */
         hash iheader;
+
+        #! currently unused; reserved to be used to serialize header information for response messages
         hash oheader;
     }
 
-    constructor(any p, TypeMap n_tmap, Namespaces n_nsc, *hash messages) : XsdNamedData(\p) {
+    #! creates the WSOperation object from the arguments supplied
+    /** @param p the raw hash from deserialized XML data for the operation
+        @param n_tmap a reference to an object of a private class that stores XSD type information from types defined in the WSDL
+        @param n_nsc the namespace container
+        @param messages a hash of messages defined in the WSDL; keys are message names; values are WSMessage objects
+     */
+    constructor(hash p, TypeMap n_tmap, Namespaces n_nsc, *hash messages) : XsdNamedData(\p) {
         tmap = n_tmap;
         nsc = n_nsc;
 
@@ -1750,6 +1785,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         soapAction = op_ns ? op_ns + name : name;
     }
 
+    #! this method is called if this operation requires document style
     setDocStyle(reference idocmap) {
         docstyle = True;
 
@@ -1761,17 +1797,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
             string element = input.args{key}.element.name;
             idocmap{element} = input.args{key}.element;
-            if (!request_name)
-                request_name = element;
         }
-    }
-
-    setTopLevelRequestElement(string name) {
-        request_name = name;
-    }
-
-    string getTopLevelRequestName() {
-        return request_name ? request_name : name;
     }
 
     #! serializes a request to an XML string for the operation
@@ -1937,6 +1963,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             );
     }
 
+    #! processes multi-part references and returns a hash of multi-part reference info and the updated message body hash
     private list processMultiRef(hash body) {
         # setup message info hash and multiRef lookup hash key, if any are present
         hash mrh = (
@@ -2093,7 +2120,8 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         return output.deserialize(mrh, msg);
     }
 
-    private hash processNSValue(hash h) {
+    #! processes a hash of raw deserialized XML data and removes any namespace prefix from keys (saved to a \c "ns" key in the hash value assigned to the key) and returns the processed version of the hash
+    static private hash processNSValue(hash h) {
         foreach string k in (keys h) {
             (*string ns, *string name) = h{k} =~ x/(\w+):(\w+)/;
             if (!name)
@@ -2120,12 +2148,14 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         return nsc.getTargetNamespaceUri();
     }
 
-    setOutputMultipart(any v) {
+    #! designates the operation as requiring multi-part output (responses) and sets the multipart output type
+    setOutputMultipart(string v) {
         outp.multipart = v;
-        outp.parts = ();
+        outp.parts = {};
     }
 
-    private parsePart(reference msg, any part) {
+    #! parses a message part from the raw deserialized hash representing the source XML for the part
+    private parsePart(reference msg, hash part) {
         WSDL::XsdBase::removeNS(\part);
         #any a = part."^attributes^";
         part -= "^attributes^";
@@ -2161,25 +2191,33 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         #printf("DEBUG: part: %y\nmsg: %y\n", part, msg);#exit();
     }
 
-    addOutputPart(any part) {
+    #! adds an output (response) part; the operation must be already flagged as requiring multi-part output
+    /** @param part the raw deserialized hash from the XML describing the part
+     */
+    addOutputPart(hash part) {
         if (!exists outp.multipart)
             throw WSDL_ERROR, sprintf("WSOperation::addOutputPart(): internal error: cannot add a part to a non-multipart message; part: %y", part);
 
         parsePart(\outp, part);
     }
 
-    setInputMultipart(any v) {
+    #! designates the operation as requiring multi-part input (requests) and sets the multipart input type
+    setInputMultipart(string v) {
         inp.multipart = v;
-        inp.parts = ();
+        inp.parts = {};
     }
 
-    addInputPart(any part) {
+    #! adds a request message part; the operation must be already flagged as requiring multi-part input (requests)
+    /** @param part the raw deserialized hash from the XML describing the part
+     */
+    addInputPart(hash part) {
         if (!exists inp.multipart)
             throw WSDL_ERROR, sprintf("WSOperation::addInputPart(): internal error: cannot add a part to a non-multipart message; part: %y", part);
 
         parsePart(\inp, part);
     }
 
+    #! sets SOAP header information for the SOAP envelope for requests with this operation
     setInputHeader(string part, WSMessage msg, bool encoded) {
         # FIXME: additional header parts are ignored!!!
         if (!iheader)
@@ -2501,7 +2539,7 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                     if (!exists ophash.input.multipartRelated.part)
                         throw WSDL_ERROR, sprintf("binding %y is missing part definition(s) in input message definition for operation %y: %y", name, opname, ophash);
 
-                    foreach any part in (ophash.input.multipartRelated.part) {
+                    foreach hash part in (ophash.input.multipartRelated.part) {
                         WSDL::XsdBase::removeNS(\part);
                         op.addInputPart(part);
                     }
@@ -2548,7 +2586,7 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                     if (!exists ophash.output.multipartRelated.part)
                         throw WSDL_ERROR, sprintf("missing part definition(s) in output message definition for operation %y: %y", opname, ophash);
 
-                    foreach any part in (ophash.output.multipartRelated.part) {
+                    foreach hash part in (ophash.output.multipartRelated.part) {
                         WSDL::XsdBase::removeNS(\part);
                         op.addOutputPart(part);
                     }
@@ -3337,7 +3375,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             #printf("DEBUG: portType: %y\n", port);
             string name = port."^attributes^".name;
             wsdl_services += name;
-            foreach any p in (port.operation) {
+            foreach hash p in (port.operation) {
                 WSOperation op(p, tmap, nsc, messages);
                 portType{name}.operations.(op.name) = op;
                 #printf("DEBUG: %y registered operation %y\n", name, op.name);
