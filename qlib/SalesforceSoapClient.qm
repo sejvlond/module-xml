@@ -281,7 +281,7 @@ public namespace SalesforceSoapClient {
             # add session ID to SOAP call header
             if (sessionid)
                 opts.soap_header.sessionId = sessionid;
-            opts.soapaction = soapaction;
+            opts.soapaction = opts.soapaction ?? soapaction;
 
             return SoapClient::callOperation(operation, args, opts, \info);
         }
