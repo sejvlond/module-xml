@@ -1713,6 +1713,9 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         #! the SOAPAction header value to send with this operation
         *string soapAction;
 
+        #! the top-level request name
+        *string request_name;
+
         #! request multipart hash
         /** this has has the following keys:
             - \c "multipart": the multipart type name (ex: \c "related")
@@ -1797,7 +1800,19 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
             string element = input.args{key}.element.name;
             idocmap{element} = input.args{key}.element;
+            if (!request_name)
+                request_name = element;
         }
+    }
+
+    #! sets the top-level request name
+    setTopLevelRequestElement(string name) {
+        request_name = name;
+    }
+
+    #! returns the top-level request name
+    string getTopLevelRequestName() {
+        return request_name ? request_name : name;
     }
 
     #! serializes a request to an XML string for the operation
