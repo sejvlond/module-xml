@@ -155,8 +155,14 @@ class SalesforceTest inherits QUnit::Test {
 
     queryAccount(string id) {
         string ss = sprintf("select id, name, description, accountnumber from account where accountnumber = '%s'", AcctNo1);
-        hash rh = sc.query(("queryString": ss));
+        # issue 1659: must respect SOAPAction header
+        hash opts = ("soapaction": "test");
+        hash info;
+        hash rh = sc.callOperation("query", ("queryString": ss), opts, \info);
+        #hash rh = sc.query(("queryString": ss));
         assertEq(True, rh.result.done);
+
+        assertEq("test", info.headers.SOAPAction);
 
         # DEBUG
         if (rh.result.records.typeCode() != NT_HASH)

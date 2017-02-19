@@ -1823,22 +1823,37 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 #! web service operation class
 public class WSDL::WSOperation inherits WSDL::XsdNamedData {
     public {
+        #! request message
         WSMessage input;
+        #! response message
         WSMessage output;
+        #! request message name
         *string input_name;
+        #! response message name
         *string output_name;
+        #! internal type map
         TypeMap tmap;
 
+        #! namespace container
         Namespaces nsc;
 
-        *string soapAction;  # TODO: remove   SoapHandler, SoapClient
+        #! the SOAPAction header value to send with this operation
+        *string soapAction;
+
+        #! the top-level request name
         *string request_name;
 
-        # params per associated binding
+        #! params per associated binding
         hash bindings;
     }
 
-    constructor(any p, TypeMap n_tmap, Namespaces n_nsc, *hash messages) : XsdNamedData(\p) {
+    #! creates the WSOperation object from the arguments supplied
+    /** @param p the raw hash from deserialized XML data for the operation
+        @param n_tmap a reference to an object of a private class that stores XSD type information from types defined in the WSDL
+        @param n_nsc the namespace container
+        @param messages a hash of messages defined in the WSDL; keys are message names; values are WSMessage objects
+     */
+    constructor(hash p, TypeMap n_tmap, Namespaces n_nsc, *hash messages) : XsdNamedData(\p) {
         tmap = n_tmap;
         nsc = n_nsc;
 
@@ -1873,6 +1888,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         soapAction = op_ns ? op_ns + name : name;
     }
 
+    #! this method is called if this operation requires document style
     setDocStyle(reference idocmap) {
         # docstyle = True;  # property per binding
 
@@ -1889,10 +1905,12 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         }
     }
 
+    #! sets the top-level request name
     setTopLevelRequestElement(string name) {
         request_name = name;
     }
 
+    #! returns the top-level request name
     string getTopLevelRequestName() {
         return request_name ? request_name : name;
     }
@@ -1995,11 +2013,13 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
                     }
                 }
             }
-/*            if (header) {
+            /*
+            if (header) {
                 # append unprocessed values TODO: it's obsolete as it violates WSDL definition
                 outh += header;
                 header = NOTHING;
-            } */
+            }
+            */
             #printf("DEBUG: outh: %y\n", outh);
             rh{soapenvEnvelope}."soapenv:Header" = outh;
         }
@@ -2014,7 +2034,6 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         return rh;
     }
 
-
     private:internal *data serializeHttpMessage(any h, hash binding, bool request, reference ct, reference enc) {
         string io = request ? "input" : "output";
         if (binding{io}.content.formUrlEncoded) {
@@ -2024,7 +2043,6 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             # TODO: throws exception when character is > 127, discussed e.g. https://www.w3.org/TR/html5/forms.html#application/x-www-form-urlencoded-encoding-algorithm
             return mime_get_form_urlencoded_string(self{io}.serializeAllPartData(h));
         } else if (binding{io}.content) {
-
             hash v = self{io}.serializeData(binding{io}.content.part, h);
             if (v."content-type") {
                 if (!binding{io}.content.acceptAllContentTypes) {
@@ -2227,6 +2245,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         return rv;
     }
 
+    #! processes multi-part references and returns a hash of multi-part reference info and the updated message body hash
     private list processMultiRef(hash body) {
         # setup message info hash and multiRef lookup hash key, if any are present
         hash mrh = (
@@ -2287,6 +2306,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         WSDL::XsdBase::removeNS2(\o);
         WSDL::XsdBase::removeNS2(\o.Envelope);
         hash hrv;
+        
         if (binding{io}.header) {
             *hash header = o.Envelope.Header;
             WSDL::XsdBase::removeNS2(\header);
@@ -2359,7 +2379,6 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             if (binding.docstyle) {
                 rv = self{io}.deserializeDocument(mrh, msg);
             } else {
-
                 string mname = input_name ? input_name : name + (request ? "" : "Response");
                 if (!msg{mname})
                     throw SOAP_DESERIALIZATION_ERROR, sprintf("missing %s message name %y as top-level element; got elements: %y", io, mname, keys msg);
@@ -2415,7 +2434,6 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             hash h = mime_parse_form_urlencoded_string(v.body); # TODO: data have no encoding
             return self{io}.deserializeAllPartData(h);
         } else if (binding{io}.content) {
-
             if (!binding{io}.content.acceptAllContentTypes) {
                 WSDLLib::checkContentType(ct, binding{io}.content.acceptedContentTypeSubtypes + binding{io}.content.acceptedContentTypes);
             }
@@ -2432,7 +2450,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         }
     }
 
-    #! parses a hash representing a parsed XML request (parsed with parseXMLAsData()) for the operation and returns the corresponding Qore data structure
+    #! parses a hash representing a parsed XML request (parsed with @ref parse_xml() "parse_xml(XPF_PRESERVE_ORDER)") for the operation and returns the corresponding Qore data structure
     /** @param o the parsed SOAP or HTTP request with @ref WSDLLib::parseSOAPMessage() for the operation
         @param bname SOAP binding name, leave empty to use the first assigned binding
         @return the Qore data structure corresponding to the request data. When SOAP header is deserialized according binding/input WSDL then all data are passed under sub hash values prefixed by message name
@@ -2447,7 +2465,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         }
     }
 
-    #! parses a hash representing a parsed XML response (parsed with parse_xml()) for the operation and returns the corresponding Qore data structure
+    #! parses a hash representing a parsed XML response (parsed with @ref parse_xml() "parse_xml(XPF_PRESERVE_ORDER)") for the operation and returns the corresponding Qore data structure
     /** @param o the parsed SOAP or HTTP request with @ref WSDLLib::parseSOAPMessage() for the operation
         @param bname SOAP binding name, leave empty to use the first assigned binding
         @return the Qore data structure corresponding to the response data. When SOAP header is deserialized according binding/output WSDL then all data are passed under sub hash values prefixed by message name
@@ -2463,8 +2481,8 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
     }
 
     /** Operation is resolved from method and path so let's look if data are passed in URL.
-    When URL replacement is defined for operation then exception is raised.
-    @return NOTHING if data are not encoded in URL for operation
+        When URL replacement is defined for operation then exception is raised.
+        @return NOTHING if data are not encoded in URL for operation
     */
     any deserializePath(string path, *string bname) {
         hash binding = getBinding(bname);
@@ -2503,7 +2521,8 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         throw SOAP_DESERIALIZATION_ERROR, sprintf("BUG: cannot deserialize url: %y", binding.input);
     }
 
-    private hash processNSValue(hash h) {
+    #! processes a hash of raw deserialized XML data and removes any namespace prefix from keys (saved to a \c "ns" key in the hash value assigned to the key) and returns the processed version of the hash
+    static private hash processNSValue(hash h) {
         foreach string k in (keys h) {
             (*string ns, *string name) = h{k} =~ x/(\w+):(\w+)/;
             if (!name)
@@ -3100,11 +3119,9 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                     }
 
 
-                    if (op{io}.body.parts) {
-                        op{io}.body.parts = op{io}.body.parts.split(" ");  # NMTOKENS
-                        foreach string p in (\op{io}.body.parts) {
-                            p = portTypes{port}.operations{opname}{io}.checkPart(p);
-                        }
+                    foreach hash part in (ophash.input.multipartRelated.part) {
+                        WSDL::XsdBase::removeNS(\part);
+                        op.addInputPart(part);
                     }
 
                     if (exists ophash{io}.header) {
@@ -4062,7 +4079,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             #printf("DEBUG: portType: %y\n", port);
             string name = port."^attributes^".name;
             wsdl_services += name;
-            foreach any p in (port.operation) {
+            foreach hash p in (port.operation) {
                 WSOperation op(p, tmap, nsc, messages);
                 portType{name}.operations.(op.name) = op;
                 #printf("DEBUG: %y registered operation %y\n", name, op.name);
