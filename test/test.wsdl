@@ -278,24 +278,24 @@
     <wsdl:operation name="headerVal">
       <soap12:operation soapAction="http://qore.org/headerVal" />
       <wsdl:input>
-        <soap12:header message="m1" part="body" use="literal" />
-        <soap12:header message="m2" part="docs" use="encoded" />
-        <soap12:header message="m3" part="body" use="literal" />
+        <soap12:header message="tns:m1" part="body" use="literal" />
+        <soap12:header message="tns:m2" part="docs" use="encoded" />
+        <soap12:header message="tns:m3" part="body" use="literal" />
       </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="headerVal-doc">
       <soap12:operation soapAction="http://qore.org/headerVal" style="document" />
       <wsdl:input>
-        <soap12:header message="m1" part="body" use="literal" />
-        <soap12:header message="m2" part="docs" use="encoded" />
-        <soap12:header message="m3" part="body" use="literal" />
+        <soap12:header message="tns:m1" part="body" use="literal" />
+        <soap12:header message="tns:m2" part="docs" use="encoded" />
+        <soap12:header message="tns:m3" part="body" use="literal" />
       </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="headerValBody">
       <soap12:operation soapAction="http://qore.org/headerValBody" />
       <wsdl:input>
         <soap12:body use="literal" />
-        <soap12:header message="m2" part="docs" use="encoded" />
+        <soap12:header message="tns:m2" part="docs" use="encoded" />
       </wsdl:input>
     </wsdl:operation>
   </wsdl:binding>
@@ -338,21 +338,21 @@
     <http:binding verb="GET" />
     <wsdl:operation name="urlRepl">
       <http:operation location="get/(country)/(zip)-(city)" />
-      <input>
+      <wsdl:input>
         <http:urlReplacement />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="urlEncoded1">
       <http:operation location="get" />
-      <input>
+      <wsdl:input>
         <http:urlEncoded />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="urlEncoded2">
       <http:operation location="get?test" />
-      <input>
+      <wsdl:input>
         <http:urlEncoded />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="getMimeXml">
       <http:operation location="/getMimeXml" />
@@ -362,52 +362,52 @@
     </wsdl:operation>
     <wsdl:operation name="getBinary">
       <http:operation location="getbinary" />
-      <output>
+      <wsdl:output>
         <mime:content type="image/*" />
         <mime:content type="application/*" />
         <mime:content type="text/plain" />
         <mime:content type="text/html" />
-      </output>
+      </wsdl:output>
     </wsdl:operation>
   </wsdl:binding>
   <wsdl:binding name="b3" type="tns:pt2">
     <http:binding verb="POST" />
     <wsdl:operation name="postForm">
       <http:operation location="postform" />
-      <input>
+      <wsdl:input>
         <mime:content type="application/x-www-form-urlencoded" />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="postText">
       <http:operation location="posttext" />
-      <input>
+      <wsdl:input>
         <mime:content type="text/plain" />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="postImg">
       <http:operation location="postimg" />
-      <input>
+      <wsdl:input>
         <mime:content type="image/png" />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="postImg2">
       <http:operation location="postimg2" />
-      <input>
+      <wsdl:input>
         <mime:content type="image/jpeg" />
         <mime:content type="image/png" />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="postImg3">
       <http:operation location="postimg3" />
-      <input>
+      <wsdl:input>
         <mime:content type="image/*" />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
     <wsdl:operation name="postData">
       <http:operation location="postdata" />
-      <input>
+      <wsdl:input>
         <mime:content type="*/*" />
-      </input>
+      </wsdl:input>
     </wsdl:operation>
   </wsdl:binding>
   <wsdl:service name="InfoService">
@@ -422,4 +422,3 @@
     </wsdl:port>
   </wsdl:service>
 </wsdl:definitions>
-

@@ -246,13 +246,16 @@ public namespace SoapClient {
             list svcl = wsdl.listServices();
             if (svcl.size() > 1 && !h.service)
                 throw "SOAP-CLIENT-ERROR", sprintf("no 'service' key passed in the option hash argument to SoapClient::constructor() (WSDL defines the following services: %y)", (map $1.name, svcl));
-
             svc = h.service ?? svcl[0].name;
 
             hash svch = wsdl.getService(svc);
 
-            if (svch.port.size() > 1 && !h.port)
+            # if no port is specified and there are multiple ports, take the first one for backwards-compatibility
+            /*
+            if (svch.port.size() > 1 && !h.port) {
                 throw "SOAP-CLIENT-ERROR", sprintf("no 'port' key passed in the option hash argument to SoapClient::constructor() (WSDL defines the following ports: %y for service: %y)", keys svch.port, svc);
+            }
+            */
             port = h.port ?? svch.port.firstKey();
             binding = svch.port{port}.binding.name;
 

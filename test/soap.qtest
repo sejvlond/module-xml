@@ -10,6 +10,7 @@
 %enable-all-warnings
 
 %requires QUnit
+%requires Util
 
 %requires ../qlib/WSDL.qm
 %requires xml
@@ -293,12 +294,129 @@ class SoapTest inherits QUnit::Test {
             "country": "CZ",
             "city": "Prague 2",
             "zip": 12000,
-        );
+            );
+
+        const MultiReq = (
+            "OrderNumber": "TEST-123",
+            "DealerCode": "DEALER-1",
+            "IsUpdate": False,
+            "IsCancelled": False,
+            "IsGiftWrapped": False,
+            "ShipToStore": True,
+            "GiftWrapped": False,
+            "DeliveryType": "TEST",
+            "EmailAddress": "test@test.com",
+            "ContactNumber": "+420 555 121 212",
+            "Name": (
+                "FirstName": "Testie",
+                "LastName": "O'Test",
+            ),
+            "DeliveryAddress": (
+                "AddressLine1": "Premyslovska 1939/28",
+                "AddressLine2": "130 00",
+                "AddressLine3": "Prague",
+                "AddressLine4": "",
+                "County": "Prague",
+                "Country": "Czech Republic",
+            ),
+            "InvoiceAddress": (
+                "AddressLine1": "Premyslovska 1939/28",
+                "AddressLine2": "130 00",
+                "AddressLine3": "Prague",
+                "AddressLine4": "",
+                "County": "Prague",
+                "Country": "Czech Republic",
+            ),
+            "OrderGrossPrice": 149.99n,
+            "OrderDiscount": 0.00n,
+            "OrderNetPrice": 130.00n,
+            "OrderItem": (
+                "Price": 130.00n,
+                "FTC": True,
+            ),
+            );
+
+        const SoapEnvAttrMult = (
+            "^attributes^": (
+                "xmlns:soap": "http://www.w3.org/2003/05/soap-envelope",
+                "xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
+                "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                "xmlns:fu": "http://www.example.com/shop/fulfillment",
+            ),
+            );
+
+        const Multi_Req_1 = (
+            "soap:Envelope": SoapEnvAttrMult + (
+                "soap:Body": (
+                    "fu:OrderRequests": (
+                        "fu:OrderRequest": (
+                            "fu:OrderNumber": "TEST-123",
+                            "fu:DealerCode": "DEALER-1",
+                            "fu:IsUpdate": "false",
+                            "fu:IsCancelled": "false",
+                            "fu:IsGiftWrapped": "false",
+                            "fu:ShipToStore": "true",
+                            "fu:GiftWrapped": "false",
+                            "fu:DeliveryType": "TEST",
+                            "fu:EmailAddress": "test@test.com",
+                            "fu:ContactNumber": "+420 555 121 212",
+                            "fu:Name": (
+                                "fu:FirstName": "Testie",
+                                "fu:LastName": "O'Test",
+                            ),
+                            "fu:DeliveryAddress": (
+                                "fu:AddressLine1": "Premyslovska 1939/28",
+                                "fu:AddressLine2": "130 00",
+                                "fu:AddressLine3": "Prague",
+                                "fu:AddressLine4": NOTHING,
+                                "fu:County": "Prague",
+                                "fu:Country": "Czech Republic",
+                            ),
+                            "fu:InvoiceAddress": (
+                                "fu:AddressLine1": "Premyslovska 1939/28",
+                                "fu:AddressLine2": "130 00",
+                                "fu:AddressLine3": "Prague",
+                                "fu:AddressLine4": NOTHING,
+                                "fu:County": "Prague",
+                                "fu:Country": "Czech Republic",
+                            ),
+                            "fu:OrderGrossPrice": "149.99",
+                            "fu:OrderDiscount": "0",
+                            "fu:OrderNetPrice": "130",
+                            "fu:OrderItem": (
+                                "fu:Price": "130",
+                                "fu:FTC": "true",
+                            ),
+                        ),
+                    ),
+                    "fu:swaBinary": NOTHING,
+                ),
+            ),
+            );
+
+        const Timestamp = now_us().toString();
+        const TxId = get_random_string();
+
+        const Multi_Res_1 = (
+            "soap:Envelope": SoapEnvAttrMult + (
+                "soap:Body": (
+                    "fu:Receipt": (
+                        "fu:OrderNumber": "16685422",
+                        "fu:Timestamp": Timestamp,
+                        "fu:ReceiptAck": (
+                            "fu:OriginalTXID": TxId,
+                            "fu:RequestStatus": "Success",
+                        ),
+                    ),
+                ),
+            ),
+            );
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
         addTestCase("SoapTestCase", \soapTestCase());
         addTestCase("Test1", \test1());
+        addTestCase("multi", \multiTest());
         set_return_value(main());
     }
 
@@ -455,10 +573,11 @@ class SoapTest inherits QUnit::Test {
         xh = parse_xml(h.body);
         compareSoapMsgs("header-val", HeaderValReq1, xh);
 
-        op = ws.getOperation("headerVal-doc");
-        h = op.serializeRequest(HeaderVal1);
-        xh = parse_xml(h.body);
-        compareSoapMsgs("header-val", HeaderValReq1, xh);
+        # test if the body arguments can be used to serialize the headers
+        #op = ws.getOperation("headerVal-doc");
+        #h = op.serializeRequest(HeaderVal1, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
+        #xh = parse_xml(h.body);
+        #compareSoapMsgs("header-val", HeaderValReq1, xh);
 
         assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), (HeaderVal1, ("unknown": "dummy") ) );
         assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), (HeaderVal1 + ("unknown": "dummy") ) );
@@ -563,8 +682,6 @@ class SoapTest inherits QUnit::Test {
         h = op.serializeResponse(h);
         assertTrue(h.hdr."Content-Type".regex("^text/xml"), "Content type");
         assertTrue(h.body.regex("^\\<\\?xml version.*string.*xxx"), "serialize mimexml");
-
-
     }
 
     test1() {
@@ -588,6 +705,42 @@ class SoapTest inherits QUnit::Test {
         compareSoapMsgs("output", Test1Res, xh);
         *hash eh = op.deserializeResponse(xh);
         assertEq(Res1_1, eh, "deserialize response");
+    }
+
+    multiTest() {
+        WebService ws(ReadOnlyFile::readTextFile(get_script_dir() + "/multi-soap.wsdl"));
+        WSOperation op = ws.getOperation("Send");
+
+        hash req = (
+            "OrderRequests": (
+                "OrderRequest": MultiReq,
+            ),
+            "swaBinary": NOTHING,
+            );
+        hash h = op.serializeRequest(req);
+        assertEq(NOTHING, h.hdr.SOAPAction);
+        hash xh = parse_xml(h.body);
+        compareSoapMsgs("multi-1", Multi_Req_1, xh);
+
+        h = op.deserializeRequest(xh);
+        # FIXME: check that req == h (must process req)
+
+        hash res = (
+            "OrderNumber": "16685422",
+            "Timestamp": Timestamp,
+            "ReceiptAck": (
+                "OriginalTXID": TxId,
+                "RequestStatus": "Success",
+            ),
+            );
+        h = op.serializeResponse(res);
+        #printf("h: %N\n", h);
+        xh = parse_xml(h.body);
+        #printf("%N\n", xh);
+        compareSoapMsgs("multi-2", Multi_Res_1, xh);
+
+        h = op.deserializeResponse(xh);
+        # FIXME: check that res == h (must process res)
     }
 
     compareSoapMsgs(string assert, hash h1, hash h2) {

@@ -1535,6 +1535,10 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return requires_value;
     }
 
+    bool isEmpty() {
+        return !elementmap && !simpleType;
+    }
+
     private *hash parseElements(softlist el, XsdLateResolverHelper unresolved, bool for_object = True) {
         #printf("DEBUG: XsdComplexType::parseElements(%y)\n", el);
         hash h;
@@ -1951,7 +1955,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
     private:internal hash serializeSoapMessage(any val, hash binding, *hash header, *hash nsh, bool request, bool soap12, reference mpm) {
         string io = request ? "input" : "output";
         # setup namespaces for SOAP envelope
-        #printf("DEBUG: serializeSoapMessage: io:%s, h: %y, header: %y, binding: %y\n", io, val, header, binding);
+        #printf("DEBUG: serializeSoapMessage: io:%s, h: %y, header: %y\n", io, val, header);
         hash rh = nsc.hasSoap12() ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
         string soapenvEnvelope = rh.firstKey();
         rh{soapenvEnvelope}."^attributes^" += nsc.getOutputNamespaceHash(nsh);
@@ -1963,27 +1967,33 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         #printf("DEBUG: docstyle: %y\n", binding.docstyle);
         *hash body;
         if (self{io}) {
-            if (binding.docstyle)
-                body = self{io}.serializeDocument(binding{io}.body.parts, binding{io}, mpm, binding{io}.body.encoded, \val);
+            #printf("DEBUG self{%y}: %y (%y) binding: %y\n", io, self{io}.toBool(), self{io}.className(), binding{io}.body.keys());
+            if (binding.docstyle) {
+                bool encoded = binding{io}.body.encoded;
+                # binding{io}.body.encoded == False = literal encoding
+                body = self{io}.serializeDocument(encoded ? binding{io}.body.parts : self{io}.args.keys(), binding{io}, mpm, encoded, \val);
+            }
             else {
-                string mname = input_name ? input_name : name + (request ? "":"Response");
+                string mname = input_name ? input_name : name + (request ? "" : "Response");
                 if (binding{io})
                     body = self{io}.serializeRpc(binding{io}.body.parts, binding{io}, mpm, mname, binding{io}.body.encoded, \val);
             }
-
+            #printf("DEBUG: body: %N\nval: %N\n", body, val);
         }
 
         if (binding{io}.header) {
             #printf("DEBUG: %s, header: %y\n", io, header);
+            #printf("DEBUG: doc: %y bhdr: %N\n", binding.docstyle, (map $1.("message", "part"), binding{io}.header));
             hash outh;
             foreach hash hdr in (binding{io}.header) {
-                #printf("DEBUG: hdr: %y, hdr.msg.name/part: %y/%y, val:%y\n", hdr, hdr.msg.name, hdr.part, val);
                 if (binding.docstyle) {
-                    *hash h = hdr.msg.serializeDocument(hdr.part, NOTHING, NOTHING, hdr.encoded, \header);
+                    *hash h = hdr.msg.serializeDocument(hdr.encoded ? hdr.part : hdr.msg.args.keys(), NOTHING, NOTHING, hdr.encoded, \header);
+                    /*
                     if (!h && val) {
-                        # data provided in val ?
-                        h = hdr.msg.serializeDocument(hdr.part, NOTHING, NOTHING, hdr.encoded, \val);
+                        # header data provided in val ?
+                        h = hdr.msg.serializeDocument(hdr.encoded ? hdr.part : hdr.msg.args.keys(), NOTHING, NOTHING, hdr.encoded, \val);
                     }
+                    */
                     if (h) {
                         remove h."^attributes^".("soapenv:encodingStyle", "xmlns:soapenc");
                         outh += h;
@@ -2013,13 +2023,6 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
                     }
                 }
             }
-            /*
-            if (header) {
-                # append unprocessed values TODO: it's obsolete as it violates WSDL definition
-                outh += header;
-                header = NOTHING;
-            }
-            */
             #printf("DEBUG: outh: %y\n", outh);
             rh{soapenvEnvelope}."soapenv:Header" = outh;
         }
@@ -2306,7 +2309,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         WSDL::XsdBase::removeNS2(\o);
         WSDL::XsdBase::removeNS2(\o.Envelope);
         hash hrv;
-        
+
         if (binding{io}.header) {
             *hash header = o.Envelope.Header;
             WSDL::XsdBase::removeNS2(\header);
@@ -2621,12 +2624,10 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
             if (key || args.size() == 1) {
                 v = getValueFromHash(args{key}.element, \h, True);
             }
-            if (v.typeCode() == NT_NULL) {
-                v = NOTHING;
-            } else {
-                if (!exists v) return;
-            }
+            if (!exists v) return;
         }
+        if (v.typeCode() == NT_NULL)
+            v = NOTHING;
 
         any hv;
         #printf("DEBUG: arg %y with %y\n", key, args{key});
@@ -2685,29 +2686,34 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
     *hash serializeDocument(*softlist key, any msginfo, any mpm, bool encoded, reference h) {
         hash rh;
 
-        if (!key && args.size() == 1) {
-            # deprecated, just for backward compatability
-            string k = args.firstKey();
-            if (h.typeCode() != NT_HASH || !h.hasKey(k)) {
-                hash nh;
-                nh{k} = h;
-                h = nh;
+        #printf("DEBUG: WSMessage::serializeDocument() key: %y h: %y args: %y\n", key, h.keys(), args.keys());
+
+        # for backwards compatibility with a single argument
+        if (args.size() == 1) {
+            string fk = args.firstKey();
+            if (key.size() == 1) {
+                if (key[0] != fk) {
+                    h = (key[0]: (fk: h));
+                }
+            }
+            else if (h.typeCode() != NT_HASH || !h.hasKey(fk)) {
+                # deprecated, just for backward compatability
+                h = (fk: h);
             }
         }
-        foreach string k in (key ? key : keys args) {
+        foreach string k in (key ?? keys args) {
             any val = getValueFromHash(k, \h, True);
             if (!exists val) {
                 if (key || args.size() == 1) {
                     val = getValueFromHash(args{k}.element, \h, True);
                 }
-                if (val.typeCode() == NT_NULL) {
-                    val = NOTHING;
-                } else {
-                    if (!exists val) continue;
-                }
+                if (!exists val) continue;
             }
+            else if (val.typeCode() == NT_NULL)
+                val = NOTHING;
             if (val.typeCode() == NT_HASH)
                 XsdBase::removeNS2(\val);
+            #printf("DEBUG: k: %y val: %y\n", k, val);
             string ons;
             any th;
             if (args{k}.element) {
@@ -2727,7 +2733,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
                 "xmlns:soapenc": SOAP_ENCODING,
             );
 
-        #printf("DEBUG: message %s: force_ns: %y args: %y h: %y\n", name, force_ns, keys args, h);
+        #printf("DEBUG: message %s: args: %y rh: %y\n", name, keys args, rh);
 
         return rh;
     }
@@ -2742,8 +2748,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         #printf("DBG WSMessage::deserializeRpc() args: %y pmap: %y key: %y val: %y\n", args.keys(), pmap, key, val);
         hash ro;
 
-        foreach string k in (exists key ? key : args.keyIterator()) {
-
+        foreach string k in (key ?? keys args) {
             bool present = val.hasKey(k);
             any v = remove val{k};
             if (v.typeCode() == NT_HASH)
@@ -2819,6 +2824,8 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
             throw SOAP_SERIALIZATION_ERROR, sprintf("cannot get element value %y in message %y. Type part is needed", key, name);
         }
         any v = getValueFromHash(key, \val, False);
+        if (v.typeCode() == NT_NULL)
+            v = NOTHING;
         hash rv.value = args{key}.type.serialize(v, False){"^value^"};
         if (v.typeCode() == NT_HASH) {
             rv."content-type" = v."^attributes^"."^content-type^";
@@ -2850,19 +2857,21 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         return rv;
     }
 
-    #! find part in value, remove that value from
+    #! find part in value, remove that value from the hash
     /**
         @param ename element/type name
         @param reference to hash, supposed structure is [msgname.](partname|elemname) = value to support more message data in one hash
-        @param removeFound if True found values are remove from hash
+        @param removeFound if True found values are removed from the hash
 
         @return resolved value, if not found then returns NOTHING
     */
-    /* private in module*/any getValueFromHash(string ename, reference v, bool removeFound) {
+    private:internal any getValueFromHash(string ename, reference v, bool removeFound) {
+        #printf("DEBUG: WSMessage::getValueFromHash() ename: %y v: %y rF: %y args: %y args{%y}.part: %y\n", ename, v, removeFound, args.keys(), ename, args{ename}.part);
+
         any rv;
         string k;
         # there is not unique part name space as it may contain more messages in one hash so let's do a little heuristic
-        if (exists v{name}) {
+        if (v.hasKey(name)) {
             if (args{ename}.part && exists v{name}{args{ename}.part}) {
                 k = args{ename}.part;
             } else if (exists v{name}{ename}) {
@@ -2881,11 +2890,11 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         if (!k) {
             if (args{ename}.part && exists v{args{ename}.part}) {
                 k = args{ename}.part;
-            } else if (exists v{ename}) {
+            } else if (v.hasKey(ename)) {
                 k = ename;
             }
             if (k) {
-                rv = v{k};
+                rv = v{k} ?? NULL;
                 if (removeFound) {
                     remove v{k};
                     if (!v{name}) {
@@ -2897,18 +2906,21 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         return rv;
     }
 
-    #! when only one arg then try get values based on element keys
-    /* private in module*/any getValueFromHash(*WSDL::XsdElement element, reference v, bool removeFound) {
+    #! when only one arg then try to get values based on element keys
+    private:internal any getValueFromHash(*WSDL::XsdElement element, reference v, bool removeFound) {
         if (!element) return;
         if (element.type instanceof WSDL::XsdComplexType) {
+            XsdComplexType type = cast<WSDL::XsdComplexType>(element.type);
             hash rv;
-            if (!cast<WSDL::XsdComplexType>(element.type).elementmap) {
+            if (type.isEmpty()) {
                 # special case, empty complex type
                 return NULL;
             } else {
-                foreach my string ename in (keys cast<WSDL::XsdComplexType>(element.type).elementmap) {
+                foreach string ename in (keys type.elementmap) {
                     any val = getValueFromHash(ename, \v, removeFound);
                     if (exists val) {
+                        if (val.typeCode() == NT_NULL)
+                            val = NOTHING;
                         rv{ename} = val;
                     }
                 }
@@ -4027,7 +4039,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
                 ct.finalize(tmap, nsc);
             }
         }
- 
+
         map resolveType($1), unresolved.getList();
     }
 
