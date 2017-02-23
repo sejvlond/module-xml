@@ -2399,7 +2399,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
             if (rv.size() == 1 && rv.typeCode() == NT_HASH && !exists hrv{rv.firstKey()} ) {
                 rv = rv.firstValue();
             } else {
-                foreach my string k in (keys hrv) {
+                foreach string k in (keys hrv) {
                     if (exists rv{k}) {
                         # name conflict
                         rv{self{io}.name} = rv;
@@ -2653,7 +2653,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
     *hash serializeRpc(*softlist key, any msginfo, any mpm, string n_name, bool encoded, reference h) {
         hash rh;
         #printf("DEBUG: message %s: keys: %y, h: %y\n", name , keys, h);
-        foreach string k in (key ? key : keys args) {
+        foreach string k in (key ?? keys args) {
             string ons;
             any hv = serializeRpcValue(k, encoded, \h, \ons);
             if (!exists hv) continue;
