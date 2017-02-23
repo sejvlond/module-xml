@@ -70,7 +70,7 @@ module SoapHandler {
     @section soaphandler_relnotes SoapHandler Release History
 
     @subsection soaphandler_0_2_6 SoapHandler 0.2.6
-    - reimplmented operation to support multi binding, operation can be assigned to more bindings
+    - reimplmented operation to support multiple SOAP bindingings, SOAP operations can be assigned to more bindings
     - HTTP binding support
 
     @subsection soaphandler_0_2_5 SoapHandler 0.2.5
@@ -102,7 +102,6 @@ module SoapHandler {
 
 #! main SoapHandler namespace
 public namespace SoapHandler {
-
     #! SoapHandler implementation; to be registered as a request handler in the HttpServer class
     public class SoapHandler inherits public AbstractHttpRequestHandler {
         #! version of the SoapHandler implementation
@@ -212,7 +211,7 @@ public namespace SoapHandler {
                 map delete owsh{$1.operation.name}, wsh{name}.listOperations();
 
                 # remove alternate path mappings
-                map delete wsph{$1}, plh{name}.keyIterator();
+                map delete wsph{$1}, keys plh{name};
                 delete plh{name};
 
                 # remove webservice mappings
@@ -220,13 +219,13 @@ public namespace SoapHandler {
             }
 
             # remove soapaction mappings
-            map delete sam.$1, psam{name}.keyIterator();
+            map delete sam.$1, keys psam{name};
 
             # remove path soapaction mappings
             delete psam{name};
 
             # remove method link mappings
-            map delete methods.$1, th{name}.keyIterator();
+            map delete methods.$1, keys th{name};
 
             # remove path method mapping
             delete th{name};
@@ -238,11 +237,13 @@ public namespace SoapHandler {
             #printf("DEBUG: SoapHandler::addMethodInternal() method: %N\n", method);
             string rn = method.operation.getTopLevelRequestName();
 
-            hash binding = method.operation.getBinding(method.binding);
+            OperationalBinding binding = method.operation.getBinding(method.binding);
 
-            if (binding.soapTransport) {
+            if (binding instanceof SoapBinding) {
+                SoapBinding sb = cast<SoapBinding>(binding);
+
                 # soap binding
-                *string sa = binding.soapAction;
+                *string sa = sb.soapAction;
                 if (sa)
                     method.soap_action = sa;
 
@@ -289,24 +290,27 @@ public namespace SoapHandler {
                         methods{rn} = method;
                 }
 
-            } else if (binding.httpMethod) {
+            } else if (binding instanceof HttpBinding) {
+                HttpBinding hb = cast<HttpBinding>(binding);
                 # http binding
 
                 rwl.readLock();
                 on_exit rwl.readUnlock();
-                if (!mapMethodPathToOperation{binding.httpMethod}) {
-                    mapMethodPathToOperation{binding.httpMethod} = new TreeMap();
+                if (!mapMethodPathToOperation{hb.httpMethod}) {
+                    mapMethodPathToOperation{hb.httpMethod} = new TreeMap();
                 }
-                method.parseUrlOnly = binding.input.urlEncoded || binding.input.urlReplacement;
-                method.exactMatch = !binding.input.urlReplacement;
-                method.path = ltrim(method.path ?? binding.location, "/");
+                method.parseUrlOnly = hb.input.urlEncoded || hb.input.urlReplacement;
+                method.exactMatch = !hb.input.urlReplacement;
+                method.path = ltrim(method.path ?? hb.location, "/");
                 if (index(method.path, "?") >= 0) {
                     throw "SOAPACTION-ERROR", sprintf("cannot register path %y for operation %y because it contains parameters", method.path, method.operation.name);
                 }
-                mapMethodPathToOperation{binding.httpMethod}.put(method.path, method);
-
-            } else {
+                mapMethodPathToOperation{hb.httpMethod}.put(method.path, method);
+            }
+            else if (!exists binding) {
                 throw "SOAPACTION-ERROR", sprintf("cannot register operation %y because it has no binding", method.operation.name);
+            } else {
+                throw "SOAPACTION-ERROR", sprintf("cannot register operation %y because it has unsupported binding: %y", method.operation.name, binding.className());
             }
 
             #printf("DEBUG: SoapHandler::addMethodInternal() %N %N\n", method.name, method.path);
@@ -318,7 +322,7 @@ public namespace SoapHandler {
             rwl.readLock();
             on_exit rwl.readUnlock();
 
-            foreach string cmd in (methods.keyIterator()) {
+            foreach string cmd in (keys methods) {
                 h{cmd}.description = methods{cmd}.help;
                 if (methods{cmd}.params)
                     h{cmd}.params = methods{cmd}.params;
@@ -405,7 +409,7 @@ private nothing msglog(hash cx, hash msg) {
 
             try {
                 if (method.parseUrlOnly) {
-                    args = method.operation.deserializePath(cx.url.path, method.binding);
+                    args = method.operation.deserializeRequestPath(cx.url.path, method.binding);
                 } else {
                     args = method.operation.deserializeRequest(args, method.binding);
                 }
@@ -433,7 +437,7 @@ private nothing msglog(hash cx, hash msg) {
                             msg += "<masked>, ";
                         else if (arg.typeCode() == NT_HASH && elements arg) {
                             msg += "(";
-                            foreach string k in (arg.keyIterator()) {
+                            foreach string k in (keys arg) {
                                 if (k == method.maskkey)
                                     msg += sprintf("%s=<masked>, ", k);
                                 else
@@ -682,7 +686,7 @@ private nothing msglog(hash cx, hash msg) {
 
                         # set soap version in request
                         *hash attr = args.Envelope."^attributes^";
-                        foreach string k in (attr.keyIterator()) {
+                        foreach string k in (keys attr) {
                             if (k =~ /:soapenv$/) {
                                 if (attr{k} == SOAP_12_ENV)
                                     reqsoap12 = True;

@@ -199,7 +199,7 @@ class SoapClientTest inherits QUnit::Test {
         assertEq("error", sc.msglogs[1].reason);
         assertEq(500, sc.msglogs[1].code);
         assertEq(True, sc.msglogs[1].body =~ /Fault/);
-        assertEq("application/soap+xml,text/xml,application/xml", sc.msglogs[0]."accept");
+        assertEq("application/soap+xml,text/xml,application/xml", sc.msglogs[0].header."Accept");
         assertEq(server.soap.msglogs[0].('reason', 'code', 'body'), sc.msglogs[0].('reason', 'code', 'body'));
         assertEq(server.soap.msglogs[1].('reason', 'code', 'body'), sc.msglogs[1].('reason', 'code', 'body'));
 
@@ -238,14 +238,15 @@ class SoapClientTest inherits QUnit::Test {
             assertEq(server.opname, "getMimeXml");
             assertEq(server.soap.msglogs[0].('reason', 'method'), sc.msglogs[0].('reason', 'method'));
             assertEq("text/xml;charset=UTF-8", sc.msglogs[1]."content-type");
-            assertEq("text/xml", sc.msglogs[0]."accept");
+            assertEq("text/xml", sc.msglogs[0].header."Accept");
+            printf("server.rdata: %y h: %y\n", server.rdata, h);
             assertEq(server.rdata, h);
 
             cleanMsgLog();
             server.rdata = ("payload": ("^attributes^": ("^content-type^": "application/plain"), "^value^": "ADATA"));
             h = sc.callOperation("getBinary", ());
             assertEq(server.opname, "getBinary");
-            assertEq("text/plain,text/html,image/*,application/*", sc.msglogs[0]."accept");
+            assertEq("text/plain,text/html,image/*,application/*", sc.msglogs[0].header."Accept");
             assertEq(server.rdata.payload."^attributes^"."^content-type^", sc.msglogs[1]."content-type");
             server.rdata.payload."^value^" = binary(server.rdata.payload."^value^");
             assertEq(server.rdata, h);
@@ -253,12 +254,10 @@ class SoapClientTest inherits QUnit::Test {
             cleanMsgLog();
             server.rdata = ("payload": "xxx");
             assertThrows("HTTP-CLIENT-RECEIVE-ERROR", \sc.callOperation(), ("getBinary", ()));
-
         } catch (ex) {
-            printf("Exception: %N\n\n", ex);
+            printf("Exception: %s\n", get_exception_string(ex));
             rethrow;
         }
-
     }
 
     httpPostClientTest() {
@@ -277,7 +276,7 @@ class SoapClientTest inherits QUnit::Test {
             hi = ("info": "very important text");
             h = sc.callOperation("postText", hi);
             assertEq(server.opname, "postText");
-            assertEq("text/plain", sc.msglogs[0]."content-type");
+            assertEq("text/plain;charset=ISO-8859-1", sc.msglogs[0].header."Content-Type");
             assertEq(("info": ("^attributes^": ("^content-type^": "text/plain"), "^value^": hi.info)), server.mdata);
 
             cleanMsgLog();
@@ -287,7 +286,7 @@ class SoapClientTest inherits QUnit::Test {
             hi = ("img": ("^attributes^": ("^content-type^": "image/png"), "^value^": <1234567890ABCDEF> ));
             h = sc.callOperation("postImg", hi);
             assertEq(server.opname, "postImg");
-            assertEq(hi.img."^attributes^"."^content-type^", sc.msglogs[0]."content-type");
+            assertEq(hi.img."^attributes^"."^content-type^", sc.msglogs[0].header."Content-Type");
             assertEq(hi, server.mdata);
 
             hi.img."^attributes^"."^content-type^" = "image/jpeg";
@@ -296,27 +295,26 @@ class SoapClientTest inherits QUnit::Test {
             cleanMsgLog();
             h = sc.callOperation("postImg2", hi);
             assertEq(server.opname, "postImg2");
-            assertEq(hi.img."^attributes^"."^content-type^", sc.msglogs[0]."content-type");
+            assertEq(hi.img."^attributes^"."^content-type^", sc.msglogs[0].header."Content-Type");
             assertEq(hi, server.mdata);
 
             cleanMsgLog();
             h = sc.callOperation("postImg3", hi);
             assertEq(server.opname, "postImg3");
-            assertEq(hi.img."^attributes^"."^content-type^", sc.msglogs[0]."content-type");
+            assertEq(hi.img."^attributes^"."^content-type^", sc.msglogs[0].header."Content-Type");
             assertEq(hi, server.mdata);
 
             cleanMsgLog();
             hi = ("payload": ("^attributes^": ("^content-type^": "application/qore"), "^value^": <0ABCDEF01234567890>));
             h = sc.callOperation("postData", hi);
             assertEq(server.opname, "postData");
-            assertEq(hi.payload."^attributes^"."^content-type^", sc.msglogs[0]."content-type");
+            assertEq(hi.payload."^attributes^"."^content-type^", sc.msglogs[0].header."Content-Type");
             assertEq(hi, server.mdata);
 
         } catch (ex) {
-            printf("Exception: %N\n\n", ex);
+            printf("Exception: %s\n", get_exception_string(ex));
             rethrow;
         }
-
     }
 
     soapConnectionTest() {
