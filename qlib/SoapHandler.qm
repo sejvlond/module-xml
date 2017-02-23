@@ -73,7 +73,7 @@ module SoapHandler {
     - <b>Compatibility Warnings</b>
       - Because the SoapHandler module now supports HTTP bindings, it will only return
         WSDLs from GET requests if the URI path includes <tt>?wsdl</tt> at the end of the string
-    - reimplemented operation to support multiple SOAP bindingings, SOAP operations can be assigned to multiple bindings
+    - reimplemented operation to support multiple SOAP bindings, SOAP operations can be assigned to multiple bindings
     - HTTP binding support
 
     @subsection soaphandler_0_2_5 SoapHandler 0.2.5
