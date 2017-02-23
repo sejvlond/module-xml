@@ -139,10 +139,10 @@
   </wsdl:binding>
   <wsdl:service name="ExampleSendOrder">
     <wsdl:port name="ExampleSendOrderSoap" binding="tns:ExampleSendOrderSoap">
-      <soap:address location="http://localhost:8001/SOAP/Example" />
+      <soap:address location="http://localhost:8001/SOAP/ExampleSendOrder" />
     </wsdl:port>
     <wsdl:port name="ExampleSendOrderSoap12" binding="tns:ExampleSendOrderSoap12">
-      <soap12:address location="http://localhost:8001/SOAP/Example" />
+      <soap12:address location="http://localhost:8001/SOAP/ExampleSendOrder" />
     </wsdl:port>
   </wsdl:service>
 </wsdl:definitions>

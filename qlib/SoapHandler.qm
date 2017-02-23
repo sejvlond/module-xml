@@ -70,7 +70,10 @@ module SoapHandler {
     @section soaphandler_relnotes SoapHandler Release History
 
     @subsection soaphandler_0_2_6 SoapHandler 0.2.6
-    - reimplmented operation to support multiple SOAP bindingings, SOAP operations can be assigned to more bindings
+    - <b>Compatibility Warnings</b>
+      - Because the SoapHandler module now supports HTTP bindings, it will only return
+        WSDLs from GET requests if the URI path includes <tt>?wsdl</tt> at the end of the string
+    - reimplemented operation to support multiple SOAP bindingings, SOAP operations can be assigned to multiple bindings
     - HTTP binding support
 
     @subsection soaphandler_0_2_5 SoapHandler 0.2.5
@@ -235,8 +238,6 @@ public namespace SoapHandler {
         # don't reimplement this method; fix/enhance it in the module
         final private addMethodInternal(WebService ws, hash method) {
             #printf("DEBUG: SoapHandler::addMethodInternal() method: %N\n", method);
-            string rn = method.operation.getTopLevelRequestName();
-
             OperationalBinding binding = method.operation.getBinding(method.binding);
 
             if (binding instanceof SoapBinding) {
@@ -278,22 +279,20 @@ public namespace SoapHandler {
                     # add a link for each operation as well
                     map owsh{$1.operation.name} = ws, ws.listOperations(), !owsh{$1.operation.name};
 
-                    # add method link if it doesn't already exist
-                    if (!methods{rn}) {
+                    # add method links if they don't already exist
+                    foreach string rn in (method.operation.getTopLevelRequestNames()) {
                         methods{rn} = method;
                         th{path}{rn} = True;
                     }
                 }
                 else {
                     # add method link if it doesn't already exist
-                    if (!methods{rn})
-                        methods{rn} = method;
+                    map methods.$1 = method, method.operation.getTopLevelRequestNames();
                 }
 
             } else if (binding instanceof HttpBinding) {
                 HttpBinding hb = cast<HttpBinding>(binding);
                 # http binding
-
                 rwl.readLock();
                 on_exit rwl.readUnlock();
                 if (!mapMethodPathToOperation{hb.httpMethod}) {
@@ -357,7 +356,7 @@ private nothing msglog(hash cx, hash msg) {
 
             @since %SoapHandler 0.2.5
         */
-        private/*:hierarchy*/ nothing msglog(hash cx, hash msg) {
+        private nothing msglog(hash cx, hash msg) {
             # implement functionality in descendant class
         }
 
@@ -518,8 +517,7 @@ private nothing msglog(hash cx, hash msg) {
             bool reqsoap12 = False; # set to True if soap 1.2 envelope is used in request
 
             *string path = cx.url.path;
-            # remove query args if present
-            # path =~ s/\?.*$//;
+
             # remove leading / in path, if any
             path =~ s/^\///;
 
@@ -540,7 +538,7 @@ private nothing msglog(hash cx, hash msg) {
             }
 
             if (!method) {
-                # SOAP action is not explicitely specified, e.g. HTTP binding, try get it from path
+                # SOAP action is not explicitly specified, e.g. HTTP binding, try get it from path
                 rwl.readLock();
                 on_exit rwl.readUnlock();
                 *string args;
@@ -568,19 +566,13 @@ private nothing msglog(hash cx, hash msg) {
                 }
             }
 
-            if (!method && hdr.method == "GET") {
+            # service the WSDL with properly-formatted GET requests
+            if (hdr.method == "GET" && path =~ /\?wsdl/i) {
                 # path has not been resolved to an operation, so try an heuristic to match a service
                 # remove query args if present
                 path =~ s/\?.*$//;
 
                 #printf("DEBUG: PATH=%N (%n %n)\n", path, exists wsh{path}, keys wsh);
-
-                if (!path) {
-                    return (
-                        "code": 501,
-                        "body": sprintf("invalid HTTP GET: no path given in URL; known services: %y", wsh.keys()),
-                    );
-                }
 
                 rwl.readLock();
                 on_exit rwl.readUnlock();
@@ -672,7 +664,7 @@ private nothing msglog(hash cx, hash msg) {
                                 foreach string k in (keys args.Envelope.Body) {
                                     if (k == "multiRef" || k == "^attributes^")
                                         continue;
-                                    element = k =~ x/.*:(.*)/[0];
+                                    element = (k =~ x/.*:(.*)/)[0];
                                     break;
                                 }
                             }
@@ -695,9 +687,10 @@ private nothing msglog(hash cx, hash msg) {
                                 break;
                             }
                         }
-                        if (!exists element) {
-                            throw "SOAP-CALL-ERROR", "no operation call found in message";
+                        if (!method && !exists element) {
+                            throw "SOAP-CALL-ERROR", sprintf("no operation call found in message (SOAP body args: %y)", keys args.Envelope.Body);
                         }
+                        #printf("DEBUG element: %y methods: %y args: %y\n", element, methods.keys(), args);
                     }
                 }
                 catch (ex) {
@@ -725,9 +718,8 @@ private nothing msglog(hash cx, hash msg) {
 
             return (
                 "code" : 501,
-                "body" : sprintf("don't know how to handle request with method %n", hdr.method),
+                "body" : sprintf("don't know how to handle request with method %y", hdr.method),
             );
-
         }
 
         private *WebService tryMatch(string path) {

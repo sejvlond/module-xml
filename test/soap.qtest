@@ -2,7 +2,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 
 # requires at least this qore version to run
-%requires qore >= 0.8.12
+%requires qore >= 0.8.13
 
 %new-style
 %require-types
@@ -574,10 +574,10 @@ class SoapTest inherits QUnit::Test {
         compareSoapMsgs("header-val", HeaderValReq1, xh);
 
         # test if the body arguments can be used to serialize the headers
-        #op = ws.getOperation("headerVal-doc");
-        #h = op.serializeRequest(HeaderVal1, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
-        #xh = parse_xml(h.body);
-        #compareSoapMsgs("header-val", HeaderValReq1, xh);
+        op = ws.getOperation("headerVal-doc");
+        h = op.serializeRequest(HeaderVal1, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
+        xh = parse_xml(h.body);
+        compareSoapMsgs("header-val", HeaderValReq1, xh);
 
         assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), (HeaderVal1, ("unknown": "dummy") ) );
         assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), (HeaderVal1 + ("unknown": "dummy") ) );

@@ -2,7 +2,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 
 # make sure we have the right version of qore
-%requires qore >= 0.8.12
+%requires qore >= 0.8.13
 
 %new-style
 %require-types
@@ -42,7 +42,6 @@ class TestSoapHandler inherits SoapHandler {
 }
 
 class TestSoapServer inherits HttpServer {
-
     public {
         TestSoapHandler soap;
         string opname;
@@ -211,7 +210,7 @@ class SoapClientTest inherits QUnit::Test {
 
         HTTPClient hc(("url": url));
         hash info;
-        *string str = hc.get("/SOAP/InfoService", NOTHING, \info);
+        *string str = hc.get("/SOAP/InfoService?wsdl", NOTHING, \info);
         assertEq(True, str && str =~ /http:\/\/[^\/]*\/SOAP\/InfoService/, "issue 1631");
     }
 
@@ -239,7 +238,6 @@ class SoapClientTest inherits QUnit::Test {
             assertEq(server.soap.msglogs[0].('reason', 'method'), sc.msglogs[0].('reason', 'method'));
             assertEq("text/xml;charset=UTF-8", sc.msglogs[1]."content-type");
             assertEq("text/xml", sc.msglogs[0].header."Accept");
-            printf("server.rdata: %y h: %y\n", server.rdata, h);
             assertEq(server.rdata, h);
 
             cleanMsgLog();
@@ -321,7 +319,8 @@ class SoapClientTest inherits QUnit::Test {
         string conn_url = WsdlUrl;
         conn_url =~ s/^file/soap/;
 
-        printf("conn_url: %y\n", conn_url);
+        if (m_options.verbose > 2)
+            printf("conn_url: %y\n", conn_url);
 
         SoapConnection conn("test", "test", conn_url, False, ("target_url": url, "port": "SoapPort"), parse_url(conn_url));
         SoapClient sc2 = conn.get();

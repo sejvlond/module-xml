@@ -1847,8 +1847,8 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         #! the SOAPAction header value to send with this operation
         *string soapAction;
 
-        #! the top-level request name
-        *string request_name;
+        #! a hash of top-level request names for this operation (depends on bindings)
+        hash reqh;
 
         #! params per associated binding; key = binding name; value = OperationalBinding object
         hash bindings;
@@ -1895,11 +1895,8 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         soapAction = op_ns ? op_ns + name : name;
     }
 
-    /*
-    #! this method is called if this operation requires document style
-    setDocStyle(reference idocmap) {
-        # docstyle = True;  # property per binding
-
+    #! this method is called if this operation supports at least one binding with document style
+    setDocStyleBinding(reference idocmap) {
         foreach string key in (input.args.keyIterator()) {
             # FIXME: could be a type here instead of an element
             if (!input.args{key}.element.name) {
@@ -1908,20 +1905,18 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
             string element = input.args{key}.element.name;
             idocmap{element} = input.args{key}.element;
-            if (!request_name)
-                request_name = element;   # TODO: should not affect operation when calling from binding ??
+            reqh{element} = True;
         }
     }
-    */
 
-    #! sets the top-level request name
-    setTopLevelRequestElement(string name) {
-        request_name = name;
+    #! this method is called if this operation supports at least one binding with RPC style
+    markRpcStyleBinding() {
+        reqh{name} = True;
     }
 
-    #! returns the top-level request name
-    string getTopLevelRequestName() {
-        return request_name ? request_name : name;
+    #! returns all top-level request names for this operation
+    list getTopLevelRequestNames() {
+        return reqh.keys();
     }
 
     #! returns a hash representing the given binding
@@ -3089,8 +3084,10 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
 
             if (docstyle || ophash.operation."^attributes^".style == "document") {
                 b_docstyle = True;
-                #portTypes{port}.operations{opname}.setDocStyle(\idocmap);  # TODO
+                portTypes{port}.operations{opname}.setDocStyleBinding(\idocmap);
             }
+            else
+                portTypes{port}.operations{opname}.markRpcStyleBinding();
 
             *string location;
 
@@ -3761,7 +3758,10 @@ public class WSDL::WebService inherits WSDL::XsdBase {
 
         hash base_type;
         list wsdl_services = ();
+
+        #! a hash of element names to XsdElement objects for top-level document-style bindings
         hash idocmap;
+
         hash opmap;
         ElementMap emap();
         hash messages;
@@ -4244,6 +4244,12 @@ public class WSDL::WSMessageHelper {
         hash opts;
     }
 
+    const DefaultOpts = (
+        "comments": False,
+        "choices": False,
+        "max_items": 3,
+    );
+
     #! creates the WebService object
     /** @param _ws the object representing the WSDL
         @param _opts an optional hash of options with the following possible keys:
@@ -4251,11 +4257,6 @@ public class WSDL::WSMessageHelper {
         - \c "choices": (bool) generate choices as sub hashes ^choices^ key, default: False
         - \c "max_items" (int): max.number of array elements to output, default: 3
     **/
-    const DefaultOpts = (
-        "comments": False,
-        "choices": False,
-        "max_items": 3,
-    );
     constructor(WebService _ws, *hash _opts) {
         ws = _ws;
         *hash h = _opts;
@@ -4461,7 +4462,10 @@ public class WSDL::WSMessageHelper {
         @return a hash representing message
     */
     hash getMessage(string name) {
-        return getMessage(ws.idocmap{name});
+        *XsdElement e = ws.idocmap{name};
+        if (!e)
+            throw "MESSAGE-ERROR", sprintf("cannot map message %y to a known element; known elements: %y", ws.idocmap.keys());
+        return getMessage(e);
     }
 
     #! prepare sample message
