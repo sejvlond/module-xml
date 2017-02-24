@@ -164,6 +164,18 @@ public namespace WSDL {
         ),
     );
 
+    #! SOAP "use" to "encoded" mappings
+    public const SoapUseMap = (
+        "encoded": True,
+        "literal": False,
+        );
+
+    #! SOAP "style" to "document" mappings
+    public const SoapStyleMap = (
+        "document": True,
+        "rpc": False,
+        );
+
     #! soap encoding URI
     public const SOAP_ENCODING = "http://schemas.xmlsoap.org/soap/encoding/";
 
@@ -396,7 +408,7 @@ public class WSDL::WSDLLib {
 
     #! returns True is the message has a SOAP mime type
     static bool isSOAPMessage(hash msg) {
-        return WSDLLib::isContentType(msg."content-type", SoapMimeTypes);
+        return WsdlLibPriv::isContentType(msg."content-type", SoapMimeTypes);
     }
 
     /**!
@@ -432,23 +444,6 @@ public class WSDL::WSDLLib {
         }
     }
 
-    /*private in module*/ static bool isContentType(string ct, list MimeTypes) {
-        ct = ltrim(ct);
-        foreach string sct in (MimeTypes) {
-            # Content-Type := type "/" subtype *[";" parameter] ... so we can test if string is starting at index 0
-            if (bindex(ct, sct) == 0)
-                return True;
-        }
-        return False;
-    }
-
-
-    /*private in module*/ static checkContentType(string ct, list MimeTypes) {
-        if (!WSDLLib::isContentType(ct, MimeTypes)) {
-            throw "SOAP-MESSAGE-ERROR", sprintf("don't know how to handle content-type %y (expecting one of: %y)", ct, MimeTypes);
-        }
-    }
-
     private static processHref(reference xmldata, string hr, hash parts) {
         if (hr !~ /^cid:/)
             throw "SOAP-MESSAGE-ERROR", sprintf("messages references non-local part %y; cannot handle non-local parts", hr);
@@ -470,6 +465,26 @@ public class WSDL::WSDLLib {
             }
             else if (xmldata{k}.typeCode() == NT_HASH)
                 WSDLLib::substHref(\xmldata{k}, parts);
+        }
+    }
+}
+
+# private, nmon-exported class
+class WsdlLibPriv {
+    static bool isContentType(string ct, list MimeTypes) {
+        ct = ltrim(ct);
+        foreach string sct in (MimeTypes) {
+            # Content-Type := type "/" subtype *[";" parameter] ... so we can test if string is starting at index 0
+            if (bindex(ct, sct) == 0)
+                return True;
+        }
+        return False;
+    }
+
+
+    static checkContentType(string ct, list MimeTypes) {
+        if (!WsdlLibPriv::isContentType(ct, MimeTypes)) {
+            throw "SOAP-MESSAGE-ERROR", sprintf("don't know how to handle content-type %y (expecting one of: %y)", ct, MimeTypes);
         }
     }
 }
@@ -1121,13 +1136,6 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
     bool isNillable() {
         return nillable;
     }
-
-    /*
-    bool isRequired() {
-        #printf("DBG %y: required nillable: %y minOccurs: %y type: %y\n", name, nillable, minOccurs, ((type instanceof XsdAbstractType && type.isRequired()) | True));
-        return !nillable && minOccurs && ((type instanceof XsdAbstractType && type.isRequired()) | True);
-    }
-    */
 
     any serialize(any h, *softbool omitType, string key, string typename) {
         if (h."^type^" && h."^type^" instanceof XsdAbstractType && h.hasKey("^val^")) {
@@ -1968,7 +1976,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
         - \c method: the HTTP request method
         */
     hash serializeRequest(any h, *hash header, *string enc, *hash nsh, *int xml_opts, *string req_soapaction, *string bname) {
-        return getBinding(bname).serializeMessage(self, True, h, header, enc, nsh, xml_opts, req_soapaction);
+        return getBinding(bname).serializeMessage(self, True, nsc.hasSoap12(), h, header, enc, nsh, xml_opts, req_soapaction);
     }
 
     #! serializes a SOAP response to an XML string for the operation
@@ -1996,8 +2004,10 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
                     throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize response for operation %y with SOAP 1.1 encoding; this operation does not support SOAP 1.1", name);
             }
         }
+        else
+            soap12 = nsc.hasSoap12();
 
-        return getBinding(bname).serializeMessage(self, False, h, header, enc, nsh, xml_opts);
+        return getBinding(bname).serializeMessage(self, False, soap12, h, header, enc, nsh, xml_opts);
     }
 
     #! parses a hash representing a parsed XML request (parsed with @ref parse_xml() "parse_xml(XPF_PRESERVE_ORDER)") for the operation and returns the corresponding Qore data structure
@@ -2147,19 +2157,24 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         return hv;
     }
 
-    #! serializes data into hash with SOAP soup as namespaces etc.
+    #! serializes data into a hash with SOAP namespaces etc. with RPC-style messages
     /**
-     * @param if present then serializes only particular element or part, if NOTHING then serializes all message elements
-     * @param n_name name of output key
-     * @param h data to be serialized, keys are wsdl element names (optionally part name is also possible) and part names for simple types
+        @param keylist if present then serializes only particular element or part, if NOTHING then serializes all message elements
+        @param msginfo a description of the message for the current binding, if available
+        @param n_name name of output key
+        @param encoded if the encoded use module should be used (or the literal use model)
+        @param h data to be serialized, keys are wsdl element names (or optionally the part name) and part names for simple types
      */
-    *hash serializeRpc(*softlist key, any msginfo, any mpm, string n_name, bool encoded, reference h) {
+    *hash serializeRpc(*softlist keylist, *WSDL::BindingMessageDescription msginfo, *MultiPartRelatedMessage mpm, string n_name, bool encoded, reference h) {
         hash rh;
-        #printf("DEBUG: message %s: keys: %y, h: %y\n", name , keys, h);
-        foreach string k in (key ?? keys args) {
+        #printf("DEBUG: message %s: keys: %y, h: %y\n", name , keylist, h);
+        foreach string k in (keylist ?? keys args) {
             string ons;
             any hv = serializeRpcValue(k, encoded, \h, \ons);
-            if (!exists hv) continue;
+            if (!exists hv)
+                continue;
+
+            /* FIXME: handle multipart messages
             #printf("DEBUG: WSMessage::serialize() k: %y args: %y, parts: %y\n", k, keys args, msginfo.parts);
             if (msginfo.parts{k}) {
                 any ct = msginfo.parts{k};
@@ -2168,6 +2183,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
                 mpm.addPart(hv, sprintf("<%s>", k), ct);
                 hv."^attributes^".href = "cid:" + k;
             }
+            */
 
             string en = args{k}.element ? (ons + ":" +  k) : k;
             rh{en} = hv;
@@ -2186,17 +2202,26 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         }
     }
 
-    *hash serializeDocument(*softlist key, any msginfo, any mpm, bool encoded, reference h) {
+    #! serializes data into a hash with SOAP namespaces etc. with document-style messages
+    /**
+        @param keylist if present then serializes only particular element or part, if NOTHING then serializes all message elements
+        @param msginfo a description of the message for the current binding, if available
+        @param mpm a multipart message object, for future use
+        @param encoded if the encoded use module should be used (or the literal use model)
+        @param h data to be serialized, keys are wsdl element names (optionally part name is also possible) and part names for simple types
+
+     */
+    *hash serializeDocument(*softlist keylist, *WSDL::BindingMessageDescription msginfo, *MultiPartRelatedMessage mpm, bool encoded, reference h) {
         hash rh;
 
-        #printf("DEBUG: WSMessage::serializeDocument() key: %y h: %y args: %y\n", key, h.keys(), args.keys());
+        #printf("DEBUG: WSMessage::serializeDocument() key: %y h: %y args: %y\n", keylist, h.keys(), args.keys());
 
         # for backwards compatibility with a single argument
-        if (args.size() == 1) {
+        if (!keylist && args.size() == 1) {
             string fk = args.firstKey();
-            if (key.size() == 1) {
-                if (key[0] != fk) {
-                    h = (key[0]: (fk: h));
+            if (keylist.size() == 1) {
+                if (keylist[0] != fk) {
+                    h = (keylist[0]: (fk: h));
                 }
             }
             else if (h.typeCode() != NT_HASH || !h.hasKey(fk)) {
@@ -2204,10 +2229,10 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
                 h = (fk: h);
             }
         }
-        foreach string k in (key ?? keys args) {
+        foreach string k in (keylist ?? keys args) {
             any val = getValueFromHash(k, \h, True);
             if (!exists val) {
-                if (key || args.size() == 1) {
+                if (keylist || args.size() == 1) {
                     val = getValueFromHash(args{k}.element, \h, True);
                 }
                 if (!exists val) continue;
@@ -2433,14 +2458,14 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
     }
 
     #! check if pname is defined as message part
-    /** @return translated part name to element/type name */
-    /*private in module*/string checkPart(string pname) {
+    /** @return translated part name to element/type name
+     */
+    string checkPart(string pname) {
         if (!pmap{pname}) {
-            throw sprintf("%y is unknown part in message %y, defined parts: %y", pname, name, keys pmap);
+            throw sprintf("%y is an unknown part in message %y, defined parts: %y", pname, name, keys pmap);
         }
         return pmap{pname};
     }
-
 }
 
 # private helper class for lazy name resolution
@@ -2484,12 +2509,12 @@ public class WSDL::OperationalBinding inherits WSDL::XsdNamedData {
     public {
         hash config;
         bool docstyle;
-        *hash input;
-        *hash output;
+        *WSDL::BindingMessageDescription input;
+        *WSDL::BindingMessageDescription output;
         *string soapAction;
     }
 
-    constructor(string name, string ns, bool docstyle, *string soapAction, *hash input, *hash output, hash config) : XsdNamedData(name, ns) {
+    constructor(string name, string ns, bool docstyle, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output, hash config) : XsdNamedData(name, ns) {
         self.docstyle = docstyle;
         self.soapAction = soapAction;
         self.input = input;
@@ -2497,8 +2522,8 @@ public class WSDL::OperationalBinding inherits WSDL::XsdNamedData {
         self.config = config;
     }
 
-    hash serializeMessage(WSOperation op, bool request, any h, *hash header, string enc = "UTF-8", *hash nsh, *int xml_opts, *string req_soapaction) {
-        return serializeMessageImpl(op, request, h, header, enc, nsh, xml_opts, req_soapaction);
+    hash serializeMessage(WSOperation op, bool request, bool soap12, any h, *hash header, string enc = "UTF-8", *hash nsh, *int xml_opts, *string req_soapaction) {
+        return serializeMessageImpl(op, request, soap12, h, header, enc, nsh, xml_opts, req_soapaction);
     }
 
     any deserializeMessage(WSOperation op, hash o, bool request) {
@@ -2509,7 +2534,7 @@ public class WSDL::OperationalBinding inherits WSDL::XsdNamedData {
         return deserializeRequestPathImpl(op, path);
     }
 
-    abstract hash serializeMessageImpl(WSOperation op, bool request, any h, *hash header, string enc, *hash nsh, *int xml_opts, *string req_soapaction);
+    abstract hash serializeMessageImpl(WSOperation op, bool request, bool soap12, any h, *hash header, string enc, *hash nsh, *int xml_opts, *string req_soapaction);
 
     abstract any deserializeMessageImpl(WSOperation op, hash o, bool request);
 
@@ -2521,11 +2546,11 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
         string soapTransport;
     }
 
-    constructor(string name, string ns, bool docstyle, string soapTransport, *string soapAction, *hash input, *hash output, hash config) : OperationalBinding(name, ns, docstyle, soapAction, input, output, config) {
+    constructor(string name, string ns, bool docstyle, string soapTransport, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output, hash config) : OperationalBinding(name, ns, docstyle, soapAction, input, output, config) {
         self.soapTransport = soapTransport;
     }
 
-    hash serializeMessageImpl(WSOperation op, bool request, any h, *hash header, string enc, *hash nsh, *int xml_opts, *string req_soapaction) {
+    hash serializeMessageImpl(WSOperation op, bool request, bool soap12, any h, *hash header, string enc, *hash nsh, *int xml_opts, *string req_soapaction) {
         hash rv;
 
         if (request) {
@@ -2536,21 +2561,24 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
 
         string io = request ? "input" : "output";
 
+        BindingMessageDescription bmd = self{io};
+
         if (!exists req_soapaction)
             req_soapaction = soapAction;
-
-        bool soap12 = op.nsc.hasSoap12();
 
         MultiPartRelatedMessage mpm;
 
         rv.body = make_xml(serializeSoapMessage(op, h, header, nsh, request, soap12, \mpm), xml_opts, enc);
 
         string ct = WSDLLib::getSoapMimeType12(soap12);
+        # FIXME: fix multipart message handling
+        /*
         if (mpm) {
-            mpm.splicePart(rv.body, sprintf("<%s>", (self{io}.body.parts ?? keys op{io}.args).join(" ")), ct);
+            mpm.splicePart(rv.body, sprintf("<%s>", (bmd.body.parts ?? keys msg.args).join(" ")), ct);
 
             rv = mpm.getMsgAndHeaders();
         }
+        */
         rv.hdr.Accept = WSDLLib::SoapMimeTypes.join(",");
 
         if (req_soapaction) {
@@ -2579,32 +2607,36 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
         string soapenvEnvelope = rh.firstKey();
         rh{soapenvEnvelope}."^attributes^" += op.nsc.getOutputNamespaceHash(nsh);
 
-        # do we have mime/multipart io format?
-        if (exists self{io}.multipart)
+        BindingMessageDescription bmd = self{io};
+
+        # FIXME: implement multipart support
+        /*
+        if (exists bmd.multipart)
             mpm = new MultiPartRelatedMessage();
+        */
 
         #printf("DEBUG: docstyle: %y\n", docstyle);
         *hash body;
         if (op{io}) {
-            #printf("DEBUG op{%y}: %y (%y) binding: %y\n", io, op{io}.toBool(), op{io}.className(), self{io}.body.keys());
+            WSMessage msg = op{io};
+            #printf("DEBUG op{%y}: %y (%y) binding: %y\n", io, msg.toBool(), msg.className(), bmd.body.keys());
             if (docstyle) {
-                bool encoded = self{io}.body.encoded;
-                # self{io}.body.encoded == False = literal encoding
-                body = op{io}.serializeDocument(encoded ? self{io}.body.parts : op{io}.args.keys(), self{io}, mpm, encoded, \val);
+                bool encoded = bmd.body.encoded;
+                # bmd.body.encoded == False = literal encoding
+                body = msg.serializeDocument(encoded ? bmd.body.parts : msg.args.keys(), bmd, mpm, encoded, \val);
             }
             else {
                 string mname = (request ? op.output_name : op.input_name) ?? (op.name + (request ? "" : "Response"));
-                if (self{io})
-                    body = op{io}.serializeRpc(self{io}.body.parts, self{io}, mpm, mname, self{io}.body.encoded, \val);
+                body = msg.serializeRpc(bmd.body.parts, bmd, mpm, mname, bmd.body.encoded, \val);
             }
             #printf("DEBUG: body: %N\nval: %N\n", body, val);
         }
 
-        if (self{io}.header) {
+        if (bmd.hasHeaders()) {
             #printf("DEBUG: %s header: %y\n", io, header);
-            #printf("DEBUG: doc: %y bhdr: %N\n", docstyle, (map $1.("message", "part"), self{io}.header));
+            #printf("DEBUG: doc: %y bhdr: %N\n", docstyle, (map $1.("message", "part"), bmd.getHeaders()));
             hash outh;
-            foreach hash hdr in (self{io}.header) {
+            foreach BindingMessageHeaderDescription hdr in (bmd.getHeaders()) {
                 #printf("DEBUG: hdr: %y (%y)\n", hdr.("encoded", "part"), hdr.msg.args.keys());
                 if (docstyle) {
                     *hash h;
@@ -2666,12 +2698,14 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
         WSDL::XsdBase::removeNS2(\o.Envelope);
         hash hrv;
 
-        if (self{io}.header) {
+        BindingMessageDescription bmd = self{io};
+
+        if (bmd.hasHeaders()) {
             *hash header = o.Envelope.Header;
             WSDL::XsdBase::removeNS2(\header);
 
             #printf("DEBUG: Deserialize SOAP headers: %N\n", header);
-            foreach hash hdr in (self{io}.header) {
+            foreach BindingMessageHeaderDescription hdr in (bmd.getHeaders()) {
                 if (header.hasKey(hdr.part)) {
                     # seems it may appear part name conflict between messages when namespace is stripped
                     hash v;
@@ -2694,9 +2728,11 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
         else if (!exists body)
             throw SOAP_DESERIALIZATION_ERROR, sprintf("no %s body value given for operation %y", request ? "request" : "response", name);
 
+        *WSMessage msg = op{io};
+
         any rv;
         if (exists body) {
-            (*hash mrh, hash msg) = processMultiRef(body);
+            (*hash mrh, hash msgh) = processMultiRef(body);
 
             if (!request) {
                 # check for Soap Fault, if so raise an exception immediately with the fault info
@@ -2733,19 +2769,19 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
                 }
             }
 
-            #any ns = msg.".ns";
-            msg -= ("ns", ".ns");
+            #any ns = msgh.".ns";
+            msgh -= ("ns", ".ns");
             if (docstyle) {
-                rv = op{io}.deserializeDocument(mrh, msg);
+                rv = msg.deserializeDocument(mrh, msgh);
             } else {
                 string mname = (request ? op.output_name : op.input_name) ?? (op.name + (request ? "" : "Response"));
-                if (!msg{mname})
-                    throw SOAP_DESERIALIZATION_ERROR, sprintf("missing %s message name %y as top-level element; got elements: %y", io, mname, keys msg);
-                msg = remove msg{mname};
-                XsdBase::removeNS2(\msg);
-                msg -= (".ns", "ns");
+                if (!msgh{mname})
+                    throw SOAP_DESERIALIZATION_ERROR, sprintf("missing %s message name %y as top-level element; got elements: %y", io, mname, keys msgh);
+                msgh = remove msgh{mname};
+                XsdBase::removeNS2(\msgh);
+                msgh -= (".ns", "ns");
 
-                rv = op{io}.deserializeRpc(mrh, msg);
+                rv = msg.deserializeRpc(mrh, msgh);
             }
         }
 
@@ -2758,7 +2794,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
                 foreach string k in (keys hrv) {
                     if (exists rv{k}) {
                         # name conflict
-                        rv{op{io}.name} = rv;
+                        rv{msg.name} = rv;
                         break;
                     }
                 }
@@ -2782,7 +2818,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             # save original msg body hash
             "body": body,
             );
-        # remove namespacr prefixes from body element keys
+        # remove namespace prefixes from body element keys
         WSDL::XsdBase::removeNS2(\mrh.body);
 
         if (body.multiRef) {
@@ -2841,12 +2877,12 @@ public class WSDL::HttpBinding inherits WSDL::OperationalBinding {
         string location;
     }
 
-    constructor(string name, string ns, bool docstyle, string httpMethod, string location, *string soapAction, *hash input, *hash output, hash config) : OperationalBinding(name, ns, docstyle, soapAction, input, output, config) {
+    constructor(string name, string ns, bool docstyle, string httpMethod, string location, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output, hash config) : OperationalBinding(name, ns, docstyle, soapAction, input, output, config) {
         self.httpMethod = httpMethod;
         self.location = location;
     }
 
-    hash serializeMessageImpl(WSOperation op, bool request, any h, *hash header, string enc, *hash nsh, *int xml_opts, *string req_soapaction) {
+    hash serializeMessageImpl(WSOperation op, bool request, bool soap12, any h, *hash header, string enc, *hash nsh, *int xml_opts, *string req_soapaction) {
         hash rv;
 
         if (request) {
@@ -2860,24 +2896,31 @@ public class WSDL::HttpBinding inherits WSDL::OperationalBinding {
 
         string ct;
 
-        if (self{io}.content.formUrlEncoded) {
+        BindingMessageDescription bmd = self{io};
+
+        if (!op{io} && (bmd.content || bmd.mimeXml))
+            throw SOAP_SERIALIZATION_ERROR, sprintf("%s value given for operation %y with no %s message: %y", request ? "request" : "response", name, io, h);
+
+        *WSMessage msg = op{io};
+
+        if (bmd.content.formUrlEncoded) {
             ct = MimeTypeFormUrlEncoded;
             # application/x-www-form-urlencoded Content-Type does not have any parameters
             delete enc;
             # TODO: throws exception when character is > 127, discussed e.g. https://www.w3.org/TR/html5/forms.html#application/x-www-form-urlencoded-encoding-algorithm
-            rv.body = mime_get_form_urlencoded_string(op{io}.serializeAllPartData(h));
-        } else if (self{io}.content) {
-            hash v = op{io}.serializeData(self{io}.content.part, h);
+            rv.body = mime_get_form_urlencoded_string(msg.serializeAllPartData(h));
+        } else if (bmd.content) {
+            hash v = msg.serializeData(bmd.content.part, h);
             if (v."content-type") {
-                if (!self{io}.content.acceptAllContentTypes) {
-                    WSDLLib::checkContentType(v."content-type", self{io}.content.acceptedContentTypeSubtypes + self{io}.content.acceptedContentTypes);
+                if (!bmd.content.acceptAllContentTypes) {
+                    WsdlLibPriv::checkContentType(v."content-type", bmd.content.acceptedContentTypeSubtypes + bmd.content.acceptedContentTypes);
                 }
                 ct = v."content-type";
             } else {
-                if (self{io}.content.acceptAllContentTypes || self{io}.content.acceptedContentTypes || self{io}.content.acceptedContentTypeSubtypes.size() != 1) {
-                    throw SOAP_SERIALIZATION_ERROR, sprintf("ambiguous content type in message %y related to %s operation %y", op{io}.name, io, op.name);
+                if (bmd.content.acceptAllContentTypes || bmd.content.acceptedContentTypes || bmd.content.acceptedContentTypeSubtypes.size() != 1) {
+                    throw SOAP_SERIALIZATION_ERROR, sprintf("ambiguous content type in message %y related to %s operation %y", msg.name, io, op.name);
                 }
-                ct = self{io}.content.acceptedContentTypeSubtypes[0];
+                ct = bmd.content.acceptedContentTypeSubtypes[0];
             }
             if (v.value.typeCode() == NT_BINARY) {
                 delete enc;
@@ -2885,12 +2928,12 @@ public class WSDL::HttpBinding inherits WSDL::OperationalBinding {
             } else {
                 rv.body = convert_encoding(v.value, enc);
             }
-        } else if (self{io}.mimeXml) {
+        } else if (bmd.mimeXml) {
             ct = MimeTypeXml;
             # in case of mimeXml is body content, i.e. XML tag based on element/type name, not part
             string ons;
             hash hh;
-            hh{self{io}.mimeXml.part} = op{io}.serializeRpcValue(self{io}.mimeXml.part, False, \h, \ons);
+            hh{bmd.mimeXml.part} = msg.serializeRpcValue(bmd.mimeXml.part, False, \h, \ons);
             rv.body = make_xml(hh);
         }
 
@@ -2949,40 +2992,47 @@ public class WSDL::HttpBinding inherits WSDL::OperationalBinding {
     any deserializeMessageImpl(WSOperation op, hash v, bool request) {
         string io = request ? "input" : "output";
 
+        BindingMessageDescription bmd = self{io};
+
         *string ct = v."content-type";
-        if (!exists ct && !self{io}.mimeXml) {
+        if (!exists ct && !bmd.mimeXml) {
             throw SOAP_DESERIALIZATION_ERROR, sprintf("missing content-type in input hash: %y", v);
         }
 
-        if (self{io}.urlEncoded || self{io}.urlReplacement) {
+        if (bmd.urlEncoded || bmd.urlReplacement) {
             # is should be processed via deserializeUrl()
             throw SOAP_DESERIALIZATION_ERROR, sprintf("urlencoded message deserialization is not supported in binding: %y", name);
         }
 
-        if (self{io}.content.formUrlEncoded) {
-            WSDLLib::checkContentType(ct, list(MimeTypeFormUrlEncoded));
+        if (!op{io} && (bmd.content || bmd.mimeXml))
+            throw SOAP_DESERIALIZATION_ERROR, sprintf("%s value given for operation %y with no %s message: %y", request ? "request" : "response", name, io, v);
+
+        *WSMessage msg = op{io};
+
+        if (bmd.content.formUrlEncoded) {
+            WsdlLibPriv::checkContentType(ct, list(MimeTypeFormUrlEncoded));
             if (v.body.typeCode() == NT_BINARY) {
                 v.body = binary_to_string(v.body);
             }
             hash h = mime_parse_form_urlencoded_string(v.body); # TODO: data have no encoding
-            return op{io}.deserializeAllPartData(h);
+            return msg.deserializeAllPartData(h);
         }
 
-        if (self{io}.content) {
-            if (!self{io}.content.acceptAllContentTypes) {
-                WSDLLib::checkContentType(ct, self{io}.content.acceptedContentTypeSubtypes + self{io}.content.acceptedContentTypes);
+        if (bmd.content) {
+            if (!bmd.content.acceptAllContentTypes) {
+                WsdlLibPriv::checkContentType(ct, bmd.content.acceptedContentTypeSubtypes + bmd.content.acceptedContentTypes);
             }
             hash v2;
-            v2{self{io}.content.part} = v.body;
-            hash h = op{io}.deserializeData(self{io}.content.part, v2);
+            v2{bmd.content.part} = v.body;
+            hash h = msg.deserializeData(bmd.content.part, v2);
             string k = h.firstKey();
             h{k}."^value^" = remove h{k};
             h{k}."^attributes^"."^content-type^" = ct;
             return h;
         }
 
-        if (self{io}.mimeXml) {
-            *hash h = op{io}.deserializeData(self{io}.mimeXml.part, v);
+        if (bmd.mimeXml) {
+            *hash h = msg.deserializeData(bmd.mimeXml.part, v);
             return h;
         }
     }
@@ -3024,11 +3074,229 @@ public class WSDL::HttpBinding inherits WSDL::OperationalBinding {
     }
 }
 
+#! describes the message body for a SOAP operational binding message description
+/** @see https://www.w3.org/TR/wsdl#_soap:body
+*/
+public class WSDL::BindingMessageBodyDescription {
+    public {
+        #! required attribute
+        /** if @ref Qore::True "True", then use = \c "encoded" (each message part references an abstract type using the \c type attribute),
+            otherwise use = \c "literal" (each part references a concrete schema definition using either the \c element or \c type attribute)
+         */
+        bool encoded;
+
+        #! when encoded @ref Qore::True "True", this is used to produce a concrete message by applying the specified encoding
+        *string encodingStyle;
+
+        #! namespace; "only applies to content not explicitly defined by the abstract types"
+        *string ns;
+
+        #! indicates which parts appear somewhere within the SOAP Body portion of the message
+        *list parts;
+    }
+
+    constructor(bool encoded, *string encodingStyle, *string ns, *string parts) {
+        self.encoded = encoded;
+        self.encodingStyle = encodingStyle;
+        self.ns = ns;
+        # get a list of strings ignoring whitespace
+        if (parts.val())
+            self.parts = select (map trim($1), parts.split(" ")), $1.val();
+    }
+
+    bool isMultipart() {
+        return False;
+    }
+}
+
+#! describes a SOAP message header for a SOAP operational binding message description
+public class WSDL::BindingMessageHeaderDescription {
+    public {
+        #! message part name
+        string part;
+
+        #! required attribute
+        /** if @ref Qore::True "True", then use = \c "encoded" (each message part references an abstract type using the \c type attribute),
+            otherwise use = \c "literal" (each part references a concrete schema definition using either the \c element or \c type attribute)
+         */
+        bool encoded;
+
+        #! actual message
+        WSMessage msg;
+    }
+
+    constructor(string part, bool encoded, WSMessage msg) {
+        self.part = part;
+        self.encoded = encoded;
+        self.msg = msg;
+    }
+}
+
+#! describes MIME content information for SOAP operational binding message descriptions
+/** @see https://www.w3.org/TR/wsdl#_mime:content
+ */
+public class WSDL::BindingContentDescription {
+    public {
+        #! specifies the name of the message part
+        string part;
+
+        # list of accepted content types (with "xxx/*")
+        list acceptedContentTypes = ();
+
+        # list of accepted specific content types
+        list acceptedContentTypeSubtypes = ();
+
+        #! are all content-types form URL encoded?
+        bool formUrlEncoded = False;
+
+        #! are all content-types accepted?
+        bool acceptAllContentTypes = False;
+    }
+
+    addContentType(string type) {
+        bool isFormUrlEncoded = (type == MimeTypeFormUrlEncoded);
+        if (isFormUrlEncoded && (acceptedContentTypes || acceptedContentTypeSubtypes))
+            throw WSDL_ERROR, sprintf("%y content type cannot be declared with other content-types: %y", MimeTypeFormUrlEncoded, (acceptedContentTypes + acceptedContentTypeSubtypes));
+        if (!isFormUrlEncoded && formUrlEncoded)
+            throw WSDL_ERROR, sprintf("%y content type cannot be declared in conjunction with the %y content-type (this last type cannot be mixed with other types)", type, MimeTypeFormUrlEncoded);
+        if (isFormUrlEncoded && !formUrlEncoded)
+            formUrlEncoded = True;
+
+        if (!type || type == "*/*") {
+            acceptAllContentTypes = True;
+            return;
+        }
+
+        hash act;
+
+        list st = type.split("/");
+        if (st.size() != 2)
+            throw WSDL_ERROR, sprintf("Content type %y does not match 'type/subtype' pattern", type);
+        if (bindex(st[0], "*") != -1)
+            throw WSDL_ERROR, sprintf("Content type %y contains unexpected asterisk in type part", type);
+
+        act.type = st[0];
+
+        # check for a wildcard
+        if (st[1] == "*") {
+            acceptedContentTypes += (st[0] + "/");
+            return;
+        }
+
+        if (bindex(st[1], "*") != -1) {
+            throw WSDL_ERROR, sprintf("Content type %y contains unexpected asterisk in subtype part", type);
+        }
+
+        acceptedContentTypeSubtypes += (st[0] + "/" + st[1]);
+    }
+}
+
+#! describes a mimeXml payload for a SOAP operational binding message description
+/** @see https://www.w3.org/TR/wsdl#_mime:mimeXml
+ */
+public class WSDL::MimeXmlMessageDescription {
+    public {
+        #! refers to a message part defining the concrete schema of the root XML element
+        /** The part references a concrete schema using the element attribute for simple parts or type attribute for composite parts
+         */
+        string part;
+    }
+
+    constructor(string part) {
+        self.part = part;
+    }
+}
+
+#! describes an input or output message in a SOAP operational binding
+public class WSDL::BindingMessageDescription {
+    public {
+        #! the description of the message body
+        *WSDL::BindingMessageBodyDescription body;
+
+        #! a hash of URL replacement values keyed by part name, values are URI paths
+        /** @note for HTTP bindings only
+         */
+        *hash urlReplacement;
+
+        #! indicates that all the message parts are encoded into the HTTP request URI using the standard URI-encoding rules
+        /** ex: name1=value&name2=value...
+
+            The names of the parameters correspond to the names of the message parts.
+            Each value contributed by the part is encoded using a name=value pair.
+            This may be used with GET to specify URL encoding, or with POST to specify a FORM-POST.
+            For GET, the "?" character is automatically appended as necessary.
+
+            @note for HTTP bindings only
+
+            @see https://www.w3.org/TR/wsdl#_http:urlEncoded
+         */
+        bool urlEncoded = False;
+
+        #! optional content-type descriptions
+        *WSDL::BindingContentDescription content;
+
+        #! optional mimeXml message scription
+        *WSDL::MimeXmlMessageDescription mimeXml;
+    }
+
+    private:internal {
+        #! a list of WSDL::BindingMessageHeaderDescription objects
+        list headers = ();
+    }
+
+    addHeader(WSDL::BindingMessageHeaderDescription hdr) {
+        headers += hdr;
+    }
+
+    #! returns @ref Qore::True "True" if the header descriptions are available
+    bool hasHeaders() {
+        return !headers.empty();
+    }
+
+    #! returns a list of WSDL::BindingMessageHeaderDescription objects
+    list getHeaders() {
+        return headers;
+    }
+
+    setUrlReplacement(string loc) {
+        int i = 0;
+        while (i < loc.size()) {
+            int j = index(loc, "(", i);
+            if (j < 0) {
+                j = loc.size();
+            }
+            if (j > i) {
+                urlReplacement{sprintf("string^%d", urlReplacement.size() + 1)} = substr(loc, i, j - i);
+            }
+            if (j < loc.size()) {
+                i = j + 1;
+                j = index(loc, ")", i);
+                if (j == i) {
+                    throw WSDL_ERROR, sprintf("empty replace token in %y near %y", loc, substr(loc, i-1, loc.size()));
+                } else if (j < 0) {
+                    throw WSDL_ERROR, sprintf("missing close parentheses in %y near %y", loc, substr(loc, i-1, loc.size()));
+                }
+                string p = substr(loc, i, j-i);
+                # if (messages)   TODO test messages / part here probably not ?
+                urlReplacement{sprintf("part^%d", urlReplacement.size() + 1)} = p;
+                ++j;
+            }
+            i = j;
+        }
+    }
+}
+
 #! class for WSDL bindings
 public class WSDL::Binding inherits WSDL::XsdNamedData {
     private:internal {
         string port;
-        bool docstyle = False;
+
+        #! use RPC or document style
+        /** according to https://www.w3.org/TR/wsdl#_soap:operation
+            'If the soap:binding element does not specify a style, it is assumed to be "document".'
+         */
+        bool docstyle = True;
+
         *string httpMethod;
         *string soapTransport;
     }
@@ -3060,8 +3328,12 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
             if (!soapTransport && !httpMethod)
                 throw WSDL_ERROR, sprintf("missing SOAP verb or transport in binding %y (known SOAP transports: %y)", name, SOAP_TRANSPORT.keys());
 
-            if (bba.style == "document") {
-                docstyle = True;
+            if (exists bba.style) {
+                *bool ds = SoapStyleMap{bba.style};
+                if (!exists ds)
+                    throw WSDL_ERROR, sprintf("invalid '\"style\" attribute %y in binding %y; expected one of: %y", bba.style, name, SoapStyleMap.keys());
+                if (!ds)
+                    docstyle = False;
             }
         }
 
@@ -3074,7 +3346,8 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
 
             bool b_docstyle = docstyle;
 
-            *string soapAction = ophash.operation."^attributes^".soapAction;
+            *hash opah = ophash.operation."^attributes^";
+            *string soapAction = opah.soapAction;
             if (!exists soapAction) {
                 *string op_ns = portTypes{port}.operations{opname}.nsc.getTargetNamespaceUri();
                 if (op_ns && op_ns !~ /\/$/)
@@ -3082,10 +3355,18 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                 soapAction = op_ns ? op_ns + opname : opname;
             }
 
-            if (docstyle || ophash.operation."^attributes^".style == "document") {
-                b_docstyle = True;
-                portTypes{port}.operations{opname}.setDocStyleBinding(\idocmap);
+            {
+                *string style = opah.style;
+                if (exists style) {
+                    *bool ds = SoapStyleMap{style};
+                    if (!exists ds)
+                        throw WSDL_ERROR, sprintf("invalid '\"style\" attribute %y in binding %y operation %y; expected one of: %y", style, name, opname, SoapStyleMap.keys());
+                    b_docstyle = ds;
+                }
             }
+
+            if (b_docstyle)
+                portTypes{port}.operations{opname}.setDocStyleBinding(\idocmap);
             else
                 portTypes{port}.operations{opname}.markRpcStyleBinding();
 
@@ -3110,19 +3391,27 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                     if (hk)
                         throw WSDL_ERROR, sprintf("binding %y for operation %y does not reference %s message in porttype %y",  name, opname, io, port);
                 }
+
+                BindingMessageDescription bmd();
+
                 if (exists op{io}.body) {
                     hash bh = remove op{io}.body;
                     *hash pa = bh."^attributes^";
-                    ioh{io}.body.encoded = pa.use == "encoded";
-                    ioh{io}.body.namespace = pa.namespace;
-                    ioh{io}.encodingStyle = pa.encodingStyle;
-                    ioh{io}.body.parts = pa.parts;
+
+                    *bool encoded = SoapUseMap{pa.use};
+                    if (!exists encoded)
+                        throw WSDL_ERROR, sprintf("binding %y for operation %y for the %s message has an invalid 'use' attribute: %y", name, opname, io, pa.use);
+
+                    bmd.body = new BindingMessageBodyDescription(encoded, pa.encodingStyle, pa."namespace", pa.parts);
                 }
 
                 if (exists op{io}.multipartRelated) {
-                    if (exists ioh{io}.body)
+                    if (bmd.body)
                         throw WSDL_ERROR, sprintf("%s binding %y for operation %y specifies both body and multipart elements", io, name, opname);
 
+                    throw WSDL_ERROR, "unsupported multipartRelated";
+
+                    /*
                     ioh{io}.multipart = Mime::MPT_RELATED;
                     ioh{io}.parts = {};
                     WSDL::XsdBase::removeNS(\op{io}.multipartRelated);
@@ -3175,6 +3464,7 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                         #printf("DEBUG: part: %y\nmsg: %y\n", part, op{io});;
                     }
                     delete op{io}.multipartRelated;
+                    */
                 }
 
                 # FIXME: what is this supposed to do?
@@ -3197,113 +3487,63 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                         if (!msg)
                             throw WSDL_ERROR, sprintf("%s binding %y for operation %y references unknown message %y in the soap header element", io, name, opname, h.val);
 
-                        ma.part = checkMessagePart(msg, ma.part, sprintf("header %s operation %y", io, opname));
-                        ma.encoded = ma.use == "encoded";
-                        ma.msg = msg;
+                        string part = checkMessagePart(msg, ma.part, sprintf("header %s operation %y", io, opname));
 
-                        #printf("DEBUG: match part to message: %y, part: %y\n", msg.name, ma.part);
-                        if (ioh{io}.header) {
-                            if (ioh{io}.header.typeCode() != NT_LIST) {
-                                ioh{io}.header = (ioh{io}.header, );
-                            }
-                            ioh{io}.header += ma;
-                        } else {
-                            ioh{io}.header = ma;
-                        }
+                        *bool encoded = SoapUseMap{ma.use};
+                        if (!exists encoded)
+                            throw WSDL_ERROR, sprintf("binding %y for operation %y for the %y header of the %s message has an invalid 'use' attribute: %y", name, opname, ma.part, io, ma.use);
+
+                        #printf("DEBUG: match part to message: %y, part: %y\n", msg.name, part);
+                        bmd.addHeader(new BindingMessageHeaderDescription(part, encoded, msg));
                     }
                     delete op{io}.header;
                 }
 
                 if (op{io}.hasKey("urlReplacement")) {
-                    string loc = location;
-                    int i = 0;
-                    hash l;
-                    while (i < loc.size()) {
-                        int j = index(loc, "(", i);
-                        if (j < 0) {
-                            j = loc.size();
-                        }
-                        if (j > i) {
-                            l{sprintf("string^%d", l.size()+1)} = substr(loc, i, j-i);
-                        }
-                        if (j < loc.size()) {
-                            i = j+1;
-                            j = index(loc, ")", i);
-                            if (j == i) {
-                                throw WSDL_ERROR, sprintf("empty replace token in %y near %y", loc, substr(loc, i-1, loc.size()));
-                            } else if (j < 0) {
-                                throw WSDL_ERROR, sprintf("missing close parentheses in %y near %y", loc, substr(loc, i-1, loc.size()));
-                            }
-                            string p = substr(loc, i, j-i);
-                            # if (messages)   TODO test messages / part here probably not ?
-                            l{sprintf("part^%d", l.size()+1)} = p;
-                            j++;
-                        }
-                        i = j;
-                    }
-                    ioh{io}.urlReplacement = l;
+                    if (!location)
+                        throw WSDL_ERROR, sprintf("%s binding %y for operation %y has a 'urlReplacement' element but does not use HTTP binding", io, name, opname);
+
+                    bmd.setUrlReplacement(location);
                     delete op{io}.urlReplacement;
                 }
 
                 if (op{io}.hasKey("urlEncoded")) {
-                    ioh{io}.urlEncoded = True;
+                    if (!location)
+                        throw WSDL_ERROR, sprintf("%s binding %y for operation %y has a 'urlEncoded' element but does not use HTTP binding", io, name, opname);
+
+                    bmd.urlEncoded = True;
                     delete op{io}.urlEncoded;
                 }
 
                 if (exists op{io}.content) {
-                    ioh{io}.content.acceptedContentTypes = ();  # type / *
-                    ioh{io}.content.acceptedContentTypeSubtypes = ();  # type / subtype
-                    *string p;
+                    BindingContentDescription bcd();
+
                     foreach any cnt in (op{io}.content) {
                         WSDL::XsdBase::removeNS(\cnt);
                         cnt = remove cnt."^attributes^";
-                        bool isFormUrlEncoded = cnt.type == MimeTypeFormUrlEncoded;
-                        if ((isFormUrlEncoded && op{io}.content.type) ||
-                            (!isFormUrlEncoded && op{io}.content.formUrlEncoded)) {
-                            throw WSDL_ERROR, sprintf("%y content type must be single in message %y", MimeTypeFormUrlEncoded, op{io}.content);
-                        }
-                        if (isFormUrlEncoded) {
-                            ioh{io}.content.formUrlEncoded = True;
-                            continue;
-                        }
-                        if (!cnt.type || cnt.type == "*/*") {
-                            ioh{io}.content.acceptAllContentTypes = True;
-                        } else {
-                            hash act;
-                            list st = cnt.type.split("/");
-                            if (st.size() != 2) {
-                                throw WSDL_ERROR, sprintf("Content type %y does not match 'type/subtype' pattern", cnt.type);
-                            }
-                            if (bindex(st[0], "*") != -1) {
-                                throw WSDL_ERROR, sprintf("Content type %y contains unexpected asterisk in type part", cnt.type);
-                            }
-                            act.type = st[0];
-                            if (st[1] == "*") {
-                                push ioh{io}.content.acceptedContentTypes, st[0]+"/";
-                            } else {
-                                if (bindex(st[1], "*") != -1) {
-                                    throw WSDL_ERROR, sprintf("Content type %y contains unexpected asterisk in subtype part", cnt.type);
-                                }
-                                push ioh{io}.content.acceptedContentTypeSubtypes, st[0]+"/"+st[1];
-                            }
-                        }
 
-                        cnt.part = checkMessagePart(portTypes{port}.operations{opname}{io}, cnt.part, sprintf("content %s operation %y", io, opname));
-                        if (exists p) {
-                            if (p != cnt.part) {
-                                throw WSDL_ERROR, sprintf("ambiguous part %y in message %y in binding %y for %s operation %y", cnt.part, portTypes{port}.operations{opname}{io}.name, name, io, opname);
+                        bcd.addContentType(cnt.type);
+
+                        if (bcd.formUrlEncoded)
+                            continue;
+
+                        string part = checkMessagePart(portTypes{port}.operations{opname}{io}, cnt.part, sprintf("content %s operation %y", io, opname));
+                        if (exists bcd.part) {
+                            if (bcd.part != part) {
+                                throw WSDL_ERROR, sprintf("ambiguous part %y in message %y in binding %y for %s operation %y", part, portTypes{port}.operations{opname}{io}.name, name, io, opname);
                             }
                         } else {
-                            ioh{io}.content.part = cnt.part;
-                            p = cnt.part;
+                            bcd.part = part;
                         }
                     }
 
+                    bmd.content = bcd;
                     delete op{io}.content;
                 }
 
                 if (op{io}.hasKey("mimeXml")) {
-                    ioh{io}.mimeXml.part = checkMessagePart(portTypes{port}.operations{opname}{io}, ioh{io}.mimeXml."^attributes^".part, sprintf("%s operation %y", io, opname));
+                    string part = checkMessagePart(portTypes{port}.operations{opname}{io}, ioh{io}.mimeXml."^attributes^".part, sprintf("%s operation %y", io, opname));
+                    bmd.mimeXml = new MimeXmlMessageDescription(part);
                     delete op{io}.mimeXml;
                 }
 
@@ -3312,9 +3552,11 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                 if (op{io}) {
                     throw WSDL_ERROR, sprintf("unknown element(s) in binding %y for %s operation %y: %y", name, io, opname, keys op{io});
                 }
+
+                ioh{io} = bmd;
             }
 
-            if (op.output.content.formUrlEncoded) {
+            if (ioh.output.content.formUrlEncoded) {
                 throw WSDL_ERROR, sprintf("%y type is not supported as output type in binding %y for output operation %y", MimeTypeFormUrlEncoded, name, opname);
             }
 
