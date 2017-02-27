@@ -2237,7 +2237,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
                 }
                 if (!exists val) continue;
             }
-            else if (val.typeCode() == NT_NULL)
+            if (val.typeCode() == NT_NULL)
                 val = NOTHING;
             if (val.typeCode() == NT_HASH)
                 XsdBase::removeNS2(\val);
