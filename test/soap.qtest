@@ -290,6 +290,12 @@ class SoapTest inherits QUnit::Test {
                 ),
             ),
         );
+        const OneElemBody = (
+            "soap:Envelope": SoapEnvAttr + (
+                "soap:Body":
+                    ("st:info": "XYZ"),
+            ),
+        );
         const UrlReplVal1 = (
             "country": "CZ",
             "city": "Prague 2",
@@ -593,6 +599,19 @@ class SoapTest inherits QUnit::Test {
         h2 = op.deserializeRequest(xh);
         headerDeser = ("tickerSymbol": "EET1", "m2": ("docs": "DOCS-M2"));
         assertEq(headerDeser, h2);
+
+        op = ws.getOperation("oneElem");
+        h = op.serializeRequest(("info": "XYZ"));
+        xh = parse_xml(h.body);
+        compareSoapMsgs("one-Part1", OneElemBody, xh);
+
+        h = op.serializeRequest("XYZ");
+        xh = parse_xml(h.body);
+        compareSoapMsgs("one-Part2", OneElemBody, xh);
+
+        h = op.serializeRequest(("m6": ("info": "XYZ")));
+        xh = parse_xml(h.body);
+        compareSoapMsgs("one-Part3", OneElemBody, xh);
 
         op = ws.getPortTypeOperation("pt2", "urlRepl");
         h = op.serializeRequest(UrlReplVal1);

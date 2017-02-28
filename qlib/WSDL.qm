@@ -2214,20 +2214,29 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
     *hash serializeDocument(*softlist keylist, *WSDL::BindingMessageDescription msginfo, *MultiPartRelatedMessage mpm, bool encoded, reference h) {
         hash rh;
 
-        #printf("DEBUG: WSMessage::serializeDocument() key: %y h: %y args: %y\n", keylist, h.keys(), args.keys());
+        #printf("DEBUG: WSMessage::serializeDocument() keylist: %y h: %y args: %y\n", keylist, h.typeCode()==NT_HASH ?  h.keys() : h, args.keys());
 
-        # for backwards compatibility with a single argument
-        if (!keylist && args.size() == 1) {
+        if (args.size() == 1) {
             string fk = args.firstKey();
+            if (!keylist) {
+                /*
+                for backwards compatibility with a single argument, just when keylist is NOTHING which is used for body
+                serialization when is no explicit part name.
+                */
+                if (h.typeCode() != NT_HASH) {
+                    h  = (fk: h);
+                } else {
+                    # it is ambiguous so do not do any heuristic
+                }
+            }
+            /*
+            # why should be this needed ? 2 step getValueFromHash() should do it
             if (keylist.size() == 1) {
                 if (keylist[0] != fk) {
                     h = (keylist[0]: (fk: h));
                 }
             }
-            else if (h.typeCode() != NT_HASH || !h.hasKey(fk)) {
-                # deprecated, just for backward compatability
-                h = (fk: h);
-            }
+            */
         }
         foreach string k in (keylist ?? keys args) {
             any val = getValueFromHash(k, \h, True);
@@ -2579,7 +2588,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             rv = mpm.getMsgAndHeaders();
         }
         */
-        rv.hdr.Accept = WSDLLib::SoapMimeTypes.join(",");
+        rv.accept = WSDLLib::SoapMimeTypes.join(",");
 
         if (req_soapaction) {
             rv.hdr += ("SOAPAction": req_soapaction);
@@ -2596,13 +2605,15 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             rv.hdr."Content-Type" = ct;
         }
 
+        rv.hdr."Accept" = rv.accept;
+
         return rv;
     }
 
     private:internal hash serializeSoapMessage(WSOperation op, any val, *hash header, *hash nsh, bool request, bool soap12, reference mpm) {
         string io = request ? "input" : "output";
         # setup namespaces for SOAP envelope
-        #printf("DEBUG: serializeSoapMessage: io:%s, h: %y, header: %y\n", io, val, header);
+        #printf("DEBUG: serializeSoapMessage: io:%s, h: %y, header: %y, soap12:%y\n", io, val, header, soap12);
         hash rh = soap12 ? WSDL::ENVELOPE_12_NS : WSDL::ENVELOPE_11_NS;
         string soapenvEnvelope = rh.firstKey();
         rh{soapenvEnvelope}."^attributes^" += op.nsc.getOutputNamespaceHash(nsh);
@@ -2623,7 +2634,8 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             if (docstyle) {
                 bool encoded = bmd.body.encoded;
                 # bmd.body.encoded == False = literal encoding
-                body = msg.serializeDocument(encoded ? bmd.body.parts : msg.args.keys(), bmd, mpm, encoded, \val);
+                #printf("parts: %y, args: %y\n", bmd.body.parts, msg.args.keys());
+                body = msg.serializeDocument(bmd.body.parts, bmd, mpm, encoded, \val);
             }
             else {
                 string mname = (request ? op.output_name : op.input_name) ?? (op.name + (request ? "" : "Response"));
@@ -2641,10 +2653,10 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
                 if (docstyle) {
                     *hash h;
                     if (header)
-                        h = hdr.msg.serializeDocument(hdr.encoded ? hdr.part : hdr.msg.args.keys(), NOTHING, NOTHING, hdr.encoded, \header);
+                        h = hdr.msg.serializeDocument(hdr.part, NOTHING, NOTHING, hdr.encoded, \header);
                     if (!h && val) {
                         # header data provided in val ?
-                        h = hdr.msg.serializeDocument(hdr.encoded ? hdr.part : hdr.msg.args.keys(), NOTHING, NOTHING, hdr.encoded, \val);
+                        h = hdr.msg.serializeDocument(hdr.part, NOTHING, NOTHING, hdr.encoded, \val);
                     }
                     if (h) {
                         remove h."^attributes^".("soapenv:encodingStyle", "xmlns:soapenc");
@@ -2941,14 +2953,14 @@ public class WSDL::HttpBinding inherits WSDL::OperationalBinding {
         if (request) {
             if (output.content) {
                 if (output.content.acceptAllContentTypes) {
-                    rv.hdr.Accept = "*/*";
+                    rv.accept = "*/*";
                 } else {
                     softlist l = output.content.acceptedContentTypeSubtypes;
                     map l += $1 + "*", output.content.acceptedContentTypes;
-                    rv.hdr.Accept = foldl $1 + "," + $2, l;
+                    rv.accept = foldl $1 + "," + $2, l;
                 }
             } else if (output.mimeXml) {
-                rv.hdr.Accept = MimeTypeXml;
+                rv.accept = MimeTypeXml;
             }
         }
 
@@ -2957,6 +2969,10 @@ public class WSDL::HttpBinding inherits WSDL::OperationalBinding {
                 ct += sprintf(";charset=%s", enc);
             }
             rv.hdr."Content-Type" = ct;
+        }
+
+        if (rv.accept) {
+            rv.hdr."Accept" = rv.accept;
         }
 
         return rv;

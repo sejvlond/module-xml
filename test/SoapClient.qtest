@@ -198,7 +198,7 @@ class SoapClientTest inherits QUnit::Test {
         assertEq("error", sc.msglogs[1].reason);
         assertEq(500, sc.msglogs[1].code);
         assertEq(True, sc.msglogs[1].body =~ /Fault/);
-        assertEq("application/soap+xml,text/xml,application/xml", sc.msglogs[0].header."Accept");
+        assertEq("application/soap+xml,text/xml,application/xml", sc.msglogs[0]."accept");
         assertEq(server.soap.msglogs[0].('reason', 'code', 'body'), sc.msglogs[0].('reason', 'code', 'body'));
         assertEq(server.soap.msglogs[1].('reason', 'code', 'body'), sc.msglogs[1].('reason', 'code', 'body'));
 
@@ -237,14 +237,14 @@ class SoapClientTest inherits QUnit::Test {
             assertEq(server.opname, "getMimeXml");
             assertEq(server.soap.msglogs[0].('reason', 'method'), sc.msglogs[0].('reason', 'method'));
             assertEq("text/xml;charset=UTF-8", sc.msglogs[1]."content-type");
-            assertEq("text/xml", sc.msglogs[0].header."Accept");
+            assertEq("text/xml", sc.msglogs[0]."accept");
             assertEq(server.rdata, h);
 
             cleanMsgLog();
             server.rdata = ("payload": ("^attributes^": ("^content-type^": "application/plain"), "^value^": "ADATA"));
             h = sc.callOperation("getBinary", ());
             assertEq(server.opname, "getBinary");
-            assertEq("text/plain,text/html,image/*,application/*", sc.msglogs[0].header."Accept");
+            assertEq("text/plain,text/html,image/*,application/*", sc.msglogs[0]."accept");
             assertEq(server.rdata.payload."^attributes^"."^content-type^", sc.msglogs[1]."content-type");
             server.rdata.payload."^value^" = binary(server.rdata.payload."^value^");
             assertEq(server.rdata, h);

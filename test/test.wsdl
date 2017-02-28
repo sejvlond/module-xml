@@ -242,6 +242,9 @@
     <wsdl:operation name="headerValBody" >
       <wsdl:input message="tns:m1" />
     </wsdl:operation>
+    <wsdl:operation name="oneElem">
+      <wsdl:input message="tns:m6" />
+    </wsdl:operation>
   </wsdl:portType>
   <wsdl:binding name="b1" type="tns:pt1">
     <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc" />
@@ -296,6 +299,12 @@
       <wsdl:input>
         <soap12:body use="literal" />
         <soap12:header message="tns:m2" part="docs" use="encoded" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="oneElem">
+      <soap12:operation soapAction="http://qore.org/oneElem" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
       </wsdl:input>
     </wsdl:operation>
   </wsdl:binding>
