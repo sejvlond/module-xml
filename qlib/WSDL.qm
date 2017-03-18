@@ -416,7 +416,6 @@ public class WSDL::WSDLLib {
     Operation is not yet known if SoapAction header is not presented
     */
     static *hash parseSOAPMessage(hash msg) {
-
         if (!msg.body) {
             hash h."content-type" = msg."content-type" ?? "text/plain";
             h.body = NOTHING;
@@ -480,7 +479,6 @@ class WsdlLibPriv {
         }
         return False;
     }
-
 
     static checkContentType(string ct, list MimeTypes) {
         if (!WsdlLibPriv::isContentType(ct, MimeTypes)) {
@@ -2226,14 +2224,6 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
                     # it is ambiguous so do not do any heuristic
                 }
             }
-            /*
-            # why should be this needed ? 2 step getValueFromHash() should do it
-            if (parts.size() == 1) {
-                if (parts[0] != fk) {
-                    h = (parts[0]: (fk: h));
-                }
-            }
-            */
         }
         foreach string p in (parts ?? keys pmap) {
             string k = pmap{p};
@@ -2663,44 +2653,17 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             foreach BindingMessageHeaderDescription hdr in (bmd.getHeaders()) {
                 #printf("DEBUG: hdr: %y (%y)\n", hdr.("encoded", "part"), hdr.msg.args.keys());
                 # only style="document" is assumed since headers do not contain parameters.
-            #    if (docstyle) {
-                    *hash h;
-                    if (header)
-                        h = hdr.msg.serializeDocument(hdr.part, NOTHING, NOTHING, hdr.encoded, \header);
-                    if (!h && val) {
-                        # header data provided in val ?
-                        h = hdr.msg.serializeDocument(hdr.part, NOTHING, NOTHING, hdr.encoded, \val);
-                    }
-                    if (h) {
-                        remove h."^attributes^".("soapenv:encodingStyle", "xmlns:soapenc");
-                        outh += h;
-                    }
-            /*    } else {
-                    *hash h;
-                    if (header)
-                        h = hdr.msg.serializeRpc(hdr.part, NOTHING, NOTHING, hdr.part, hdr.encoded, \header);
-                    if (!h && val) {
-                        # header data provided in val ?
-                        #printf("DEBUG: testing val\n");
-                        h = hdr.msg.serializeRpc(hdr.part, NOTHING, NOTHING, hdr.part, hdr.encoded, \val);
-                    }
-                    if (h) {
-                        #printf("DEBUG: result: %y\n", h);
-                        # tricky part, flatten hash, TODO: make it more transparently
-                        string fk = h.firstKey();
-                        h{fk} = h.firstValue().firstValue();   # "ns1:name" : ("ns1: name" | "name": val) -> "ns1:name": val
-                        #printf("DEBUG: flatten result: %y\n", h);
-                        if (exists outh{fk}) {
-                            # it could in theory happen when two message parts are equal
-                            if (outh{fk}.typeCode() != NT_LIST) {
-                                outh{fk} = (outh{fk},);
-                            }
-                            outh{fk} += h{fk};
-                        } else {
-                            outh += h;
-                        }
-                    }
-                } */
+                *hash h;
+                if (header)
+                    h = hdr.msg.serializeDocument(hdr.part, NOTHING, NOTHING, hdr.encoded, \header);
+                if (!h && val) {
+                    # header data provided in val ?
+                    h = hdr.msg.serializeDocument(hdr.part, NOTHING, NOTHING, hdr.encoded, \val);
+                }
+                if (h) {
+                    remove h."^attributes^".("soapenv:encodingStyle", "xmlns:soapenc");
+                    outh += h;
+                }
             }
             #printf("DEBUG: outh: %y\n", outh);
             rh{soapenvEnvelope}."soapenv:Header" = outh;
@@ -2733,11 +2696,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             foreach BindingMessageHeaderDescription hdr in (bmd.getHeaders()) {
                 if (header.hasKey(hdr.msg.getSerializedKey(hdr.part))) {
                     # seems it may appear part name conflict between messages when namespace is stripped
-#                    if (docstyle) {
-                        hrv{hdr.msg.name} += hdr.msg.deserializeDocument(NOTHING, header, hdr.part);
-/*                    } else {
-                        hrv{hdr.msg.name} += hdr.msg.deserializeRpc(NOTHING, header, hdr.part);
-                    } */
+                    hrv{hdr.msg.name} += hdr.msg.deserializeDocument(NOTHING, header, hdr.part);
                 }
             }
             #printf("DEBUG: Deserialized SOAP headers: %N\n", hrv);
@@ -3494,14 +3453,6 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                     delete op{io}.multipartRelated;
                     */
                 }
-
-                # FIXME: what is this supposed to do?
-                /*
-                foreach hash part in (ophash.input.multipartRelated.part) {
-                    WSDL::XsdBase::removeNS(\part);
-                    op.addInputPart(part);
-                }
-                */
 
                 if (exists op{io}.header) {
                     foreach hash hdr in (op{io}.header) {
