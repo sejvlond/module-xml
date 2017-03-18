@@ -241,7 +241,7 @@ public namespace SoapHandler {
             OperationalBinding binding = method.operation.getBinding(method.binding);
 
             if (binding instanceof SoapBinding) {
-                SoapBinding sb = cast<SoapBinding>(binding);
+                SoapBinding sb = binding;
 
                 # soap binding
                 *string sa = sb.soapAction;
@@ -291,7 +291,7 @@ public namespace SoapHandler {
                 }
 
             } else if (binding instanceof HttpBinding) {
-                HttpBinding hb = cast<HttpBinding>(binding);
+                HttpBinding hb = binding;
                 # http binding
                 rwl.readLock();
                 on_exit rwl.readUnlock();
@@ -509,7 +509,7 @@ private nothing msglog(hash cx, hash msg) {
         # don't reimplement this method; fix/enhance it in the module
         final hash handleRequest(hash cx, hash hdr, *data body) {
             #log(LL_DEBUG_1, "soap handler context=%y hdr=%y body=%y wsh=%y", cx, hdr, body, wsh.keys());
-            #printf("soap handler context=%y hdr=%y body=%y keys wsh=%y\n", cx, hdr, body, wsh.keys()); #XXX
+            #printf("soap handler context=%y hdr=%y body=%y keys wsh=%y\n", cx, hdr, body, wsh.keys());
             cx.http_header = hdr;
             cx.http_body = body;
             *hash method;
