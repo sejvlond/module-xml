@@ -282,7 +282,7 @@ public namespace SalesforceSoapClient {
             if (sessionid)
                 opts.soap_header.sessionId = sessionid;
             opts.soapaction = opts.soapaction ?? soapaction;
-            
+
             return SoapClient::callOperation(operation, args, opts, \info);
         }
 
