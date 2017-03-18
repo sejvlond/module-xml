@@ -2,7 +2,7 @@
 # -*- mode: qore; indent-tabs-mode: nil -*-
 
 # requires at least this qore version to run
-%requires qore >= 0.8.12
+%requires qore >= 0.8.13
 
 %new-style
 %require-types
@@ -10,6 +10,7 @@
 %enable-all-warnings
 
 %requires QUnit
+%requires Util
 
 %requires ../qlib/WSDL.qm
 %requires xml
@@ -55,7 +56,7 @@ class SoapTest inherits QUnit::Test {
                 "xmlns:st": "http://qore.org/simpletest",
                 "xmlns:st1": "http://qore.org/simpletest1",
             ),
-            );
+        );
 
         # all values are strings here because we do raw XML parsing and not SOAP deserialization for the comparison
         # to avoid comparing values generated and parsed with the same code which would result in an identity test
@@ -114,14 +115,14 @@ class SoapTest inherits QUnit::Test {
                     ),
                 ),
             ),
-            );
+        );
 
         const Res_1 = (
             "SetInfoResult": "test",
             "issue663": (
                 "i663list": (),
             ),
-            );
+        );
 
         const SoapUiReq_1 = "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:sim=\"http://qore.org/simpletest\" xmlns:sim1=\"http://qore.org/simpletest1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">
    <soap:Header/>
@@ -167,7 +168,7 @@ class SoapTest inherits QUnit::Test {
 
         const EmptyReq = (
             "soap:Envelope": SoapEnvAttr,
-            );
+        );
 
         const EmptyRes = EmptyReq;
 
@@ -182,19 +183,19 @@ class SoapTest inherits QUnit::Test {
                     ),
                 ),
             ),
-            );
+        );
 
         const RMap = (
             "body": "SetInfoResult",
             "issue663": "issue663",
-            );
+        );
 
         const SoapEnvAttr1 = (
             "^attributes^": (
                 "xmlns:soap": SOAP_11_ENV,
                 "xmlns:tes": "http://example.com/test1/test1_ws",
             ),
-            );
+        );
 
         # all values are strings here because we do raw XML parsing and not SOAP deserialization for the comparison
         # to avoid comparing values generated and parsed with the same code which would result in an identity test
@@ -207,7 +208,7 @@ class SoapTest inherits QUnit::Test {
                     ),
                 ),
             ),
-            );
+        );
 
         const SoapEnvAttr1Res = (
             "^attributes^": (
@@ -215,7 +216,7 @@ class SoapTest inherits QUnit::Test {
                 "xmlns:tes": "http://example.com/test1/test1_ws",
                 "xmlns:oth": "http://example.com/test1/other",
             ),
-            );
+        );
 
         const Test1Res = (
             "soap:Envelope": SoapEnvAttr1Res + (
@@ -247,14 +248,192 @@ class SoapTest inherits QUnit::Test {
                 "res1": "a",
                 "res2": "b",
             ),
+        );
+
+        const HeaderVal1 = (
+            "tickerSymbol": "EET1",
+            "docs": "DOCS-M2",
+            "m3": ("SetInfo": ("name": "NAME-M3", "id": 457, "^attributes^": ("infoType": "ATW", "code": 58 ) )),
+        );
+        const HeaderValReq1 = (
+            "soap:Envelope": SoapEnvAttr + (
+                "soap:Header": (
+                    "st:GetInfo": ("st:tickerSymbol": "EET1"),
+                    "docs": (
+                        "^attributes^": (
+                            "xsi:type" : "xsd:string",
+                        ),
+                        "^value^": HeaderVal1.docs,
+                    ),
+                    "st:SetInfo": ("st:name": "NAME-M3", "st:id": "457", "^attributes^": ("infoType": "ATW", "code": "58" )),
+                ),
+            ),
+        );
+        const HeaderValBody = (
+            "tickerSymbol": "EET1",
+            "docs": "DOCS-M2",
+        );
+        const HeaderValBodyReq = (
+            "soap:Envelope": SoapEnvAttr + (
+                "soap:Header": (
+                    "docs": (
+                        "^attributes^": (
+                            "xsi:type" : "xsd:string",
+                        ),
+                        "^value^": HeaderValBody.docs,
+                    ),
+                ),
+                "soap:Body": (
+                    "st:headerValBody": (
+                        "st:GetInfo": ("st:tickerSymbol": "EET1"),
+                    )
+                ),
+            ),
+        );
+        const OneElemBody = (
+            "soap:Envelope": SoapEnvAttr + (
+                "soap:Body":
+                    ("info": "XYZ"),
+            ),
+        );
+        const UrlReplVal1 = (
+            "country": "CZ",
+            "city": "Prague 2",
+            "zip": 12000,
+            );
+
+        const MultiReq = (
+            "OrderNumber": "TEST-123",
+            "DealerCode": "DEALER-1",
+            "IsUpdate": False,
+            "IsCancelled": False,
+            "IsGiftWrapped": False,
+            "ShipToStore": True,
+            "GiftWrapped": False,
+            "DeliveryType": "TEST",
+            "EmailAddress": "test@test.com",
+            "ContactNumber": "+420 555 121 212",
+            "Name": (
+                "FirstName": "Testie",
+                "LastName": "O'Test",
+            ),
+            "DeliveryAddress": (
+                "AddressLine1": "Premyslovska 1939/28",
+                "AddressLine2": "130 00",
+                "AddressLine3": "Prague",
+                "AddressLine4": "",
+                "County": "Prague",
+                "Country": "Czech Republic",
+            ),
+            "InvoiceAddress": (
+                "AddressLine1": "Premyslovska 1939/28",
+                "AddressLine2": "130 00",
+                "AddressLine3": "Prague",
+                "AddressLine4": "",
+                "County": "Prague",
+                "Country": "Czech Republic",
+            ),
+            "OrderGrossPrice": 149.99n,
+            "OrderDiscount": 0.00n,
+            "OrderNetPrice": 130.00n,
+            "OrderItem": (
+                "Price": 130.00n,
+                "FTC": True,
+            ),
+            );
+
+        const SoapEnvAttrMult = (
+            "^attributes^": (
+                "xmlns:soap": "http://www.w3.org/2003/05/soap-envelope",
+                "xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
+                "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                "xmlns:fu": "http://www.example.com/shop/fulfillment",
+            ),
+            );
+
+        const Multi_Req_1 = (
+            "soap:Envelope": SoapEnvAttrMult + (
+                "soap:Body": (
+                    "fu:OrderRequests": (
+                        "fu:OrderRequest": (
+                            "fu:OrderNumber": "TEST-123",
+                            "fu:DealerCode": "DEALER-1",
+                            "fu:IsUpdate": "false",
+                            "fu:IsCancelled": "false",
+                            "fu:IsGiftWrapped": "false",
+                            "fu:ShipToStore": "true",
+                            "fu:GiftWrapped": "false",
+                            "fu:DeliveryType": "TEST",
+                            "fu:EmailAddress": "test@test.com",
+                            "fu:ContactNumber": "+420 555 121 212",
+                            "fu:Name": (
+                                "fu:FirstName": "Testie",
+                                "fu:LastName": "O'Test",
+                            ),
+                            "fu:DeliveryAddress": (
+                                "fu:AddressLine1": "Premyslovska 1939/28",
+                                "fu:AddressLine2": "130 00",
+                                "fu:AddressLine3": "Prague",
+                                "fu:AddressLine4": NOTHING,
+                                "fu:County": "Prague",
+                                "fu:Country": "Czech Republic",
+                            ),
+                            "fu:InvoiceAddress": (
+                                "fu:AddressLine1": "Premyslovska 1939/28",
+                                "fu:AddressLine2": "130 00",
+                                "fu:AddressLine3": "Prague",
+                                "fu:AddressLine4": NOTHING,
+                                "fu:County": "Prague",
+                                "fu:Country": "Czech Republic",
+                            ),
+                            "fu:OrderGrossPrice": "149.99",
+                            "fu:OrderDiscount": "0",
+                            "fu:OrderNetPrice": "130",
+                            "fu:OrderItem": (
+                                "fu:Price": "130",
+                                "fu:FTC": "true",
+                            ),
+                        ),
+                    ),
+                    "fu:swaBinary": NOTHING,
+                ),
+            ),
+            );
+
+        const Timestamp = now_us().toString();
+        const TxId = get_random_string();
+
+        const Multi_Res_1 = (
+            "soap:Envelope": SoapEnvAttrMult + (
+                "soap:Body": (
+                    "fu:Receipt": (
+                        "fu:OrderNumber": "16685422",
+                        "fu:Timestamp": Timestamp,
+                        "fu:ReceiptAck": (
+                            "fu:OriginalTXID": TxId,
+                            "fu:RequestStatus": "Success",
+                        ),
+                    ),
+                ),
+            ),
             );
     }
 
     constructor() : QUnit::Test("SoapTest", "1.0") {
         addTestCase("SoapTestCase", \soapTestCase());
         addTestCase("Test1", \test1());
-        addTestCase("globalweather", \globalWeather());
+        addTestCase("multi", \multiTest());
         set_return_value(main());
+    }
+
+    *hash parseMessage(hash msg, WSOperation op, bool request) {
+        msg."content-type" = msg.hdr."Content-Type";
+        *hash pdata = WSDLLib::parseSOAPMessage(msg);
+        if (request) {
+            return op.deserializeRequest(pdata);
+        } else {
+            return op.deserializeResponse(pdata);
+        }
     }
 
     soapTestCase() {
@@ -313,7 +492,7 @@ class SoapTest inherits QUnit::Test {
             "issue985": (
                 "i985_e1": "test", "i985_e2": "test",
             ),
-            );
+        );
 
         assertEq(req_r, h, "attr-deser-our");
 
@@ -384,6 +563,143 @@ class SoapTest inherits QUnit::Test {
         compareSoapMsgs("no-output", EmptyRes, xh);
         eh = op.deserializeResponse(h);
         assertEq(NOTHING, eh);
+
+        op = ws.getOperation("headerVal");
+        h = op.serializeRequest(NOTHING, HeaderVal1);
+        xh = parse_xml(h.body);
+        compareSoapMsgs("header-val", HeaderValReq1, xh);
+        *hash h2 = op.deserializeRequest(xh);
+
+        hash headerDeser = ("m1": ("body": ("tickerSymbol" : "EET1")), "m2": ("docs": "DOCS-M2"), "m3": ("body": ("name": "NAME-M3", "id": 457, "^attributes^": ("infoType": "ATW", "code": 58))));
+        assertEq(headerDeser, h2);
+
+        op = ws.getOperation("headerVal-doc");
+        h = op.serializeRequest(NOTHING, HeaderVal1);
+        xh = parse_xml(h.body);
+        compareSoapMsgs("header-val", HeaderValReq1, xh);
+
+        # test if the body arguments can be used to serialize the headers
+        op = ws.getOperation("headerVal-doc");
+        h = op.serializeRequest(HeaderVal1, NOTHING, NOTHING, NOTHING, XGF_ADD_FORMATTING);
+        xh = parse_xml(h.body);
+        compareSoapMsgs("header-val", HeaderValReq1, xh);
+
+        assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), (HeaderVal1, ("unknown": "dummy") ) );
+        assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), (HeaderVal1 + ("unknown": "dummy") ) );
+
+        h2 = op.deserializeRequest(xh);
+        assertEq(headerDeser, h2);
+
+        op = ws.getOperation("headerValBody");
+        h = op.serializeRequest(HeaderValBody);
+        xh = parse_xml(h.body);
+        compareSoapMsgs("header-valBody", HeaderValBodyReq, xh);
+
+        h2 = op.deserializeRequest(xh);
+        headerDeser = ("tickerSymbol": "EET1", "m2": ("docs": "DOCS-M2"));
+        assertEq(headerDeser, h2);
+
+        op = ws.getOperation("oneElem");
+        h = op.serializeRequest(("info": "XYZ"));
+        xh = parse_xml(h.body);
+        compareSoapMsgs("one-Part1", OneElemBody, xh);
+
+        h = op.serializeRequest("XYZ");
+        xh = parse_xml(h.body);
+        compareSoapMsgs("one-Part2", OneElemBody, xh);
+
+        h = op.serializeRequest(("m6": ("info": "XYZ")));
+        xh = parse_xml(h.body);
+        compareSoapMsgs("one-Part3", OneElemBody, xh);
+
+        op = ws.getPortTypeOperation("pt2", "urlRepl");
+        h = op.serializeRequest(UrlReplVal1);
+        assertEq("get/CZ/12000-Prague%202", h.path);
+        assertEq("GET", h.method);
+
+        op = ws.getPortTypeOperation("pt2", "urlEncoded1");
+        h = op.serializeRequest(UrlReplVal1);
+        assertEq("get?country=CZ&city=Prague%202&zip=12000", h.path);
+        assertEq("GET", h.method);
+        assertFalse(exists h.hdr."Content-Type");
+        assertThrows("SOAP-DESERIALIZATION-ERROR", \parseMessage(), (h, op, True));
+
+        op = ws.getBindingOperation("b2", "urlEncoded2");
+        h = op.serializeRequest(UrlReplVal1);
+        assertEq("get?test&country=CZ&city=Prague%202&zip=12000", h.path);
+        assertEq("GET", h.method);
+        h = op.deserializeRequestPath(h.path, "b2");
+        assertEq(UrlReplVal1, h);
+
+        op = ws.getBindingOperation("b2", "postForm");
+        h = op.serializeRequest(UrlReplVal1);
+        assertEq("country=CZ&city=Prague%202&zip=12000", h.body);
+        assertEq("POST", h.method);
+
+        h2 = parseMessage(h, op, True);
+        assertEq(UrlReplVal1, h2, h.path);
+
+        op = ws.getPortTypeOperation("pt2", "postText");
+        h = op.serializeRequest(("info": "important info &"));
+        assertEq("important info &", h.body);
+        assertTrue(h.hdr."Content-Type".regex("^text/"), "Content type");
+        assertEq("POST", h.method);
+
+        h2 = parseMessage(h, op, True);
+        assertEq("important info &", get_xml_value(h2.info));
+        assertEq("text/plain", h2.info."^attributes^"."^content-type^");
+
+        op = ws.getPortTypeOperation("pt2", "postImg");
+        h = op.serializeRequest(("img": <ABCDEF>));
+        assertEq(h.hdr."Content-Type", "image/png");
+        assertEq(<ABCDEF>, h.body);
+        assertEq("POST", h.method);
+
+        h2 = parseMessage(h, op, True);
+        assertEq(<ABCDEF>, get_xml_value(h2.img));
+        assertEq(h2.img."^attributes^"."^content-type^", "image/png");
+
+        op = ws.getPortTypeOperation("pt2", "postImg");
+        assertThrows("SOAP-MESSAGE-ERROR", \op.serializeRequest(), ("img": ("^value^": "xxx", "^attributes^": ("^content-type^": "text/plain"))), "post img wrong content type");
+
+        op = ws.getPortTypeOperation("pt2", "postImg2");
+        assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), ("img": <ABCDEF>), "post img no content type");
+
+        op = ws.getPortTypeOperation("pt2", "postImg2");
+        h = op.serializeRequest(("img": ("^value^": <ABCDEF>, "^attributes^": ("^content-type^": "image/jpeg"))));
+        assertEq("image/jpeg", h.hdr."Content-Type");
+        assertEq(<ABCDEF>, h.body);
+
+        op = ws.getPortTypeOperation("pt2", "postImg3");
+        h = op.serializeRequest(("img": ("^value^": <ABCDEF>, "^attributes^": ("^content-type^": "image/jpeg"))));
+        assertEq("image/jpeg", h.hdr."Content-Type");
+        assertEq(<ABCDEF>, h.body);
+
+        h2 = parseMessage(h, op, True);
+        assertEq(<ABCDEF>, get_xml_value(h2.img));
+        assertEq("image/jpeg", h2.img."^attributes^"."^content-type^");
+
+        op = ws.getPortTypeOperation("pt2", "postImg3");
+        assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), ("img": <ABCDEF>), "post img no content type");
+
+        op = ws.getPortTypeOperation("pt2", "postImg3");
+        assertThrows("SOAP-MESSAGE-ERROR", \op.serializeRequest(), ("img": ("^value^": "xxx", "^attributes^": ("^content-type^": "text/plain"))), "post img wrong content type");
+
+        op = ws.getPortTypeOperation("pt2", "postData");
+        h = op.serializeRequest(("payload": ("^value^": "012", "^attributes^": ("^content-type^": "application/x-data"))));
+        assertTrue(h.hdr."Content-Type".regex("^application/x-data"), "Content type");
+        assertEq(<303132>, h.body);
+
+        op = ws.getPortTypeOperation("pt2", "postData");
+        assertThrows("SOAP-SERIALIZATION-ERROR", \op.serializeRequest(), ("payload": "xxx"), "post img no content type");
+
+        op = ws.getPortTypeOperation("pt2", "getMimeXml");
+        h = op.deserializeResponse(("string": "xxx"));
+        assertEq("xxx", h.STR, "deserialize mimeXml");
+
+        h = op.serializeResponse(h);
+        assertTrue(h.hdr."Content-Type".regex("^text/xml"), "Content type");
+        assertTrue(h.body.regex("^\\<\\?xml version.*string.*xxx"), "serialize mimexml");
     }
 
     test1() {
@@ -409,22 +725,73 @@ class SoapTest inherits QUnit::Test {
         assertEq(Res1_1, eh, "deserialize response");
     }
 
-    globalWeather() {
-        assertThrows("WSDL-ERROR", sub () { WebService ws(ReadOnlyFile::readTextFile(get_script_dir() + "/globalweather.wsdl")); }, NOTHING, "http binding");
+    multiTest() {
+        WebService ws(ReadOnlyFile::readTextFile(get_script_dir() + "/multi-soap.wsdl"));
+        WSOperation op = ws.getOperation("Send");
+
+        hash req = (
+            "OrderRequests": (
+                "OrderRequest": MultiReq,
+            ),
+            "swaBinary": NOTHING,
+            );
+        hash h = op.serializeRequest(req);
+        assertEq(NOTHING, h.hdr.SOAPAction);
+        hash xh = parse_xml(h.body);
+        compareSoapMsgs("multi-1", Multi_Req_1, xh);
+
+        h = op.deserializeRequest(xh);
+        # FIXME: check that req == h (must process req)
+
+        hash res = (
+            "OrderNumber": "16685422",
+            "Timestamp": Timestamp,
+            "ReceiptAck": (
+                "OriginalTXID": TxId,
+                "RequestStatus": "Success",
+            ),
+            );
+        h = op.serializeResponse(res);
+        #printf("h: %N\n", h);
+        xh = parse_xml(h.body);
+        #printf("%N\n", xh);
+        compareSoapMsgs("multi-2", Multi_Res_1, xh);
+
+        h = op.deserializeResponse(xh);
+        # FIXME: check that res == h (must process res)
     }
 
     compareSoapMsgs(string assert, hash h1, hash h2) {
-        # get namespace hashes and soap envelope prefix
-        NsMap nh1 = SoapTest::getNamespaceMap(h1);
-        NsMap nh2 = SoapTest::getNamespaceMap(h2);
+        try {
+            # get namespace hashes and soap envelope prefix
+            NsMap nh1 = SoapTest::getNamespaceMap(h1);
+            NsMap nh2 = SoapTest::getNamespaceMap(h2);
 
-        # compare soap version in envelope
-        assertEq(nh1.getSoapUri(), nh2.getSoapUri());
+            # compare soap version in envelope
+            assertEq(nh1.getSoapUri(), nh2.getSoapUri());
 
-        *hash b1 = SoapTest::getValue(h1, nh1.se, "Envelope", "Body");
-        *hash b2 = SoapTest::getValue(h2, nh2.se, "Envelope", "Body");
+            *hash hdr1 = SoapTest::getValue(h1, nh1.se, "Envelope", "Header");
+            *hash hdr2 = SoapTest::getValue(h2, nh2.se, "Envelope", "Header");
+            #printf("COMPARE\n%N\n%N\n%N\n%N\n\n", h1, h2, hdr1, hdr2);
+            compareSoapValue(assert, "Envelope.Header", hdr1, hdr2, nh1, nh2);
 
-        compareSoapValue(assert, "Envelope.Body", b1, b2, nh1, nh2);
+            *hash b1 = SoapTest::getValue(h1, nh1.se, "Envelope", "Body");
+            *hash b2 = SoapTest::getValue(h2, nh2.se, "Envelope", "Body");
+
+            compareSoapValue(assert, "Envelope.Body", b1, b2, nh1, nh2);
+        } catch (hash ex) {
+            # to provide real info what failed
+            list stack = getAllThreadCallStacks(){gettid()};
+            int i = 1;
+            while (exists stack[i]) {
+                if (stack[i].file == stack[0].file) {
+                    #printf("test: %N\n%N\nExpected: %N\nActual: %N\n", stack[i], ex, h1, h2);
+                    break;
+                }
+                i++;
+            }
+            rethrow;
+        }
     }
 
     compareSoapValue(string assert, string loc, any v1, any v2, NsMap nh1, NsMap nh2) {

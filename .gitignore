@@ -32,6 +32,7 @@ src/QC_*.cpp
 
 # temporary doxygen files
 docs/*.tag
+docs/SalesforceSoapClient/
 docs/SoapClient/
 docs/SoapHandler/
 docs/WSDL/
