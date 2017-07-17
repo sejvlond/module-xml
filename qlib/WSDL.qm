@@ -2650,7 +2650,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             #printf("DEBUG: %s header: %y\n", io, header);
             #printf("DEBUG: doc: %y bhdr: %N\n", docstyle, (map $1.("message", "part"), bmd.getHeaders()));
             hash outh;
-            foreach BindingMessageHeaderDescription hdr in (bmd.getHeaders()) {
+            foreach hash<BindingMessageHeaderDescription> hdr in (bmd.getHeaders()) {
                 #printf("DEBUG: hdr: %y (%y)\n", hdr.("encoded", "part"), hdr.msg.args.keys());
                 # only style="document" is assumed since headers do not contain parameters.
                 *hash h;
@@ -2693,7 +2693,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             WSDL::XsdBase::removeNS2(\header);
 
             #printf("DEBUG: Deserialize SOAP headers: %N\n", header);
-            foreach BindingMessageHeaderDescription hdr in (bmd.getHeaders()) {
+            foreach hash<BindingMessageHeaderDescription> hdr in (bmd.getHeaders()) {
                 if (header.hasKey(hdr.msg.getSerializedKey(hdr.part))) {
                     # seems it may appear part name conflict between messages when namespace is stripped
                     hrv{hdr.msg.name} += hdr.msg.deserializeDocument(NOTHING, header, hdr.part);
@@ -3097,26 +3097,18 @@ public class WSDL::BindingMessageBodyDescription {
 }
 
 #! describes a SOAP message header for a SOAP operational binding message description
-public class WSDL::BindingMessageHeaderDescription {
-    public {
-        #! message part name
-        string part;
+public hashdecl WSDL::BindingMessageHeaderDescription {
+    #! message part name
+    string part;
 
-        #! required attribute
-        /** if @ref Qore::True "True", then use = \c "encoded" (each message part references an abstract type using the \c type attribute),
-            otherwise use = \c "literal" (each part references a concrete schema definition using either the \c element or \c type attribute)
-         */
-        bool encoded;
+    #! required attribute
+    /** if @ref Qore::True "True", then use = \c "encoded" (each message part references an abstract type using the \c type attribute),
+        otherwise use = \c "literal" (each part references a concrete schema definition using either the \c element or \c type attribute)
+        */
+    bool encoded;
 
-        #! actual message
-        WSMessage msg;
-    }
-
-    constructor(string part, bool encoded, WSMessage msg) {
-        self.part = part;
-        self.encoded = encoded;
-        self.msg = msg;
-    }
+    #! actual message
+    WSMessage msg;
 }
 
 #! describes MIME content information for SOAP operational binding message descriptions
@@ -3227,11 +3219,11 @@ public class WSDL::BindingMessageDescription {
     }
 
     private:internal {
-        #! a list of WSDL::BindingMessageHeaderDescription objects
+        #! a list of WSDL::BindingMessageHeaderDescription hashes
         list headers = ();
     }
 
-    addHeader(WSDL::BindingMessageHeaderDescription hdr) {
+    addHeader(hash<BindingMessageHeaderDescription> hdr) {
         headers += hdr;
     }
 
@@ -3240,7 +3232,7 @@ public class WSDL::BindingMessageDescription {
         return !headers.empty();
     }
 
-    #! returns a list of WSDL::BindingMessageHeaderDescription objects
+    #! returns a list of WSDL::BindingMessageHeaderDescription hashes
     list getHeaders() {
         return headers;
     }
@@ -3473,7 +3465,7 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                             throw WSDL_ERROR, sprintf("binding %y for operation %y for the %y header of the %s message has an invalid 'use' attribute: %y", name, opname, ma.part, io, ma.use);
 
                         #printf("DEBUG: match part to message: %y, part: %y\n", msg.name, part);
-                        bmd.addHeader(new BindingMessageHeaderDescription(part, encoded, msg));
+                        bmd.addHeader(new hash<BindingMessageHeaderDescription>(("part": part, "encoded": encoded, "msg": msg)));
                     }
                     delete op{io}.header;
                 }
