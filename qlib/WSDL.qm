@@ -2590,7 +2590,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             rv = mpm.getMsgAndHeaders();
         }
         */
-        rv.accept = WSDLLib::SoapMimeTypes.join(",");
+        #rv.accept = WSDLLib::SoapMimeTypes.join(",");
 
         if (req_soapaction) {
             rv.hdr += ("SOAPAction": req_soapaction);
@@ -2607,7 +2607,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             rv.hdr."Content-Type" = ct;
         }
 
-        rv.hdr."Accept" = rv.accept;
+        rv.hdr."Accept" = WSDLLib::SoapMimeTypes.join(",");
 
         return rv;
     }
@@ -3465,7 +3465,7 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
                             throw WSDL_ERROR, sprintf("binding %y for operation %y for the %y header of the %s message has an invalid 'use' attribute: %y", name, opname, ma.part, io, ma.use);
 
                         #printf("DEBUG: match part to message: %y, part: %y\n", msg.name, part);
-                        bmd.addHeader(new hash<BindingMessageHeaderDescription>(("part": part, "encoded": encoded, "msg": msg)));
+                        bmd.addHeader(cast<hash<BindingMessageHeaderDescription>>(("part": part, "encoded": encoded, "msg": msg)));
                     }
                     delete op{io}.header;
                 }
