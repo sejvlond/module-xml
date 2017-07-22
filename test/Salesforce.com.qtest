@@ -233,12 +233,20 @@ class SalesforceTest inherits QUnit::Test {
     */
 
     salesforceSoapConnectionTest() {
+        # allow this test to run even if there is no Salesforce.com config in place
+        hash fake_opts = (
+            "wsdl": get_script_dir() + "/test.wsdl",
+            "username": "user",
+            "password": "pass",
+            "token": "token",
+        );
+
         string conn_url = "sfsoap://ignored";
-        SalesforceSoapConnection conn("test", "test", conn_url, False, opts - ("log", "dbglog"), parse_url(conn_url));
+        SalesforceSoapConnection conn("test", "test", conn_url, False, fake_opts, parse_url(conn_url));
         SalesforceSoapClient sc = conn.get(False, opts.("log", "dbglog"));
 
         string url = sc.getURL();
         hash uh = parse_url(url);
-        assertEq("https", uh.protocol);
+        assertEq("http", uh.protocol);
     }
 }
