@@ -455,7 +455,6 @@ private nothing msglog(hash cx, hash msg) {
                 }
 
                 log(cx, msg);
-                h.logreply = True;
             }
             #printf("about to call function '%s' (method=%s params=%N)\n", method.function, method.name, args);flush();
             any rv;
