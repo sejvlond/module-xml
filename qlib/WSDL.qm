@@ -2590,7 +2590,6 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             rv = mpm.getMsgAndHeaders();
         }
         */
-        rv.accept = WSDLLib::SoapMimeTypes.join(",");
 
         if (req_soapaction) {
             rv.hdr += ("SOAPAction": req_soapaction);
@@ -2607,7 +2606,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
             rv.hdr."Content-Type" = ct;
         }
 
-        rv.hdr."Accept" = rv.accept;
+        rv.hdr."Accept" = WSDLLib::SoapMimeTypes.join(",");
 
         return rv;
     }
