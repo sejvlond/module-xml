@@ -491,7 +491,7 @@ class WsdlLibPriv {
 public class WSDL::XsdBase {
     static removeNS(reference v) {
         foreach hash h in (\v) {
-            foreach string k in (h.keyIterator()) {
+            foreach string k in (keys h) {
                 (*string ns, *string name) = k =~ x/(\w+):(\w+)/;
                 if (ns) {
                     switch (h{k}.typeCode()) {
@@ -512,7 +512,7 @@ public class WSDL::XsdBase {
 
     static removeNS2(reference v) {
         foreach hash h in (\v) {
-            foreach string k in (h.keyIterator()) {
+            foreach string k in (keys h) {
                 (*string ns, *string name) = k =~ x/(\w+):(\w+)/;
                 if (ns) {
                     switch (h{k}.typeCode()) {
@@ -650,7 +650,7 @@ public class WSDL::XsdAbstractType inherits WSDL::XsdNamedData {
     }
 
     abstract any serialize(Namespaces nsc, any val, *softbool omitType);
-    abstract any deserialize(string en, *TypeMap tmap, *hash mrh, any val);
+    abstract any deserialize(string en, hash<string, XsdAbstractType> tmap, *hash mrh, any val);
 }
 
 #! class for XSD base types
@@ -664,7 +664,7 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
     any serialize(Namespaces nsc, any val, *softbool omitType) {
         *hash comments;
         if (val.typeCode() == NT_HASH) {
-            foreach string k in (val.keyIterator()) {
+            foreach string k in (keys val) {
                 if (k =~ /^\^comment/) {
                     comments{k} = val{k};
                 }
@@ -811,7 +811,7 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
             );
     }
 
-    any deserialize(string en, *TypeMap tmap, *hash mrh, any val) {
+    any deserialize(string en, hash<string, XsdAbstractType> tmap, *hash mrh, any val) {
         string type;
         if (val.typeCode() == NT_HASH && val.hasKey("^value^")) {
             if (val."^attributes^"."xsi:type") {
@@ -958,7 +958,7 @@ public class WSDL::XsdBaseType inherits WSDL::XsdAbstractType {
 
             default: {
                 if (name == "anyType")  {
-                    *XsdAbstractType t = tmap.tryGet(type);
+                    *XsdAbstractType t = tmap_try_get(tmap, type);
                     if (t)
                         return t.deserialize(en, tmap, mrh, val);
                 }
@@ -992,7 +992,7 @@ public class WSDL::XsdArrayType inherits WSDL::XsdAbstractType {
         }
     }
 
-    any deserialize(string en, *TypeMap tmap, *hash mrh, any val) {
+    any deserialize(string en, hash<string, XsdAbstractType> tmap, *hash mrh, any val) {
         switch (name) {
             case "binary": {
                 if (val.typeCode() != NT_BINARY)
@@ -1045,7 +1045,7 @@ public class WSDL::XsdAttribute inherits WSDL::XsdTypedData {
     }
 
     any getValue(string val) {
-        return type.deserialize(name, NOTHING, NOTHING, val);
+        return type.deserialize(name, new hash<string, XsdAbstractType>(), NOTHING, val);
     }
 }
 
@@ -1183,7 +1183,7 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
         return (pf + type.serialize(nsc, h, omitType));
     }
 
-    any deserialize(*TypeMap tmap, *hash mrh, any val, bool present) {
+    any deserialize(hash<string, XsdAbstractType> tmap, *hash mrh, any val, bool present) {
         #printf("XsdElement::deserialize() name: %y type: %y (nillable: %y) val: %y present: %y\n", name, type.getName(), type.isNillable(), val, present);
         *hash a = val."^attributes^";
         if (a)
@@ -1256,7 +1256,7 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
     any serialize(Namespaces nsc, any val, *softbool omitType) {
         *hash rh;
         if (val.typeCode() == NT_HASH) {
-            foreach string k in (val.keyIterator()) {
+            foreach string k in (keys val) {
                 if (k =~ /^\^comment/) {
                     rh{k} = remove val{k};
                 }
@@ -1270,7 +1270,7 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
         return rh + type.serialize(nsc, val, omitType);
     }
 
-    any deserialize(string en, *TypeMap tmap, *hash mrh, any val) {
+    any deserialize(string en, hash<string, XsdAbstractType> tmap, *hash mrh, any val) {
         any v = type.deserialize(en, tmap, mrh, val);
 
         if (enum && !enum{v})
@@ -1295,7 +1295,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
         bool usedocns;
 
-        *hash<string, XsdElement> elementmap;
+        hash<string, XsdElement> elementmap();
         bool anyAttribute = False;
 
         bool nillable = False;
@@ -1412,7 +1412,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         }
     }
 
-    finalize(TypeMap tmap, Namespaces nsc) {
+    finalize(hash<string, XsdAbstractType> tmap, Namespaces nsc) {
         if (finalized)
             return;
         finalized = True;
@@ -1420,21 +1420,21 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         # process restriction info
         if (restriction) {
             # combine base type and new type
-            XsdAbstractType t = tmap.get(restriction);
+            XsdAbstractType t = tmap_get(tmap, restriction);
             if (!(t instanceof XsdComplexType))
                 throw WSDL_ERROR, sprintf("cannot restrict complexType %y with type %y", name, t.name);
             cast<XsdComplexType>(t).finalize(tmap, nsc);
-            elementmap = cast<XsdComplexType>(t).elementmap + elementmap;
+            elementmap = cast<hash<string, XsdElement>>(cast<XsdComplexType>(t).elementmap + elementmap);
             #printf("DEBUG: extended %s with %s (%y)\n", name, restriction, cast<XsdComplexType>(t).elementmap.keys());
         }
         # process extension info
         else if (extension) {
-            XsdAbstractType t = tmap.get(extension);
+            XsdAbstractType t = tmap_get(tmap, extension);
             if (!(t instanceof XsdComplexType))
                 throw WSDL_ERROR, sprintf("cannot extend complexType %y with type %y", name, t.name);
             cast<XsdComplexType>(t).finalize(tmap, nsc);
             # combine base type and new type
-            elementmap = cast<XsdComplexType>(t).elementmap + elementmap;
+            elementmap = cast<hash<string, XsdElement>>(cast<XsdComplexType>(t).elementmap + elementmap);
             #printf("DEBUG: extended %s (%s) with %s (%y) elements: %y\n", name, self.uniqueHash(), extension, cast<XsdComplexType>(t).elementmap.keys(), elementmap.keys());
         }
 
@@ -1444,8 +1444,6 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             if (!et)
                 throw WSDL_ERROR, sprintf("can't parse array type %y", array);
             array = new XsdArrayType(et, nsc);
-            #*XsdAbstractType t = tmap.tryGet(et);
-            #array = new XsdArrayType(t ? t : et, nsc);
         }
     }
 
@@ -1497,10 +1495,10 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             WSDL::XsdBase::removeNS(\d.sequence.choice);
             foreach hash ch in (d.sequence.choice) {
                 #printf("ch: %y\n", ch);
-                *hash h = parseElements(ch.element, unresolved, nsc, False);
+                hash<string, XsdElement> h = parseElements(ch.element, unresolved, nsc, False);
                 if (h) {
                     hash<ChoiceInfo> ech((
-                        "elementmap": h,
+                        "elementmap": cast<hash<string, XsdElement>>(h),
                         "required": ch."^attributes^".minOccurs > 0,
                     ));
                     choices += ech;
@@ -1542,9 +1540,9 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return !elementmap && !simpleType;
     }
 
-    private *hash<string, XsdElement> parseElements(softlist el, XsdLateResolverHelper unresolved, Namespaces nsc, bool for_object = True) {
+    private hash<string, XsdElement> parseElements(softlist el, XsdLateResolverHelper unresolved, Namespaces nsc, bool for_object = True) {
         #printf("DEBUG: XsdComplexType::parseElements(%y)\n", el);
-        hash<string, XsdElement> h;
+        hash<string, XsdElement> h();
         foreach hash e in (el) {
             #printf("DEBUG: XsdComplexType::parseElements() ns: %y e: %y\n", nsc.getTargetNamespaceUri(), e);
             XsdElement elem(e, nsc, NOTHING, unresolved, usedocns);
@@ -1596,7 +1594,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         if (h.typeCode() == NT_HASH) {
             if (h."^attributes^") {
                 hash mah = remove h."^attributes^";
-                foreach string k in (mah.keyIterator()) {
+                foreach string k in (keys mah) {
                     if (!attrs{k})
                         throw SOAP_SERIALIZATION_ERROR, sprintf("cannot set unknown attribute %y of element %y; known attributes: %y", k, getName(), attrs.keys());
                     if (attrs{k}.use == "prohibited")
@@ -1609,7 +1607,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 if (attr.use == "required" && !exists ah.(attr.name))
                     throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize element %y without attribute %y; the WSDL marks this attribute as required", getName(), attr.name);
             }
-            foreach string k in (h.keyIterator()) {
+            foreach string k in (keys h) {
                 if (k =~ /^\^comment/) {
                     rh{k} = remove h{k};
                 }
@@ -1641,7 +1639,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                     }
                 }
                 # also serialize each choice block, if any
-                foreach hash ch in (choices) {
+                foreach hash<ChoiceInfo> ch in (choices) {
                     list<string> kl = ch.elementmap.keys();
                     *hash vh = h{kl};
                     *hash vhch = hch{kl};
@@ -1687,7 +1685,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return rh;
     }
 
-    private hash serializeChoice(Namespaces nsc, *hash<string, XsdElement> emap, hash h, *softbool omitType, bool all_members) {
+    private hash serializeChoice(Namespaces nsc, hash<string, XsdElement> emap, hash h, *softbool omitType, bool all_members) {
         # normally there is only one choice but we also need output example message where all options are enumerated
         if (!all_members && elements h > 1)
             throw SOAP_SERIALIZATION_ERROR, sprintf("cannot serialize choice / union in complexType %y with more than 1 member (%y)", getName(), h.keys());
@@ -1703,7 +1701,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return rh;
     }
 
-    *hash deserialize(string en, *TypeMap tmap, *hash mrh, any oval) {
+    *hash deserialize(string en, hash<string, XsdAbstractType> tmap, *hash mrh, any oval) {
         if (exists array)
             return array.deserialize(en, tmap, mrh, oval);
 
@@ -1742,7 +1740,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                     tn = tname;
                 if (tn != name) {
                     # check for compatible extension
-                    *XsdAbstractType t = tmap.tryGet(tn);
+                    *XsdAbstractType t = tmap_try_get(tmap, tn);
                     #printf("DEBUG: type provided %y: %y\n", tn, t.name);
                     if (t) {
                         t.checkExtends(self, en);
@@ -1788,7 +1786,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                     delete val{p};
                 }
                 # also parse each choice block, if any
-                foreach hash ch in (choices) {
+                foreach hash<ChoiceInfo> ch in (choices) {
                     *hash vh = val.(ch.elementmap.keys());
                     *hash h = parseChoice(vh, ch.elementmap, en, tmap, mrh, ch.required);
                     if (h)
@@ -1810,7 +1808,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return rh;
     }
 
-    private *hash parseChoice(hash val, hash emap, string en, *TypeMap tmap, *hash mrh, *bool required) {
+    private *hash parseChoice(hash val, hash<string, XsdElement> emap, string en, hash<string, XsdAbstractType> tmap, *hash mrh, *bool required) {
         list kl = val.keys();
         if (elements kl > 1)
             throw SOAP_DESERIALIZATION_ERROR, sprintf("too many elements supplied for choice / union in type %y for element %y (%y)", getName(), en, kl);
@@ -1893,7 +1891,7 @@ public class WSDL::WSOperation inherits WSDL::XsdNamedData {
 
     #! this method is called if this operation supports at least one binding with document style
     setDocStyleBinding(reference idocmap) {
-        foreach string key in (input.args.keyIterator()) {
+        foreach string key in (keys input.args) {
             # FIXME: could be a type here instead of an element
             if (!input.args{key}.element.name) {
                 return;
@@ -2086,15 +2084,15 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         #! maps part names to args key, all parts are in hash
         hash<string, string> pmap;
 
-        # keep a weak reference to the type map
-        TypeMap tmap;
+        #! type map
+        hash<string, XsdAbstractType> tmap;
 
         # keep a weak reference to the namespace map
         Namespaces nsc;
     }
 
-    constructor(hash m, ElementMap emap, TypeMap tmap, Namespaces nsc) : XsdNamedData(\m) {
-        self.tmap := tmap;
+    constructor(hash m, hash<string, hash<string, XsdElement>> emap, hash<string, XsdAbstractType> tmap, Namespaces nsc) : XsdNamedData(\m) {
+        self.tmap = tmap;
         self.nsc := nsc;
 
         #printf("DEBUG: WSMessage::constructor() m: %y emap: %y\n", m, emap);
@@ -2117,7 +2115,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
                 args{ename}.part = part.name;
                 pmap{part.name} = ename;
 
-                args{ename}.element = emap.get(nsc.getNamespaceUri(ns), ename);
+                args{ename}.element = emap_get(emap, nsc.getNamespaceUri(ns), ename);
             }
             else {
                 if (args{part.name})
@@ -2346,12 +2344,7 @@ public class WSDL::WSMessage inherits WSDL::XsdNamedData {
         @return hash of all parts in key-value pair
     */
     hash serializeAllPartData(*hash val) {
-        hash rv;
-        foreach string k in (args.keyIterator()) {
-            hash v = serializeData(nsc, k, val);
-            rv{k} = v.value;
-        }
-        return rv;
+        return map {$1: serializeData(nsc, $1, val).value}, keys args;
     }
 
     #! serialized value of particular type value as string or binary
@@ -2529,19 +2522,17 @@ class WSDL::XsdLateResolverHelper {
 #! class for WSDL bindings associated with a SOAP operation
 public class WSDL::OperationalBinding inherits WSDL::XsdNamedData {
     public {
-        hash config;
         bool docstyle;
         *WSDL::BindingMessageDescription input;
         *WSDL::BindingMessageDescription output;
         *string soapAction;
     }
 
-    constructor(string name, string ns, bool docstyle, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output, hash config) : XsdNamedData(name, ns) {
+    constructor(string name, string ns, bool docstyle, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output) : XsdNamedData(name, ns) {
         self.docstyle = docstyle;
         self.soapAction = soapAction;
         self.input = input;
         self.output = output;
-        self.config = config;
     }
 
     hash serializeMessage(WSOperation op, bool request, bool soap12, any h, *hash header, string enc = "UTF-8", *hash nsh, *int xml_opts, *string req_soapaction) {
@@ -2568,7 +2559,7 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
         string soapTransport;
     }
 
-    constructor(string name, string ns, bool docstyle, string soapTransport, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output, hash config) : OperationalBinding(name, ns, docstyle, soapAction, input, output, config) {
+    constructor(string name, string ns, bool docstyle, string soapTransport, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output) : OperationalBinding(name, ns, docstyle, soapAction, input, output) {
         self.soapTransport = soapTransport;
     }
 
@@ -2643,7 +2634,6 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
         *hash body;
         if (op{io}) {
             WSMessage msg = op{io};
-            printf("DEBUG op{%y}: %y (%y) binding: %y\n", io, msg.toBool(), msg.className(), bmd.body.keys());
             if (docstyle) {
                 bool encoded = bmd.body.encoded;
                 # bmd.body.encoded == False = literal encoding
@@ -2820,8 +2810,8 @@ public class WSDL::SoapBinding inherits WSDL::OperationalBinding {
                 mrh.mrh.(mr."^attributes^".id) = mr;
 
             # resolve interior references to multiRefs
-            foreach string id in (mrh.mrh.keyIterator()) {
-                foreach string key in (mrh.mrh{id}.keyIterator()) {
+            foreach string id in (keys mrh.mrh) {
+                foreach string key in (keys mrh.mrh{id}) {
                     if (key == "^attributes^")
                         continue;
 
@@ -2871,7 +2861,7 @@ public class WSDL::HttpBinding inherits WSDL::OperationalBinding {
         string location;
     }
 
-    constructor(string name, string ns, bool docstyle, string httpMethod, string location, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output, hash config) : OperationalBinding(name, ns, docstyle, soapAction, input, output, config) {
+    constructor(string name, string ns, bool docstyle, string httpMethod, string location, *string soapAction, *WSDL::BindingMessageDescription input, *WSDL::BindingMessageDescription output) : OperationalBinding(name, ns, docstyle, soapAction, input, output) {
         self.httpMethod = httpMethod;
         self.location = location;
     }
@@ -3557,8 +3547,8 @@ public class WSDL::Binding inherits WSDL::XsdNamedData {
             }
 
             OperationalBinding b = soapTransport
-                ? new SoapBinding(name, ophash.ns ?? "", b_docstyle, soapTransport, soapAction, ioh.input, ioh.output, op)
-                : new HttpBinding(name, ophash.ns ?? "", b_docstyle, httpMethod, location, soapAction, ioh.input, ioh.output, op);
+                ? new SoapBinding(name, ophash.ns ?? "", b_docstyle, soapTransport, soapAction, ioh.input, ioh.output)
+                : new HttpBinding(name, ophash.ns ?? "", b_docstyle, httpMethod, location, soapAction, ioh.input, ioh.output);
 
             portTypes{port}.operations{opname}.addBinding(b);
         }
@@ -3720,7 +3710,7 @@ public class WSDL::Namespaces {
     }
 
     addNamespaces(hash nsh, *NamespacePrefixHelper nph) {
-        foreach string k in (nsh.keyIterator()) {
+        foreach string k in (keys nsh) {
             *string ns = (k =~ x/xmlns:(\w+)/)[0];
 
             if (!ns)
@@ -3769,7 +3759,7 @@ public class WSDL::Namespaces {
     #! merges namespaces when parsing imported schemas
     merge(Namespaces nsc) {
         nsn = nsc.nsn;
-        foreach string k in (nsc.ns.keyIterator()) {
+        foreach string k in (keys nsc.ns) {
             string v = nsc.ns{k};
 
             if (ns{k}) {
@@ -3783,7 +3773,7 @@ public class WSDL::Namespaces {
             }
         }
         # merge input namespace mappings
-        foreach string k in (nsc.imap.keyIterator()) {
+        foreach string k in (keys nsc.imap) {
             string v = nsc.imap{k};
             if (imap{k}) {
                 if (imap{k} == v)
@@ -3809,7 +3799,7 @@ public class WSDL::Namespaces {
         hash h;
         map h.("xmlns:" + $1.key) = $1.value, ns.pairIterator();
 
-        foreach string k in (nsh.keyIterator()) {
+        foreach string k in (keys nsh) {
             string xs = "xmlns:" + k;
             if (h{xs}) {
                 if (h{xs} != nsh{k})
@@ -3976,27 +3966,35 @@ class WSDL::MapBase {
     }
 }
 
-# private class
-class WSDL::TypeMap inherits WSDL::MapBase {
-    add(XsdAbstractType t) {
-        if (dh{t.name})
-            throw WSDL_ERROR, sprintf("type %y declared twice", t.name);
-        dh{t.name} = t;
-    }
-
-    XsdAbstractType get(string name) {
-        if (!dh{name})
-            throw WSDL_ERROR, sprintf("no such type %y; known types: %y", name, dh.keys());
-        XsdAbstractType rv := dh{name};
-        return rv;
-    }
-
-    *XsdAbstractType tryGet(string name) {
-        *XsdAbstractType rv := dh{name};
-        return rv;
-    }
+# private functions
+XsdAbstractType sub tmap_get(hash<string, XsdAbstractType> tmap, string name) {
+    if (!tmap{name})
+        throw WSDL_ERROR, sprintf("no such type %y; known types: %y", name, tmap.keys());
+    XsdAbstractType rv := tmap{name};
+    return rv;
 }
 
+*XsdAbstractType sub tmap_try_get(hash<string, XsdAbstractType> tmap, string name) {
+    XsdAbstractType rv := tmap{name};
+    return rv;
+}
+
+# private functions
+XsdElement sub emap_get(hash<string, hash<string, XsdElement>> emap, string ns, string name) {
+    if (!emap{ns})
+        throw WSDL_ERROR, sprintf("no such namespace %y; known namespaces: %y", ns, emap.keys());
+    if (!emap{ns}{name})
+        throw WSDL_ERROR, sprintf("no such element %y in namespace %y; known elements: %y", name, ns, emap{ns}.keys());
+    XsdElement rv := emap{ns}{name};
+    return rv;
+}
+
+*XsdElement sub emap_try_get(hash<string, hash<string, XsdElement>> emap, string ns, string name) {
+    *XsdElement rv := emap{ns}{name};
+    return rv;
+}
+
+/*
 # private class
 class WSDL::ElementMap inherits WSDL::MapBase {
     add(XsdElement e) {
@@ -4020,6 +4018,7 @@ class WSDL::ElementMap inherits WSDL::MapBase {
         return rv;
     }
 }
+*/
 
 #! WSDL port type hash
 public hashdecl WSDL::PortTypeInfo {
@@ -4032,6 +4031,15 @@ public hashdecl WSDL::ServiceInfo {
     string name;
     #! port info
     hash<string, hash> port;
+}
+
+#! WSDL operation info
+public hashdecl WSDL::OperationInfo {
+    #! the name of the port defining the operation
+    string port;
+
+    #! the operation object
+    WSDL::WSOperation operation;
 }
 
 #! main class representing a parsed WSDL file
@@ -4052,13 +4060,13 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         hash<string, XsdElement> idocmap();
 
         #! map of elements
-        ElementMap emap();
+        hash<string, hash<string, XsdElement>> emap();
 
         #! hash of messages names to messages
         hash<string, WSMessage> messages();
 
         #! map of types
-        TypeMap tmap();
+        hash<string, XsdAbstractType> tmap();
 
         #! hash of port names to port type information hashes
         hash<string, hash<PortTypeInfo>> portType();
@@ -4072,7 +4080,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
 
     private {
         # service definitions; name -> service info hash
-        hash<string, hash<WSDL::ServiceInfo>> services;
+        hash<string, hash<WSDL::ServiceInfo>> services();
 
         # service bindings; name -> Binding
         hash<string, Binding> binding();
@@ -4124,9 +4132,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             if (pt.operations{opname})
                 return pt.operations{opname};
         }
-        list l = ();
-        map l += $1.operations.keys(), portType.iterator();
-        throw "WSDL-OPERATION-ERROR", sprintf("cannot retrieve operation %y; known operations: %y", opname, l);
+        throw "WSDL-OPERATION-ERROR", sprintf("cannot retrieve operation %y; known operations: %y", opname, (foldl $1 + $2, (map $1.operations.keys(), portType.iterator())));
     }
 
     #! returns the given operation for particular porttype or throws an exception if it cannot be found
@@ -4154,14 +4160,14 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         - \c "port": the name of the port defining the operation
         - \c "operation": the @ref WSDL::WSOperation object for the operation
      */
-    list listOperations() {
-        list l = ();
+    list<hash<OperationInfo>> listOperations() {
+        list<hash<OperationInfo>> l();
         foreach hash ph in (portType.pairIterator()) {
             foreach WSOperation op in (ph.value.operations.iterator()) {
-                l += (
-                    "port": ph.name,
+                l += cast<hash<OperationInfo>>((
+                    "port": ph.key,
                     "operation": op,
-                    );
+                ));
             }
         }
         return l;
@@ -4209,9 +4215,10 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         return h;
     }
 
+    #! return a hash value that can be used to serialize a value as a particular type
     hash getType(string name, any v) {
         #printf("DBG getType() %y: %y\n", name, tmap);
-        return ("^type^": tmap.get(name), "^val^": v);
+        return ("^type^": tmap_get(tmap, name), "^val^": v);
     }
 
     private XsdBaseType getBaseType(string t) {
@@ -4226,7 +4233,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         if (xe.ref) {
             # find element
             (*string ns, string name) = (xe.ref =~ x/^(?:(\w+):)(\w+)$/);
-            XsdElement e = emap.get(nsc.getNamespaceUri(ns), name);
+            XsdElement e = emap_get(emap, nsc.getNamespaceUri(ns), name);
             if (!e.type)
                 resolveType(e);
             #printf("resolveType(XsdElement), resolved to e: %y type: %y\n", e.name, e.type.name);
@@ -4255,7 +4262,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             rv = getBaseType(v.val);
         } else {
             # find type
-            rv = tmap.get(v.val);
+            rv = tmap_get(tmap, v.val);
         }
         #printf("resolveType(hash), ns: %y, val: %y -> %y\n", v.ns, v.val, rv.name);
         return rv;
@@ -4323,16 +4330,24 @@ public class WSDL::WebService inherits WSDL::XsdBase {
 
             foreach hash st in (schema.simpleType) {
                 XsdSimpleType t(st, nsc, unresolved, usedocns);
-                tmap.add(t);
+                if (tmap{t.name})
+                    throw WSDL_ERROR, sprintf("type %y declared twice", t.name);
+                tmap{t.name} = t;
+
+                #tmap.add(t);
                 #printf("DEBUG: st: %y\n", t.name);
             }
             foreach hash ct in (schema.complexType) {
                 XsdComplexType t(ct, nsc, unresolved, usedocns);
-                tmap.add(t);
+                if (tmap{t.name})
+                    throw WSDL_ERROR, sprintf("type %y declared twice", t.name);
+                tmap{t.name} = t;
+
+                #tmap.add(t);
                 #printf("DEBUG: ct: %y\n", t.name);
             }
             # make element map
-            foreach any el in (schema.element) {
+            foreach hash el in (schema.element) {
                 *hash attr = el."^attributes^";
                 XsdElement element;
                 if (exists attr.type) {
@@ -4341,7 +4356,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
                     *XsdAbstractType type;
                     hash typeinfo;
                     if (!nsc.doType(attr.type, \typeinfo, \type)) {
-                        type = tmap.tryGet(typeinfo.val);
+                        type = tmap_try_get(tmap, typeinfo.val);
                         if (!type)
                             eattr.type = typeinfo.val;
                         #printf("DEBUG: adding element %y type %y\n", attr.name, t);
@@ -4354,7 +4369,10 @@ public class WSDL::WebService inherits WSDL::XsdBase {
                     element = new WSDL::XsdElement(el, nsc, NOTHING, unresolved, usedocns);
                 }
 
-                emap.add(element);
+                if (emap{element.ns}{element.name})
+                    throw WSDL_ERROR, sprintf("element %y declared twice in namespace %y", element.name, element.ns);
+                emap{element.ns}{element.name} = element;
+                #emap.add(element);
             }
         }
         # resolve types
@@ -4402,15 +4420,15 @@ public class WSDL::WebService inherits WSDL::XsdBase {
                 if (!binding{bind})
                     throw WSDL_ERROR, sprintf("service %y port %y refers to non-existant binding %y; known bindings: %y", svcname, name, bind, binding.keys());
 
-                services{svcname} = new hash<WSDL::ServiceInfo>((
-                    "name": svcname,
-                    "port": (
-                        name: pa + (
-                            "address": port.address."^attributes^".location,
-                            "binding": binding{bind},
-                        ),
-                    ),
-                ));
+                # create the ServiceInfo hash if necessary
+                if (!services{svcname})
+                    services{svcname} = new hash<WSDL::ServiceInfo>(("name": svcname));
+
+                # add the port to the service
+                services{svcname}.port{name} = pa + (
+                    "address": port.address."^attributes^".location,
+                    "binding": binding{bind},
+                );
             }
         }
     }
@@ -4674,7 +4692,7 @@ public class WSDL::WSMessageHelper {
                     foreach string name2 in (keys ct.elementmap) {
                         val += getMessage(ct.elementmap{name2});
                     }
-                    foreach hash choice in (ct.choices) {
+                    foreach hash<ChoiceInfo> choice in (ct.choices) {
                         if (opts.choices) {
                             hash ch;
                             int j = 1;
