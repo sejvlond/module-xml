@@ -34,6 +34,9 @@
 # do not use $ for vars
 %new-style
 
+# allow the use of the := weak reference assignment operator
+%allow-weak-references
+
 %disable-warning unreferenced-variable
 
 module WSDL {
