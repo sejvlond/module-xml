@@ -332,7 +332,7 @@ public class WSDL::WSDLLib {
                 throw "SOAP-MESSAGE-ERROR", sprintf("don't understand multipart/%s messages; expected multipart/related", msg."_qore_multipart");
 
             any bdry = msg."_qore_multipart_boundary";
-            if (!strlen(bdry))
+            if (!bdry.val())
                 throw "SOAP-MESSAGE-ERROR", sprintf("multipart message received without multipart boundary; headers: %y", msg - "body");
 
             hash mpmsg;
@@ -1205,10 +1205,7 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
             if (el < minOccurs)
                 throw SOAP_DESERIALIZATION_ERROR, sprintf("error deserializing element %y, minOccurs: %d but list is %d elements long", name, minOccurs, el);
 
-            list l;
-            foreach any e in (val)
-                l[elements l] = type.deserialize(name, tmap, mrh, getValue(mrh, e));
-            return l;
+            return map type.deserialize(name, tmap, mrh, getValue(mrh, $1)), val;
         }
 
         if (minOccurs > 1)
@@ -3952,23 +3949,6 @@ public class WSDL::Namespaces {
     }
 }
 
-# private class
-class WSDL::MapBase {
-    public {}
-
-    private {
-        hash dh;
-    }
-
-    list keys() {
-        return dh.keys();
-    }
-
-    AbstractIterator iterator() {
-        return dh.iterator();
-    }
-}
-
 # private functions
 XsdAbstractType sub tmap_get(hash<string, XsdAbstractType> tmap, string name) {
     if (!tmap{name})
@@ -3996,32 +3976,6 @@ XsdElement sub emap_get(hash<string, hash<string, XsdElement>> emap, string ns, 
     *XsdElement rv := emap{ns}{name};
     return rv;
 }
-
-/*
-# private class
-class WSDL::ElementMap inherits WSDL::MapBase {
-    add(XsdElement e) {
-        string ns = e.ns;
-        if (dh{ns}{e.name})
-            throw WSDL_ERROR, sprintf("element %y declared twice in namespace %y", e.name, ns);
-        dh{ns}{e.name} = e;
-    }
-
-    XsdElement get(string ns, string name) {
-        if (!dh{ns})
-            throw WSDL_ERROR, sprintf("no such namespace %y; known namespaces: %y", ns, dh.keys());
-        if (!dh{ns}{name})
-            throw WSDL_ERROR, sprintf("no such element %y in namespace %y; known elements: %y", name, ns, dh{ns}.keys());
-        XsdElement rv := dh{ns}{name};
-        return rv;
-    }
-
-    *XsdElement tryGet(string ns, string name) {
-        *XsdElement rv := dh{ns}{name};
-        return rv;
-    }
-}
-*/
 
 #! WSDL port type hash
 public hashdecl WSDL::PortTypeInfo {
@@ -4310,7 +4264,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
                         throw WSDL_ERROR, sprintf("expecting a single element indicating an XSD schema in the imported file; got instead: %y", xh.keys());
 
                     # get schema member name
-                    any sk = xh.firstKey();
+                    string sk = xh.firstKey();
 
                     #printf("*** DEBUG %y: sk: %y a: %y\n", a.schemaLocation, sk, xh{sk}."^attributes^");
 
