@@ -3958,7 +3958,7 @@ XsdAbstractType sub tmap_get(hash<string, XsdAbstractType> tmap, string name) {
 }
 
 *XsdAbstractType sub tmap_try_get(hash<string, XsdAbstractType> tmap, string name) {
-    XsdAbstractType rv := tmap{name};
+    *XsdAbstractType rv := tmap{name};
     return rv;
 }
 
