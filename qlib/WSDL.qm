@@ -1033,12 +1033,11 @@ public class WSDL::XsdAttribute inherits WSDL::XsdTypedData {
             );
     }
 
-    constructor(hash attr, Namespaces nsc, *XsdAbstractType n_type, XsdLateResolverHelper unresolved) : XsdTypedData(\attr) {
+    constructor(hash attr, WebService ws) : XsdTypedData(\attr) {
         *hash aa = attr."^attributes^";
         if (aa.type) {
-            if (!nsc.doType(aa.type, \typeinfo, \type))
-                unresolved.add(self);
-
+            # resolve type or mark for late resolution
+            ws.resolve(self, aa.type);
             if (aa.use) {
                 if (!AllowedUseValues.(aa.use))
                     throw "XSD-ATTRIBUTE-ERROR", sprintf("attribute %y: use %y is unrecognized; recognized use values: %y", name, aa.use, AllowedUseValues.keys());
@@ -1062,16 +1061,11 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
         bool usedocns;
     }
 
-    constructor(hash e, Namespaces nsc, *XsdAbstractType n_type, XsdLateResolverHelper unresolved, bool n_usedocns) : XsdTypedData(\e) {
+    constructor(hash e, WebService ws, bool n_usedocns) : XsdTypedData(\e) {
         usedocns = n_usedocns;
 
         if (!ns)
-            ns = nsc.getTargetNamespaceUri();
-
-        if (n_type) {
-            type = n_type;
-            return;
-        }
+            ns = ws.nsc.getTargetNamespaceUri();
 
         *hash a = e."^attributes^";
 
@@ -1091,13 +1085,13 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
             nillable = True;
 
         if (a.type) {
-            if (!nsc.doType(a.type, \typeinfo, \type))
-                unresolved.add(self);
+            # resolve type or save for late resolution
+            ws.resolve(self, a.type);
         }
         else if (e.simpleType)
-            type = new XsdSimpleType(e.simpleType, nsc, unresolved, usedocns, sprintf("simpleType for element %y", name));
+            type = new XsdSimpleType(e.simpleType, ws, usedocns, sprintf("simpleType for element %y", name));
         else if (e.hasKey("complexType")) {
-            type = new XsdComplexType(e.complexType, nsc, unresolved, usedocns, sprintf("complexType for element %y", name));
+            type = new XsdComplexType(e.complexType, ws, usedocns, sprintf("complexType for element %y", name));
             if (!type.isRequired() && !exists a.minOccurs)
                 minOccurs = 0;
             if (type.isNillable() && !exists a.nillable)
@@ -1105,7 +1099,8 @@ public class WSDL::XsdElement inherits WSDL::XsdTypedData {
         }
         else if (e."^attributes^".ref) {
             ref = e."^attributes^".ref;
-            unresolved.add(self);
+            # resolve reference type or save for late resolution
+            ws.resolveReference(self);
         }
     }
 
@@ -1225,7 +1220,7 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
         bool usedocns;
     }
 
-    constructor(hash st, Namespaces nsc, XsdLateResolverHelper unresolved, bool n_usedocns, *string desc_name) : XsdAbstractType(\st, nsc, desc_name) {
+    constructor(hash st, WebService ws, bool n_usedocns, *string desc_name) : XsdAbstractType(\st, ws.nsc, desc_name) {
         usedocns = n_usedocns;
         #any a = st."^attributes^";
         delete st."^attributes^";
@@ -1239,8 +1234,8 @@ public class WSDL::XsdSimpleType inherits WSDL::XsdAbstractType {
             if (!base)
                 throw "XSD-SIMPLETYPE-ERROR", sprintf("missing 'base' attribute in simpleType %y restriction", name);
 
-            if (!nsc.doType(base, \typeinfo, \type))
-                unresolved.add(self);
+            # resolve type or save for late resolution
+            ws.resolve(self, base);
 
             WSDL::XsdBase::removeNS(\r);
 
@@ -1332,7 +1327,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
     }
 
     # ct can be NOTHING in case of an empty complex type
-    constructor(*hash ct, Namespaces nsc, XsdLateResolverHelper unresolved, bool n_usedocns, *string desc_name) : XsdAbstractType(\ct, nsc, desc_name) {
+    constructor(*hash ct, WebService ws, bool n_usedocns, *string desc_name) : XsdAbstractType(\ct, ws.nsc, desc_name) {
         usedocns = n_usedocns;
         #any a = ct."^attributes^";
         delete ct."^attributes^";
@@ -1375,7 +1370,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
 
                 delete d.restriction."^attributes^";
 
-                parseData(d.restriction, unresolved, nsc);
+                parseData(d.restriction, ws);
             }
             else if (d.extension) {
                 extension = d.extension."^attributes^".base;
@@ -1385,7 +1380,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
                 delete d.extension."^attributes^";
                 WSDL::XsdBase::removeNS(\d.extension);
 
-                parseData(d.extension, unresolved, nsc);
+                parseData(d.extension, ws);
             }
             else
                 throw "XSD-COMPLEXCONTENT-ERROR", sprintf("can't parse complexContent %y %y information", getName(), d.firstKey());
@@ -1395,15 +1390,15 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             WSDL::XsdBase::removeNS(\d);
             cx_type = XET_SIMPLE;
 
-            if (!nsc.doType(d.extension."^attributes^".base, \simpleTypeInfo, \simpleType))
-                unresolved.add(self);
+            # resolve simple type or mark for late resolution
+            ws.resolve(self, d.extension."^attributes^".base);
 
             remove d.extension."^attributes^";
             WSDL::XsdBase::removeNS(\d.extension);
-            parseAttributes(\d.extension, unresolved, nsc);
+            parseAttributes(\d.extension, ws);
         }
         else if (ct)
-            parseData(ct, unresolved, nsc);
+            parseData(ct, ws);
         else {
             # empty complex type
             cx_type = XET_NONE;
@@ -1454,7 +1449,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         throw SOAP_SERIALIZATION_ERROR, sprintf("explicit type %y given for element %y, type %y, however the types are not compatible%s", name, ename, t.name, extension ? sprintf("; %y extends %y", name, extension) : "");
     }
 
-    private parseData(hash d, XsdLateResolverHelper unresolved, Namespaces nsc) {
+    private parseData(hash d, WebService ws) {
         delete d.ns;
         if (d.annotation) {
             *hash ah = remove d.annotation;
@@ -1464,7 +1459,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         if (!d)
             return;
 
-        parseAttributes(\d, unresolved, nsc);
+        parseAttributes(\d, ws);
 
         if (!d) {
             cx_type = XET_NONE;
@@ -1480,22 +1475,22 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         if (k == "all") {
             cx_type = XET_ALL;
             WSDL::XsdBase::removeNS(\d.all);
-            elementmap = parseElements(d.all.element, unresolved, nsc);
+            elementmap = parseElements(d.all.element, ws);
         }
         else if (k == "choice") {
             cx_type = XET_CHOICE;
             WSDL::XsdBase::removeNS(\d.choice);
-            elementmap = parseElements(d.choice.element, unresolved, nsc);
+            elementmap = parseElements(d.choice.element, ws);
         }
         else if (k == "sequence") {
             cx_type = XET_SEQUENCE;
             WSDL::XsdBase::removeNS(\d.sequence);
             if (d.sequence.element)
-                elementmap = parseElements(d.sequence.element, unresolved, nsc);
+                elementmap = parseElements(d.sequence.element, ws);
             WSDL::XsdBase::removeNS(\d.sequence.choice);
             foreach hash ch in (d.sequence.choice) {
                 #printf("ch: %y\n", ch);
-                hash<string, XsdElement> h = parseElements(ch.element, unresolved, nsc, False);
+                hash<string, XsdElement> h = parseElements(ch.element, ws, False);
                 if (h) {
                     hash<ChoiceInfo> ech((
                         "elementmap": cast<hash<string, XsdElement>>(h),
@@ -1509,11 +1504,11 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             throw "XSD-COMPLEXTYPE-ERROR", sprintf("unknown keys in %y", d);
     }
 
-    private parseAttributes(reference d, XsdLateResolverHelper unresolved, Namespaces nsc) {
+    private parseAttributes(reference d, WebService ws) {
         # process attributes if any
         foreach hash ah in (remove d.attribute) {
             if (ah."^attributes^") {
-                XsdAttribute attr(ah, nsc, NOTHING, unresolved);
+                XsdAttribute attr(ah, ws);
                 attrs.(attr.name) = attr;
             }
         }
@@ -1540,12 +1535,12 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         return !elementmap && !simpleType;
     }
 
-    private hash<string, XsdElement> parseElements(softlist el, XsdLateResolverHelper unresolved, Namespaces nsc, bool for_object = True) {
+    private hash<string, XsdElement> parseElements(softlist el, WebService ws, bool for_object = True) {
         #printf("DEBUG: XsdComplexType::parseElements(%y)\n", el);
         hash<string, XsdElement> h();
         foreach hash e in (el) {
-            #printf("DEBUG: XsdComplexType::parseElements() ns: %y e: %y\n", nsc.getTargetNamespaceUri(), e);
-            XsdElement elem(e, nsc, NOTHING, unresolved, usedocns);
+            #printf("DEBUG: XsdComplexType::parseElements() ns: %y e: %y\n", ws.nsc.getTargetNamespaceUri(), e);
+            XsdElement elem(e, ws, usedocns);
             h.(elem.name) = elem;
 
             if (for_object && !required && elem.isRequired())
@@ -3900,7 +3895,7 @@ public class WSDL::Namespaces {
         return rv;
     }
 
-    bool doType(string t, reference typeinfo, reference rtype) {
+    bool doType(string t, reference<hash> typeinfo, reference<XsdAbstractType> rtype) {
         #printf("DEBUG: XsdBase::doType(%y)\n", t);
         (*string ns, *string type) = t =~ x/(\w+):(\w+)/;
         if (!type) {
@@ -3927,12 +3922,7 @@ public class WSDL::Namespaces {
     hash getTypeHash(string t) {
         #printf("DEBUG: XsdBase::doType(%y)\n", t);
         (*string ns, *string type) = t =~ x/(\w+):(\w+)/;
-        if (!type) {
-            #printf("DEBUG: XsdBase::doType(%y) xsd: %y\n", t, default_ns);
-            return ("val": t);
-        }
-
-        return ("ns": getOutputNamespacePrefix(getInputNamespaceUri(ns)), "val": type);
+        return !type ? ("val": t) : ("ns": getOutputNamespacePrefix(getInputNamespaceUri(ns)), "val": type);
     }
 
     XsdBaseType getBaseType(string t) {
@@ -4041,6 +4031,9 @@ public class WSDL::WebService inherits WSDL::XsdBase {
 
         # service bindings; name -> Binding
         hash<string, Binding> binding();
+
+        # types to be resolved after all types have been parsed
+        XsdLateResolverHelper unresolved();
     }
 
     #! creates the WebService object
@@ -4178,6 +4171,69 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         return ("^type^": tmap_get(tmap, name), "^val^": v);
     }
 
+    #! resolve attribute type or save for late resolution
+    resolve(WSDL::XsdAttribute attr, string type) {
+        if (nsc.doType(type, \attr.typeinfo, \attr.type))
+            return;
+
+        *XsdAbstractType t = tryResolveType(attr.typeinfo);
+        if (t) {
+            attr.type = t;
+            return;
+        }
+        unresolved.add(attr);
+    }
+
+    #! resolve complex type or save for late resolution
+    resolve(WSDL::XsdComplexType ct, string type) {
+        ct.simpleTypeInfo = nsc.getTypeHash(type);
+
+        *XsdAbstractType t = tryResolveType(ct.simpleTypeInfo);
+        if (t) {
+            ct.simpleType = t;
+            return;
+        }
+        unresolved.add(ct);
+    }
+
+    #! resolve simple type or save for late resolution
+    resolve(WSDL::XsdSimpleType st, string type) {
+        if (nsc.doType(type, \st.typeinfo, \st.type))
+            return;
+
+        *XsdAbstractType t = tryResolveType(st.typeinfo);
+        if (t) {
+            st.type = t;
+            return;
+        }
+        unresolved.add(st);
+    }
+
+    #! resolve element type or save for late resolution
+    resolve(WSDL::XsdElement elem, string type) {
+        if (nsc.doType(type, \elem.typeinfo, \elem.type))
+            return;
+
+        *XsdAbstractType t = tryResolveType(elem.typeinfo);
+        if (t) {
+            elem.type = t;
+            return;
+        }
+        unresolved.add(elem);
+    }
+
+    #! resolve element reference type or save for late resolution
+    resolveReference(WSDL::XsdElement elem) {
+        # find element
+        (*string ns, string name) = (elem.ref =~ x/^(?:(\w+):)(\w+)$/);
+        *XsdElement e = emap_try_get(emap, nsc.getNamespaceUri(ns), name);
+        if (e && e.type) {
+            elem.assimilate(e);
+            return;
+        }
+        unresolved.add(elem);
+    }
+
     private XsdBaseType getBaseType(string t) {
         return nsc.getBaseType(t);
     }
@@ -4225,12 +4281,17 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         return rv;
     }
 
+    private *XsdAbstractType tryResolveType(hash v) {
+        if (exists v.ns && nsc.isSchema(v.ns))
+            return getBaseType(v.val);
+        # find type
+        return tmap_try_get(tmap, v.val);
+    }
+
     # parse XSD schema types
     private parseTypes(*hash data, any http_client, any http_headers) {
         #printf("DEBUG: parseTypes data: %y, http_client: %y, http_headers: %y\n", data, http_client, http_headers);
         WSDL::XsdBase::removeNS(\data);
-
-        XsdLateResolverHelper unresolved();
 
         foreach *hash schema in (data.schema) {
             *hash sa = schema."^attributes^";
@@ -4286,7 +4347,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             }
 
             foreach hash st in (schema.simpleType) {
-                XsdSimpleType t(st, nsc, unresolved, usedocns);
+                XsdSimpleType t(st, self, usedocns);
                 if (tmap{t.name})
                     throw WSDL_ERROR, sprintf("type %y declared twice", t.name);
                 tmap{t.name} = t;
@@ -4295,7 +4356,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
                 #printf("DEBUG: st: %y\n", t.name);
             }
             foreach hash ct in (schema.complexType) {
-                XsdComplexType t(ct, nsc, unresolved, usedocns);
+                XsdComplexType t(ct, self, usedocns);
                 if (tmap{t.name})
                     throw WSDL_ERROR, sprintf("type %y declared twice", t.name);
                 tmap{t.name} = t;
@@ -4305,33 +4366,13 @@ public class WSDL::WebService inherits WSDL::XsdBase {
             }
             # make element map
             foreach hash el in (schema.element) {
-                *hash attr = el."^attributes^";
-                XsdElement element;
-                if (exists attr.type) {
-                    hash eattr.name = attr.name;
-
-                    *XsdAbstractType type;
-                    hash typeinfo;
-                    if (!nsc.doType(attr.type, \typeinfo, \type)) {
-                        type = tmap_try_get(tmap, typeinfo.val);
-                        if (!type)
-                            eattr.type = typeinfo.val;
-                        #printf("DEBUG: adding element %y type %y\n", attr.name, t);
-                    }
-
-                    element = new WSDL::XsdElement(("^attributes^": eattr), nsc, type, unresolved, usedocns);
-                }
-                else {
-                    #printf("DEBUG: adding element %y\n", attr.name);
-                    element = new WSDL::XsdElement(el, nsc, NOTHING, unresolved, usedocns);
-                }
-
+                XsdElement element(el, self, usedocns);
                 if (emap{element.ns}{element.name})
                     throw WSDL_ERROR, sprintf("element %y declared twice in namespace %y", element.name, element.ns);
                 emap{element.ns}{element.name} = element;
-                #emap.add(element);
             }
         }
+
         # resolve types
         map resolveType($1), unresolved.getList();
         unresolved.clearResolved();
