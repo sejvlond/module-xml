@@ -53,7 +53,14 @@ class GlobalWeatherTest inherits QUnit::Test {
 		assertEq("GlobalWeather", h.service);
 		assertEq(port, h.port);
 
-        h = sc.callOperation("GetCitiesByCountry", ("CountryName": "Austria"), ("soapaction": ""));
+        try {
+            h = sc.callOperation("GetCitiesByCountry", ("CountryName": "Austria"), ("soapaction": ""));
+        }
+        catch (hash<ExceptionInfo> ex) {
+            if (ex.desc =~ /Service Unavailable/)
+                testSkip("Service Unavailable");
+            rethrow;
+        }
         hash data = parse_xml(h.firstValue());
         assertEq("NewDataSet", data.firstKey());
 		#printf("Result: %N\n", data);
