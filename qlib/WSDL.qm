@@ -4092,6 +4092,11 @@ public class WSDL::WebService inherits WSDL::XsdBase {
         throw "WSDL-OPERATION-ERROR", sprintf("cannot retrieve operation %y; known operations: %y", opname, (foldl $1 + $2, (map $1.operations.keys(), portType.iterator())));
     }
 
+    #! returns a list of known operation names
+    softlist getOperationNames() {
+        return foldl $1 + $2, (map keys $1.operations, portType.iterator());
+    }
+
     #! returns the given operation for particular porttype or throws an exception if it cannot be found
     WSDL::WSOperation getPortTypeOperation(string ptname, string opname) {
         *WSOperation op = portType{ptname}.operations{opname};
@@ -4588,6 +4593,16 @@ public class WSDL::WSMessageHelper {
                 res.type = "date";
                 res.value = P5Y2M10DT15H;   # TODO
                 break;
+            case "binary":
+                res = (
+                    "type": "binary",
+                    "value": <abcd>,
+                );
+                break;
+            default:
+                res.type = t.name;
+                res.value = sprintf("unknown type %y", t.name);
+                break;
         }
         return res;
     }
@@ -4644,7 +4659,7 @@ public class WSDL::WSMessageHelper {
         }
         if (vi.type) {
             if (vi.type == 'hash') {
-                val = hash();
+                val = {};
                 if (elem.type instanceof XsdComplexType) {
                     XsdComplexType ct = cast<XsdComplexType>(elem.type);
                     foreach string name2 in (keys ct.elementmap) {
@@ -4734,7 +4749,11 @@ public class WSDL::WSMessageHelper {
 
         @return a hash representing message
     */
-    hash getMessage(WSMessage msg) {
-        return getMessage(msg.args.firstValue().element);
+    any getMessage(WSMessage msg) {
+        any t = msg.args.firstValue();
+        if (t.element)
+            return getMessage(t.element);
+        if (t.type)
+            return getTypeInfo(t.type).value;
     }
 }
