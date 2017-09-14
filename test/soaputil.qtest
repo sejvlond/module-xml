@@ -1,0 +1,26 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+%new-style
+%require-types
+%strict-args
+%enable-all-warnings
+
+%requires QUnit
+
+%exec-class soapUtilTest
+
+class soapUtilTest inherits QUnit::Test {
+    constructor() : Test("SoapUtilTest test", "1.0") {
+        addTestCase("soapUtilTest", \soapUtilTest());
+
+        # Return for compatibility with test harness that checks return value.
+        set_return_value(main());
+    }
+
+    soapUtilTest() {
+        string str = `../bin/soaputil test.wsdl msg postText -f qore`;
+        assertEq(Type::String, str.type());
+        assertEq(True, !str.empty());
+    }
+}
