@@ -1,0 +1,28 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+%new-style
+%require-types
+%strict-args
+%enable-all-warnings
+
+%requires QUnit
+
+%exec-class soapUtilTest
+
+class soapUtilTest inherits QUnit::Test {
+    constructor() : Test("SoapUtilTest test", "1.0") {
+        addTestCase("soapUtilTest", \soapUtilTest());
+
+        # Return for compatibility with test harness that checks return value.
+        set_return_value(main());
+    }
+
+    soapUtilTest() {
+        string dir = get_script_dir();
+        string cmd = sprintf("QORE_MODULE_DIR=%s/../qlib %s/../bin/soaputil %s/test.wsdl msg postText -f qore", dir, dir, dir);
+        string str = backquote(cmd);
+        assertEq(Type::String, str.type());
+        assertEq(True, !str.empty());
+    }
+}

@@ -1,13 +1,37 @@
 #!/usr/bin/env qore
 
-# Copyright (C) 2016 Qore Technologies, sro, all rights reserved
+/** Copyright (C) 2016 - 2017 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
 
 %requires xml
 %requires Qorize
 %requires WSDL
+
 %new-style
+%require-types
+%enable-all-warnings
+%strict-args
 
 %exec-class WSDLTools
+
 class WSDLTools {
     private {
         const MSG_REQUEST = 0x1;
@@ -45,14 +69,13 @@ class WSDLTools {
     }
 
     constructor () {
-        my GetOpt g(opts);
+        GetOpt g(opts);
         # first try to get general options (help, etc.), do not modify ARGV
         *softlist argv2 = ARGV;
-        my hash opt = g.parse(\ARGV);
-        my *list objs;
-        my string operation;
-        my string wsdl_file;
-        my softlist params;
+        hash opt = g.parse(\ARGV);
+        string operation;
+        string wsdl_file;
+        softlist params;
         try {
             if (opt.help) {
                 help();
@@ -87,7 +110,7 @@ class WSDLTools {
             if (ARGV.size()-2 > n) {
                 throw "WSDL-TOOL-ERROR", sprintf("Operation %y supports up to %y parameters but provided %y", operation, n, ARGV);
             }
-            for (my i = 0; i < n; i++) {
+            for (int i = 0; i < n; i++) {
                 if (operations{operation}.params[i].typeCode() == NT_HASH) {
                     if (i >= ARGV.size()) {
                         push params, operations{operation}.params[i].firstValue();
@@ -127,7 +150,7 @@ class WSDLTools {
             }
         }
         *hash ws_opts;
-        my *string wsdlContent;
+        *string wsdlContent;
         if (wsdl_file == '-') {
             wsdlContent = stdin.read(-1);
         } else {
@@ -147,7 +170,7 @@ class WSDLTools {
             wsdlContent = WSDL::WSDLLib::getFileFromURL(url, h, 'file', NOTHING, NOTHING, True);
         }
 
-        my File output = stdout;
+        File output = stdout;
         if (exists opt.output) {
             output = new File();
             output.open(opt.output, O_CREAT | O_TRUNC | O_WRONLY);
@@ -179,21 +202,24 @@ class WSDLTools {
                 output.print(ws.getReport(wsdl_file));
                 break;
             case 'msg': {
-                my list names;
+                list names;
                 if (params[0] && params[0] != '-') {
                     names = params[0].split(',');
                 } else {
-                    names = keys ws.opmap;
+                    names = ws.getOperationNames();
                 }
                 info(sprintf("%s(%y,%y,%y,%y)\n", operation, names, params[1], opt.format, o));
-                foreach my string name in (names) {
-                    if (!ws.opmap{name}) {
-                        throw "WSDL-TOOL-ERROR", sprintf("Value %y is not in the list of operations %y\n", name, keys ws.opmap);
+                foreach string name in (names) {
+                    *WSDL::WSOperation op = ws.getOperation(name);
+                    if (!op) {
+                        throw "WSDL-TOOL-ERROR", sprintf("Value %y is not in the list of operations %y\n", name, ws.getOperationNames());
                     }
-                    my WSDL::WSOperation op = ws.opmap{name};
-                    foreach my int request in ((MSG_REQUEST, MSG_RESPONSE)) {
+                    foreach int request in (MSG_REQUEST, MSG_RESPONSE) {
                         if ((request & params[1]) != 0 && ((request==MSG_REQUEST) ? op.input : op.output)) {
-                            my hash msg = wh.getMessage((request==MSG_REQUEST) ? op.input : op.output);
+                            *WSMessage wsmsg = (request == MSG_REQUEST) ? op.input : op.output;
+                            if (!wsmsg)
+                                continue;
+                            auto msg = wh.getMessage(wsmsg);
                             switch (opt.format) {
                             case 'xml':
                                 if (!opt.choices) {

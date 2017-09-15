@@ -114,7 +114,7 @@ class SalesforceTest inherits QUnit::Test {
     string getOption(string name) {
         *string opt = m_options{name} ?? ENV.("SALESFORCE_" + name.upr());
         if (!opt)
-            throw "ENVIRONMENT-ERROR", sprintf("option --%s not used and environment variable SALESFORCE_%s not set", opt, opt.upr());
+            throw "ENVIRONMENT-ERROR", sprintf("option --%s not used and environment variable SALESFORCE_%s not set", opt, name.upr());
         return opt;
     }
 
