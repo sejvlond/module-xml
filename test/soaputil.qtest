@@ -19,6 +19,7 @@ class soapUtilTest inherits QUnit::Test {
     }
 
     soapUtilTest() {
+        chdir(get_script_dir());
         string str = `../bin/soaputil test.wsdl msg postText -f qore`;
         assertEq(Type::String, str.type());
         assertEq(True, !str.empty());
