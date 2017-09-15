@@ -19,8 +19,9 @@ class soapUtilTest inherits QUnit::Test {
     }
 
     soapUtilTest() {
-        chdir(get_script_dir());
-        string str = `../bin/soaputil test.wsdl msg postText -f qore`;
+        string dir = get_script_dir();
+        string cmd = sprintf("QORE_MODULE_DIR=%s/../qlib %s/../bin/soaputil %s/test.wsdl msg postText -f qore", dir, dir, dir);
+        string str = backquote(cmd);
         assertEq(Type::String, str.type());
         assertEq(True, !str.empty());
     }
