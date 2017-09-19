@@ -1311,7 +1311,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         # temporarily used to store type information to resolve simpleType
         *hash simpleTypeInfo;
         # simpleContent type
-        XsdSimpleType simpleType;
+        XsdAbstractType simpleType;
 
         # finalization flag
         bool finalized = False;
@@ -1343,10 +1343,10 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
             if (d.restriction) {
                 WSDL::XsdBase::removeNS(\d.restriction);
 
-                any base = d.restriction."^attributes^".base;
+                *string base = d.restriction."^attributes^".base;
 
                 # FIXME: handle namespace
-                (*string ns, *string tn) = base =~ x/(\w+):(\w+)/;
+                (*string ns, *string tn) = (base =~ x/(\w+):(\w+)/);
                 if (exists tn) {
                     if (tn == "Array") {
                         # FIXME check that namespace is SOAP encoding
@@ -1762,7 +1762,7 @@ public class WSDL::XsdComplexType inherits WSDL::XsdAbstractType {
         if (cx_type == XET_SIMPLE) {
             if (!exists val && !required)
                 return;
-            any sv = simpleType.deserialize(name, tmap, mrh, val);
+            auto sv = simpleType.deserialize(name, tmap, mrh, val);
             if (sv.typeCode() == NT_HASH)
                 rh = sv;
             else
@@ -4215,7 +4215,7 @@ public class WSDL::WebService inherits WSDL::XsdBase {
 
     private resolveType(XsdComplexType ct) {
         ct.simpleType = resolveType(ct.simpleTypeInfo);
-        #printf("resolveType(XsdComplexType), %y\n", ct.simpleType.name);
+        #printf("resolveType(XsdComplexType), %y\n", ct.simpleTypeInfo);
     }
 
     private XsdAbstractType resolveType(hash v) {
