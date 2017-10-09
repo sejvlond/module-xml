@@ -314,7 +314,7 @@ nothing XmlDoc::validateRelaxNG(string relaxng) {
     @param xsd the XSD schema to use to validate the XmlDoc object
 
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
-    @throw XSD-SYNTAX-ERROR the RelaxNG schema string could not be parsed
+    @throw XSD-SYNTAX-ERROR the XSD schema string could not be parsed
     @throw XSD-INTERNAL-ERROR libxml2 returned an internal error code while validating the document against the XSD schema
     @throw XSD-ERROR The document failed XSD validation
 
@@ -333,4 +333,19 @@ nothing XmlDoc::validateSchema(string xsd) {
    xsink->raiseException("MISSING-FEATURE-ERROR", "the libxml2 version used to compile the xml module did not support the xmlTextReaderSchemaValidate() function, therefore XmlDoc::validateSchema() is not available; for maximum portability, use the constant Option::HAVE_PARSEXMLWITHSCHEMA to check if this method is implemented before calling");
 #endif
    return 0;
+}
+
+//! Validates the XML document against a DTD; if any errors occur, exceptions are thrown
+/** @par Example:
+    @code{.py}
+    xd.validateDtd(dtd);
+    @endcode
+
+    @param dtd the DTD to use to validate the XmlDoc object
+
+    @throw DTD-SYNTAX-ERROR invalid DTD string
+    @throw DTD-VALIDATION-ERROR the DTD did not pass validation
+ */
+ nothing XmlDoc::validateDtd(string dtd) {
+   xd->validateDtd(*dtd, xsink);
 }

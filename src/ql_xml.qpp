@@ -7,7 +7,7 @@
 
   Qore Programming Language
 
-  Copyright 2003 - 2016 Qore Technologies, s.r.o.
+  Copyright 2003 - 2017 Qore Technologies, s.r.o.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -1825,6 +1825,7 @@ nothing parseXMLAsData() [flags=RUNTIME_NOOP,DEPRECATED] {
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHSCHEMA" before calling this function
 
     @see
+    - parse_xml_with_dtd()
     - parse_xml_with_relaxng()
     - @ref serialization
 
@@ -1905,6 +1906,7 @@ hash parseXMLAsDataWithSchema(string[doc] xml, string[doc] xsd, *string[doc] enc
     @throw MISSING-FEATURE-ERROR this exception is thrown when the function is not available; for maximum portability, check the constant @ref optionconstants "HAVE_PARSEXMLWITHRELAXNG" before calling this function
 
     @see
+    - parse_xml_with_dtd()
     - parse_xml_with_schema()
     - @ref serialization
 */
