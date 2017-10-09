@@ -80,6 +80,39 @@ int QoreXmlDoc::validateSchema(const char *xsd, int size, ExceptionSink *xsink) 
 }
 #endif
 
+int QoreXmlDoc::validateDtd(const QoreString& dtd, ExceptionSink* xsink) {
+    TempEncodingHelper str(dtd, QCS_UTF8, xsink);
+    if (!str)
+        return -1;
+
+    xmlParserInputBufferPtr	bptr = xmlParserInputBufferCreateMem(str->c_str(), str->size(), XML_CHAR_ENCODING_UTF8);
+    if (!bptr) {
+        xsink->raiseException("DTD-VALIDATION-ERROR", "failed to create buffer for DTD parsing: xmlParserInputBufferCreateMem() failed");
+        return -1;
+    }
+
+    // xmlIOParseDTD() frees the bptr arg
+    xmlDtdPtr xdp = xmlIOParseDTD(nullptr, bptr, XML_CHAR_ENCODING_UTF8);
+    if (!xdp) {
+        xsink->raiseException("DTD-SYNTAX-ERROR", "failed to parse DTD: xmlIOParseDTD() failed");
+        return -1;
+    }
+    ON_BLOCK_EXIT(xmlFreeDtd, xdp);
+
+    xmlValidCtxtPtr	vctxt = xmlNewValidCtxt();
+    if (!vctxt) {
+        xsink->raiseException("DTD-VALIDATION-ERROR", "failed to create validation context for DTD parsing: xmlNewValidCtxt() failed");
+        return -1;
+    }
+    ON_BLOCK_EXIT(xmlFreeValidCtxt, vctxt);
+
+    if (!xmlValidateDtd(vctxt, ptr, xdp)) {
+        xsink->raiseException("DTD-VALIDATION-ERROR", "the XML document failed DTD validation");
+        return -1;
+    }
+    return 0;
+}
+
 QoreXmlNodeData *QoreXmlDocData::getRootElement() {
    xmlNodePtr n = xmlDocGetRootElement(ptr);
    if (!n) return 0;

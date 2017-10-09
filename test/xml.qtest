@@ -35,6 +35,23 @@ class XmlTest inherits QUnit::Test {
 </xsd:schema>
 ';
 
+        const Dtd = '<!DOCTYPE note [
+<!ELEMENT note (to,from,heading,body)>
+<!ELEMENT to (#PCDATA)>
+<!ELEMENT from (#PCDATA)>
+<!ELEMENT heading (#PCDATA)>
+<!ELEMENT body (#PCDATA)>
+]>';
+
+        const XmlStrDtd = '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE note SYSTEM "Note.dtd">
+<note>
+<to>Person</to>
+<from>Other</from>
+<heading>Reminder</heading>
+<body>My note</body>
+</note> ';
+
         const Hash = (
             "test": 1,
             "gee": "philly",
@@ -68,8 +85,14 @@ class XmlTest inherits QUnit::Test {
         addTestCase("DeprecatedXmlTestCase", \deprecatedXmlTestCase());
         addTestCase("FileSaxIteratorTestCase", \fileSaxIteratorTestCase());
         addTestCase("XmlCommentTestCase", \xmlCommentTestCase());
-        addTestCase("get_xml_valueTestCase", \getXmlValueTestCase());
+        addTestCase("getXmlValueTestCase", \getXmlValueTestCase());
+        addTestCase("dtd test", \dtdTest());
         set_return_value(main());
+    }
+
+    dtdTest() {
+        hash h = parse_xml_with_dtd(XmlStrDtd, Dtd);
+        printf("%N\n", h);
     }
 
     xmlTestCase() {
