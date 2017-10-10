@@ -111,7 +111,7 @@ hash h = (
         "^value^": "NO-RECORD",
     ),
 );
-printf("%s\n", make_xml(h, XGF_ADD_FORMATTING)); @endcode
+printf("%s\n", make_xml(h, XGF_ADD_FORMATTING));@endcode
 
     Giving the following results:
 
@@ -206,6 +206,7 @@ printf("%s\n", make_xml(h, XGF_ADD_FORMATTING));
     |make_xml_fragment()|Serializes a hash into an XML string without an XML header or formatting
     |make_xml()|Serializes a hash into a complete XML string with an XML header
     |parse_xml()|parses an XML string and returns a %Qore hash structure
+    |parse_xml_with_dtd()|parses an XML string and validates it against a DTD string and returns a %Qore hash structure
     |parse_xml_with_relaxng()|parses an XML string and validates against a RelaxNG schema string and returns a %Qore hash structure
     |parse_xml_with_schema()|parses an XML string and validates against an XSD schema string and returns a %Qore hash structure
 
@@ -334,6 +335,9 @@ printf("%s\n", make_xml(h, XGF_ADD_FORMATTING));
     - added the @ref get_xml_value() function
     - exception raised when @ref make_xml() called with multi list value passed for top level element
     - added support for XML comments (@ref Qore::Xml::XPF_ADD_COMMENTS "XPF_ADD_COMMENTS")
+    - added missing support for DTD validation (<a href="https://github.com/qorelanguage/qore/issues/2267">issue 2267</a>)
+      - added parse_xml_with_dtd()
+      - added @ref Qore::Xml::XmlDoc::validateDtd() "XmlDoc::validateDtd()
     - <a href="../../SalesforceSoapClient/html/index.html">SalesforceSoapClient</a> module changes:
       - added the \c SalesforceSoapConnection class
     - <a href="../../SoapClient/html/index.html">SoapClient</a> module changes:

@@ -35,6 +35,32 @@ class XmlTest inherits QUnit::Test {
 </xsd:schema>
 ';
 
+        const Dtd = '<!ELEMENT note (to,from,heading,body)>
+<!ELEMENT to (#PCDATA)>
+<!ELEMENT from (#PCDATA)>
+<!ELEMENT heading (#PCDATA)>
+<!ELEMENT body (#PCDATA)>';
+
+        const InvalidDtd = "[] oops";
+
+        const XmlStrDtd = '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE note SYSTEM "Note.dtd">
+<note>
+<to>Person</to>
+<from>Other</from>
+<heading>Reminder</heading>
+<body>My note</body>
+</note> ';
+
+        const DtdHash = (
+            "note": (
+                "to": "Person",
+                "from": "Other",
+                "heading": "Reminder",
+                "body": "My note",
+            ),
+        );
+
         const Hash = (
             "test": 1,
             "gee": "philly",
@@ -68,8 +94,33 @@ class XmlTest inherits QUnit::Test {
         addTestCase("DeprecatedXmlTestCase", \deprecatedXmlTestCase());
         addTestCase("FileSaxIteratorTestCase", \fileSaxIteratorTestCase());
         addTestCase("XmlCommentTestCase", \xmlCommentTestCase());
-        addTestCase("get_xml_valueTestCase", \getXmlValueTestCase());
+        addTestCase("getXmlValueTestCase", \getXmlValueTestCase());
+        addTestCase("dtd test", \dtdTest());
         set_return_value(main());
+    }
+
+    dtdTest() {
+        hash h = parse_xml_with_dtd(XmlStrDtd, Dtd);
+        assertEq(DtdHash, h);
+
+        assertThrows("DTD-SYNTAX-ERROR", \parse_xml_with_dtd(), (XmlStrDtd, InvalidDtd));
+        assertThrows("DTD-VALIDATION-ERROR", \parse_xml_with_dtd(), (Str, Dtd));
+
+        {
+            XmlDoc xd(XmlStrDtd);
+            xd.validateDtd(Dtd);
+            assertEq(True, True);
+        }
+
+        {
+            XmlDoc xd(XmlStrDtd);
+            assertThrows("DTD-SYNTAX-ERROR", \xd.validateDtd(), InvalidDtd);
+        }
+
+        {
+            XmlDoc xd(Str);
+            assertThrows("DTD-VALIDATION-ERROR", \xd.validateDtd(), Dtd);
+        }
     }
 
     xmlTestCase() {

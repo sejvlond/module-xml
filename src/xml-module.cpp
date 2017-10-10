@@ -63,11 +63,15 @@ static void qoreXmlGenericErrorFunc(QoreString *err, const char *msg, ...) {
    va_end(args);
 }
 
+// ignore errors after initialization
+static void qoreXmlIgnoreErrorFunc(QoreString *err, const char *msg, ...) {
+}
+
 QoreStringNode *xml_module_init() {
    QoreString err;
 
    // set our generic error handler to catch initialization errors
-   xmlSetGenericErrorFunc((void*)&err,  (xmlGenericErrorFunc)qoreXmlGenericErrorFunc);
+   xmlSetGenericErrorFunc((void*)&err, (xmlGenericErrorFunc)qoreXmlGenericErrorFunc);
 
    // initialize libxml2 library
    LIBXML_TEST_VERSION
@@ -75,8 +79,8 @@ QoreStringNode *xml_module_init() {
    if (err.strlen())
       return new QoreStringNode(err);
 
-   // reset the generic error handler back to the default
-   initGenericErrorDefaultFunc(0);
+   // ignore errors after initialization
+   xmlSetGenericErrorFunc((void*)&err, (xmlGenericErrorFunc)qoreXmlIgnoreErrorFunc);
 
    XNS.addSystemClass(initXmlNodeClass(XNS));
    XNS.addSystemClass(initXmlDocClass(XNS));
