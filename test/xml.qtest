@@ -109,7 +109,7 @@ class XmlTest inherits QUnit::Test {
         {
             XmlDoc xd(XmlStrDtd);
             xd.validateDtd(Dtd);
-            assert(True, True);
+            assertEq(True, True);
         }
 
         {
