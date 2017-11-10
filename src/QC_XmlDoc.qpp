@@ -35,7 +35,7 @@ int QoreXmlDoc::validateRelaxNG(const char *rng, int size, ExceptionSink *xsink)
    QoreXmlRelaxNGContext schema(rng, size, xsink);
    if (!schema) {
       if (!*xsink)
-	 xsink->raiseException("RELAXNG-SYNTAX-ERROR", "RelaxNG schema passed as argument to XmlDoc::validateRelaxNG() could not be parsed");
+         xsink->raiseException("RELAXNG-SYNTAX-ERROR", "RelaxNG schema passed as argument to XmlDoc::validateRelaxNG() could not be parsed");
       return -1;
    }
 
@@ -60,7 +60,7 @@ int QoreXmlDoc::validateSchema(const char *xsd, int size, ExceptionSink *xsink) 
    QoreXmlSchemaContext schema(xsd, size, xsink);
    if (!schema) {
       if (!*xsink)
-	 xsink->raiseException("XSD-SYNTAX-ERROR", "XSD schema passed as argument to XmlDoc::validateSchema() could not be parsed");
+         xsink->raiseException("XSD-SYNTAX-ERROR", "XSD schema passed as argument to XmlDoc::validateSchema() could not be parsed");
       return -1;
    }
 
@@ -85,7 +85,7 @@ int QoreXmlDoc::validateDtd(const QoreString& dtd, ExceptionSink* xsink) {
     if (!str)
         return -1;
 
-    xmlParserInputBufferPtr	bptr = xmlParserInputBufferCreateMem(str->c_str(), str->size(), XML_CHAR_ENCODING_UTF8);
+    xmlParserInputBufferPtr bptr = xmlParserInputBufferCreateMem(str->c_str(), str->size(), XML_CHAR_ENCODING_UTF8);
     if (!bptr) {
         xsink->raiseException("DTD-VALIDATION-ERROR", "failed to create buffer for DTD parsing: xmlParserInputBufferCreateMem() failed");
         return -1;
@@ -99,7 +99,7 @@ int QoreXmlDoc::validateDtd(const QoreString& dtd, ExceptionSink* xsink) {
     }
     ON_BLOCK_EXIT(xmlFreeDtd, xdp);
 
-    xmlValidCtxtPtr	vctxt = xmlNewValidCtxt();
+    xmlValidCtxtPtr vctxt = xmlNewValidCtxt();
     if (!vctxt) {
         xsink->raiseException("DTD-VALIDATION-ERROR", "failed to create validation context for DTD parsing: xmlNewValidCtxt() failed");
         return -1;
