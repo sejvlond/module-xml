@@ -60,7 +60,7 @@ public:
    DLLLOCAL QoreXmlSchemaContext(const char* xsd, int size, ExceptionSink* xsink);
    DLLLOCAL ~QoreXmlSchemaContext() {
       if (schema)
-	 xmlSchemaFree(schema);
+         xmlSchemaFree(schema);
    }
    DLLLOCAL operator bool() const {
       return schema != 0;
@@ -107,7 +107,7 @@ public:
    DLLLOCAL QoreXmlRelaxNGContext(const char* rng, int size, ExceptionSink* xsink);
    DLLLOCAL ~QoreXmlRelaxNGContext() {
       if (schema)
-	 xmlRelaxNGFree(schema);
+         xmlRelaxNGFree(schema);
    }
    DLLLOCAL operator bool() const {
       return schema != 0;
