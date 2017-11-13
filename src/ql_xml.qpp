@@ -26,6 +26,7 @@
 
 #include "qore-xml-module.h"
 
+#include "QC_XmlDoc.h"
 #include "QoreXmlReader.h"
 #include "QoreXmlRpcReader.h"
 #include "ql_xml.h"
