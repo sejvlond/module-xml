@@ -293,7 +293,8 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
 QoreStringNode* make_xml(ExceptionSink* xsink, const QoreEncoding* enc, const QoreHashNode &h, int flags) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(enc));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", enc->getCode());
-   if (flags) str->concat('\n');
+   if (flags & XGF_ADD_FORMATTING)
+       str->concat('\n');
    return make_xml(xsink, *(*str), h, 0, flags) ? 0 : str.release();
 }
 
@@ -455,7 +456,7 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
          // get snapshot of data
          QoreHashNodeHolder h(o->copyData(xsink), xsink);
          if (!*xsink) {
-            if (flags)
+            if (flags & XGF_ADD_FORMATTING)
                str.concat('\n');
             make_xml(xsink, str, *(*h), indent + 2, flags);
             // indent closing entry
@@ -536,7 +537,7 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
            keyStr->terminate(l);
 
       // indent entry
-      if (flags) {
+      if (flags & XGF_ADD_FORMATTING) {
          if (done)
             str.concat('\n');
          str.addch(' ', indent);
@@ -577,7 +578,7 @@ static bool hash_ok(const QoreHashNode* h) {
 static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int flags = XGF_NONE) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(ccs));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", ccs->getCode());
-   if (flags)
+   if (flags & XGF_ADD_FORMATTING)
       str->concat('\n');
    if (pstr) {
       TempEncodingHelper key(pstr, QCS_UTF8, xsink);
@@ -745,7 +746,7 @@ static int add_xmlrpc_value_intern(QoreString* str, const QoreValue n, int inden
          str->addch(' ', indent + 2);
       }
       str->concat("</array>");
-      //if (flags) str->concat('\n');
+      //if (flags & XGF_ADD_FORMATTING) str->concat('\n');
    }
    else {
       xsink->raiseException("XMLRPC-SERIALIZATION-ERROR", "don't know how to serialize type '%s' to XML-RPC", n.getTypeName());
