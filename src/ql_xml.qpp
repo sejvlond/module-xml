@@ -30,6 +30,7 @@
 #include "QoreXmlReader.h"
 #include "QoreXmlRpcReader.h"
 #include "ql_xml.h"
+#include "MakeXmlOpts.h"
 
 #include <libxml/xmlwriter.h>
 
@@ -210,7 +211,7 @@ QoreXmlRelaxNGContext::QoreXmlRelaxNGContext(const char* rng, int size, Exceptio
 }
 #endif
 
-static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const AbstractQoreNode* n, int flags = XGF_NONE) {
+static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const AbstractQoreNode* n, const MakeXmlOpts &opts) {
    //printd(5, "concat_simple_value() n: %p (%s) %s\n", n, n->getTypeName(), n->getType() == NT_STRING ? ((QoreStringNode*)n)->getBuffer() : "unknown");
    if (!n)
       return 0;
@@ -245,14 +246,15 @@ static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const Abst
       }
    }
 
-   if ((flags & XGF_USE_NUMERIC_REFS) && t == NT_STRING) {
-      if (str.concatEncode(xsink, *reinterpret_cast<const QoreStringNode*>(n), CE_XML | (XGF_ENCODE_MASK & flags)))
+   if (opts.m_useNumericRefs && t == NT_STRING) {
+      if (str.concatEncode(xsink, *reinterpret_cast<const QoreStringNode*>(n),
+                           CE_XML | (opts.m_useNumericRefs ? CE_NONASCII : 0)))
          return -1;
       return 0;
    }
 
    QoreStringValueHelper temp(n);
-   if (str.concatEncode(xsink, **temp, CE_XML | (XGF_ENCODE_MASK & flags)))
+   if (str.concatEncode(xsink, **temp, CE_XML | (opts.m_useNumericRefs ? CE_NONASCII : 0)))
       return -1;
 
    return 0;
@@ -270,7 +272,7 @@ static int concat_simple_cdata_value(QoreString &str, const AbstractQoreNode* n,
       return *xsink ? -1 : 0;
    }
 
-   return concat_simple_value(xsink, str, n);
+   return concat_simple_value(xsink, str, n, MakeXmlOpts());
 }
 
 static int concat_simple_comment(QoreString &str, const AbstractQoreNode* n, ExceptionSink* xsink) {
@@ -285,20 +287,21 @@ static int concat_simple_comment(QoreString &str, const AbstractQoreNode* n, Exc
       return *xsink ? -1 : 0;
    }
 
-   return concat_simple_value(xsink, str, n);
+   return concat_simple_value(xsink, str, n, MakeXmlOpts());
 }
 
-static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int flags = XGF_NONE);
+static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, const MakeXmlOpts &opts);
 
 QoreStringNode* make_xml(ExceptionSink* xsink, const QoreEncoding* enc, const QoreHashNode &h, int flags) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(enc));
    str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", enc->getCode());
-   if (flags & XGF_ADD_FORMATTING)
+   auto opts = MakeXmlOpts::createFromFlags(flags, enc);
+   if (opts.m_formatWithWhitespaces)
        str->concat('\n');
-   return make_xml(xsink, *(*str), h, 0, flags) ? 0 : str.release();
+   return make_xml(xsink, *(*str), h, 0, opts) ? 0 : str.release();
 }
 
-static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &str, const AbstractQoreNode* n, int indent, int flags = XGF_NONE) {
+static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &str, const AbstractQoreNode* n, int indent, const MakeXmlOpts &opts) {
    //QORE_TRACE("add_xml_element()");
 
    if (is_nothing(n)) {
@@ -318,12 +321,12 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
          for (int j = 0; j < ls; j++) {
             const AbstractQoreNode* v = l->retrieve_entry(j);
             // indent all but first entry if necessary
-            if (j && (flags & XGF_ADD_FORMATTING)) {
+            if (j && opts.m_formatWithWhitespaces) {
                str.concat('\n');
                str.addch(' ', indent);
             }
 
-            add_xml_element(xsink, key, str, v, indent, flags);
+            add_xml_element(xsink, key, str, v, indent, opts);
          }
       }
       else {    // close node
@@ -407,7 +410,8 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
             const AbstractQoreNode* v = hi.getValue();
             if (v) {
                if (v->getType() == NT_STRING) {
-                  if (str.concatEncode(xsink, *reinterpret_cast<const QoreStringNode*>(v), (flags & XGF_ENCODE_MASK) | CE_XML))
+                  if (str.concatEncode(xsink, *reinterpret_cast<const QoreStringNode*>(v),
+                                       CE_XML | (opts.m_useNumericRefs ? CE_NONASCII : 0)))
                      return;
                }
                else { // convert to string and add
@@ -432,16 +436,19 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
 
       // print value without CRLF
       if (!is_nothing(value) && h->size() == (inc + 1)) {
-         if (concat_simple_value(xsink, str, value, flags))
+         if (concat_simple_value(xsink, str, value, opts))
             return;
       }
       else { // add additional elements and formatting only if the additional elements exist
-         if ((flags & XGF_ADD_FORMATTING) && !vn) {
+         if (opts.m_formatWithWhitespaces && !vn) {
             str.concat('\n');
          }
-         make_xml(xsink, str, *h, indent + 2, !vn ? flags : (flags & ~XGF_ADD_FORMATTING));
+         auto innerOpts = opts;
+         if (vn)
+             innerOpts.m_formatWithWhitespaces = false;
+         make_xml(xsink, str, *h, indent + 2, innerOpts);
          // indent closing entry
-         if ((flags & XGF_ADD_FORMATTING) && !vn) {
+         if (opts.m_formatWithWhitespaces && !vn) {
             str.concat('\n');
             str.addch(' ', indent);
          }
@@ -456,16 +463,16 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
          // get snapshot of data
          QoreHashNodeHolder h(o->copyData(xsink), xsink);
          if (!*xsink) {
-            if (flags & XGF_ADD_FORMATTING)
+            if (opts.m_formatWithWhitespaces)
                str.concat('\n');
-            make_xml(xsink, str, *(*h), indent + 2, flags);
+            make_xml(xsink, str, *(*h), indent + 2, opts);
             // indent closing entry
-            if (flags & XGF_ADD_FORMATTING)
+            if (opts.m_formatWithWhitespaces)
                str.addch(' ', indent);
          }
       }
       else
-         concat_simple_value(xsink, str, n, flags);
+         concat_simple_value(xsink, str, n, opts);
    }
 
    // close node
@@ -474,7 +481,7 @@ static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &s
    str.concat('>');
 }
 
-static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, int flags) {
+static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, const MakeXmlOpts &opts) {
    QORE_TRACE("make_xml()");
 
    ConstHashIterator hi(h);
@@ -494,7 +501,7 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
          continue;
 
       if (!strncmp(key, "^value", 6)) {
-         if (concat_simple_value(xsink, str, hi.getValue(), flags))
+         if (concat_simple_value(xsink, str, hi.getValue(), opts))
             return -1;
          continue;
       }
@@ -508,7 +515,7 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
       }
 
       if (!strncmp(key, "^comment", 8)) {
-         if (flags & XGF_ADD_FORMATTING) {
+         if (opts.m_formatWithWhitespaces) {
             if (done) {
               str.concat('\n');
             }
@@ -537,13 +544,13 @@ static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h
            keyStr->terminate(l);
 
       // indent entry
-      if (flags & XGF_ADD_FORMATTING) {
+      if (opts.m_formatWithWhitespaces) {
          if (done)
             str.concat('\n');
          str.addch(' ', indent);
       }
       //printd(5, "make_xml() level %d adding member %s\n", indent / 2, node->getBuffer());
-      add_xml_element(xsink, key, str, hi.getValue(), indent, flags);
+      add_xml_element(xsink, key, str, hi.getValue(), indent, opts);
       done = true;
    }
 
@@ -575,23 +582,29 @@ static bool hash_ok(const QoreHashNode* h) {
    return count == 1;
 }
 
-static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int flags = XGF_NONE) {
-   SimpleRefHolder<QoreStringNode> str(new QoreStringNode(ccs));
-   str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", ccs->getCode());
-   if (flags & XGF_ADD_FORMATTING)
+static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const MakeXmlOpts &opts) {
+   SimpleRefHolder<QoreStringNode> str(new QoreStringNode(opts.m_encoding));
+   str->sprintf("<?xml version=\"%s\" encoding=\"%s\"?>", opts.m_docVersion.c_str(),
+        opts.m_encoding->getCode());
+   if (opts.m_formatWithWhitespaces)
       str->concat('\n');
    if (pstr) {
       TempEncodingHelper key(pstr, QCS_UTF8, xsink);
       if (!key)
          return 0;
-      add_xml_element(xsink, key->getBuffer(), *(*str), pobj, 0, flags);
+      add_xml_element(xsink, key->getBuffer(), *(*str), pobj, 0, opts);
    }
    else
-      make_xml(xsink, *(*str), *pobj, 0, flags);
+      make_xml(xsink, *(*str), *pobj, 0, opts);
 
    //printd(5, "make_xml_intern() returning %s\n", str->getBuffer());
 
    return str.release();
+}
+
+static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int flags = XGF_NONE) {
+    auto opts = MakeXmlOpts::createFromFlags(flags, ccs);
+    return make_xml_intern(xsink, pstr, pobj, opts);
 }
 
 static int add_xmlrpc_value(QoreString* str, const QoreValue n, int indent, const QoreEncoding* ccs, int flags, ExceptionSink* xsink);
@@ -1498,7 +1511,7 @@ const XPF_ADD_COMMENTS = XPF_ADD_COMMENTS;
 //@{
 namespace Qore::Xml;
 
-//! serializes a hash into an XML string without whitespace formatting but with an XML header
+//! serializes a hash into an XML string with an XML header
 /** @par Example:
     @code string xml = make_xml("key", hash); @endcode
 
@@ -1507,7 +1520,7 @@ namespace Qore::Xml;
     @param flags optional formatting flags; see @ref xml_generation_constants for more information
     @param encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
 
-    @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
+    @return an XML string corresponding to the input data, with an XML header
 
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
 
@@ -1520,7 +1533,7 @@ string make_xml(string key, hash h, *int flags, *string encoding) [flags=RET_VAL
    return make_xml_intern(xsink, key, h, qe, flags);
 }
 
-//! serializes a hash into an XML string without whitespace formatting but with an XML header
+//! serializes a hash into an XML string with an XML header
 /** @par Example:
     @code string xml = make_xml(hash); @endcode
 
@@ -1528,7 +1541,7 @@ string make_xml(string key, hash h, *int flags, *string encoding) [flags=RET_VAL
     @param flags optional formatting flags; see @ref xml_generation_constants for more information
     @param encoding an optional string giving the encoding for the output XML string; if this parameter is missing, the output string will have the default encoding
 
-    @return an XML string corresponding to the input data, without whitespace formatting but with an XML header
+    @return an XML string corresponding to the input data, with an XML header
 
     @throw MAKE-XML-STRING-PARAMETER-EXCEPTION the hash passed not not have a single top-level key (either has no keys or more than one)
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
@@ -1546,6 +1559,39 @@ string make_xml(hash h, *int flags, *string encoding) [flags=RET_VALUE_ONLY] {
 
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
    return make_xml_intern(xsink, 0, h, qe, flags);
+}
+
+//! serializes a hash into an XML string with various options of formatting
+/** @par Example:
+    @code string xml = make_xml(hash, opts); @endcode
+
+    @param h a hash of data to serialize: the hash must have one top-level key and no more or an exception will be raised
+    @param opts formatting and other serialization settings; see @ref xml_generation_opts for more information TODO
+
+    @return an XML string corresponding to the input data
+
+    @throw MAKE-XML-STRING-PARAMETER-EXCEPTION the hash passed does not have a single top-level key (either has no keys or more than one)
+    @throw MAKE-XML-OPTS-INVALID the opts hash passed is not valid; see @ref xml_generation_opts for more information TODO
+    @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
+
+    @see @ref serialization
+
+    @since xml 1.XXX TODO
+ */
+string make_xml(hash h, hash opts) [flags=RET_VALUE_ONLY] {
+   if (!hash_ok(h)) {
+      xsink->raiseException("MAKE-XML-STRING-PARAMETER-EXCEPTION",
+                            "this variant of make_xml() expects a hash with a single key for the top-level XML element name without multi-list value");
+      return 0;
+   }
+   try {
+       return make_xml_intern(xsink, nullptr, h, MakeXmlOpts::createFromHash(opts));
+   } catch (const MakeXmlOpts::InvalidHash &exc) {
+      xsink->raiseException("MAKE-XML-OPTS-INVALID",
+                            "the opts hash passed is not valid; invalid argument: '%s'",
+                            exc.what());
+      return 0;
+   }
 }
 
 //! serializes a hash into an XML string without whitespace formatting but with an XML header
@@ -1653,7 +1699,7 @@ string make_xml_fragment(hash h, *int flags, *string encoding) [flags=RET_VALUE_
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
-   if (make_xml(xsink, *(*str), *h, 0, flags))
+   if (make_xml(xsink, *(*str), *h, 0, MakeXmlOpts::createFromFlags(flags, qe)))
       return 0;
 
    return str.release();
@@ -1675,7 +1721,7 @@ string makeXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY,DEPRECATE
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
-   if (make_xml(xsink, *(*str), *h, 0))
+   if (make_xml(xsink, *(*str), *h, 0, MakeXmlOpts()))
       return 0;
 
    return str.release();
@@ -1703,7 +1749,9 @@ string makeFormattedXMLFragment(hash h, *string encoding) [flags=RET_VALUE_ONLY,
    const QoreEncoding* qe = encoding ? QEM.findCreate(encoding) : QCS_DEFAULT;
 
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(qe));
-   if (make_xml(xsink, *(*str), *h, 0, XGF_ADD_FORMATTING))
+   MakeXmlOpts opts;
+   opts.m_formatWithWhitespaces = true;
+   if (make_xml(xsink, *(*str), *h, 0, opts))
       return 0;
 
    return str.release();

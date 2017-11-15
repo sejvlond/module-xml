@@ -96,6 +96,7 @@ class XmlTest inherits QUnit::Test {
         addTestCase("XmlCommentTestCase", \xmlCommentTestCase());
         addTestCase("getXmlValueTestCase", \getXmlValueTestCase());
         addTestCase("dtd test", \dtdTest());
+        addTestCase("make_xmlWithHashOpts", \make_xmlWithHashOptsTestCase());
         set_return_value(main());
     }
 
@@ -322,5 +323,140 @@ class XmlTest inherits QUnit::Test {
         assertEq(rec.integerValue."^value^", get_xml_value(rec.integerValue), "get_xml_value integervalue");
         assertEq(NOTHING, get_xml_value(rec.listValue), "get_xml_value listvalue");
         assertEq(NOTHING, get_xml_value(rec.hashValue), "get_xml_value hashvalue");
+    }
+
+    make_xmlWithHashOptsTestCase() {
+        # make_xmlWithHashOptsRaisesExceptionWhenCalledWithInvalidHash
+        assertThrows("MAKE-XML-STRING-PARAMETER-EXCEPTION",
+                     \make_xml(), ({}, {}));
+        assertThrows("MAKE-XML-STRING-PARAMETER-EXCEPTION",
+                     \make_xml(), ({"root1": "foo", "root2": "bar"}, {}));
+
+        # make_xmlWithHashOptsRaisesExceptionWhenCalledWithInvalidOptsArgument
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'docVersion'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"docVersion": False}
+                     ));
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'encoding'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"encoding": False}
+                     ));
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'formatWithWhitespaces'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"formatWithWhitespaces": "No"}
+                     ));
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'useNumericRefs'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"useNumericRefs": "No"}
+                     ));
+
+        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsDocVersion
+        {
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo</root>";
+            hash input = {
+                "root": "foo",
+            };
+            hash opts = {
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
+        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsDocVersion
+        {
+            string expected = "<?xml version=\"2.0\" encoding=\"UTF-8\"?><root>foo</root>";
+            hash input = {
+                "root": "foo",
+            };
+            hash opts = {
+                "docVersion": "2.0",
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
+        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsEncoding
+        {
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo֍</root>";
+            hash input = {
+                "root": "foo֍",
+            };
+            hash opts = {
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
+        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsEncoding
+        {
+            string expected = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><root>foo?</root>";
+            hash input = {
+                "root": "foo֍",
+            };
+            hash opts = {
+                "encoding": "US-ASCII",
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
+        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsFormatWithSpaces
+        {
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo</root>";
+            hash input = {
+                "root": "foo",
+            };
+            hash opts = {
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
+        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsFormatWithSpaces
+        {
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root>foo</root>";
+            hash input = {
+                "root": "foo",
+            };
+            hash opts = {
+                "formatWithWhitespaces": True,
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
+        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsUseNumRefs
+        {
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo֍</root>";
+            hash input = {
+                "root": "foo֍",
+            };
+            hash opts = {
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
+        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsOptsUseNumRefs
+        {
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo&#1421;</root>";
+            hash input = {
+                "root": "foo֍",
+            };
+            hash opts = {
+                "useNumericRefs": True,
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
     }
 }
