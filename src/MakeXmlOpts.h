@@ -4,7 +4,7 @@
 
  Qore Programming Language
 
- Copyright 2003 - 2010 David Nichols
+ Copyright (C) 2017 Qore Technologies, s.r.o.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -27,8 +27,12 @@
 #include <cassert>
 #include <string>
 #include <stdexcept>
+#include "qore/QoreEncoding.h"
+#include "qore/QoreHashNode.h"
+#include "qore/QoreStringNode.h"
+#include "qore/QoreValue.h"
+#include "qore-xml-module.h"
 
-#include <iostream>
 
 class MakeXmlOpts final {
 public:
@@ -46,12 +50,7 @@ public:
     };
 
 public:
-    MakeXmlOpts() :
-        m_docVersion("1.0"),
-        m_encoding(QCS_DEFAULT),
-        m_formatWithWhitespaces(false),
-        m_useNumericRefs(false)
-    {}
+    explicit MakeXmlOpts();
 
     MakeXmlOpts(const MakeXmlOpts&) = default;
     MakeXmlOpts& operator=(const MakeXmlOpts&) = default;
@@ -61,54 +60,16 @@ public:
 
 public:
     static MakeXmlOpts createFromFlags(
-            int flags, const QoreEncoding* ccs = nullptr) {
-        MakeXmlOpts opts;
-        opts.m_encoding = ccs ? ccs : opts.m_encoding;
-        opts.m_formatWithWhitespaces = XGF_ADD_FORMATTING & flags;
-        opts.m_useNumericRefs = XGF_USE_NUMERIC_REFS & flags;
-        return opts;
-    }
+            int flags, const QoreEncoding* ccs = nullptr);
 
-    static MakeXmlOpts createFromHash(const QoreHashNode *hash) {
-        assert(hash);
-
-        MakeXmlOpts opts;
-        // docVersion
-        QoreStringNode *docVersion = nullptr;
-        parseValue(docVersion, hash, "docVersion", NT_STRING);
-        if (docVersion)
-            opts.m_docVersion = docVersion->c_str();
-        // encoding
-        QoreStringNode *encoding = nullptr;
-        parseValue(encoding, hash, "encoding", NT_STRING);
-        if (encoding)
-            opts.m_encoding = QEM.findCreate(encoding);
-        // formatWithWhitespaces
-        parseValue(opts.m_formatWithWhitespaces, hash, "formatWithWhitespaces", NT_BOOLEAN);
-        // useNumericRefs
-        parseValue(opts.m_useNumericRefs, hash, "useNumericRefs", NT_BOOLEAN);
-
-        return opts;
-    }
+    static MakeXmlOpts createFromHash(const QoreHashNode *hash);
 
 private:
     template <typename T>
     static void parseValue(
             T &output, const QoreHashNode *hash,
             const std::string &key, qore_type_t keyType,
-            bool mandatory = false) {
-        assert(hash);
-        bool exists = false;
-        auto value = hash->getValueKeyValueExistence(key.c_str(), exists);
-        if (!exists) {
-            if (mandatory)
-                throw InvalidHash(key);
-            return;
-        }
-        if (value.getType() != keyType)
-            throw InvalidHash(key);
-        output = value.get<typename std::remove_pointer<T>::type>();
-    }
+            bool mandatory = false);
 
 public:
     std::string m_docVersion;
@@ -116,5 +77,32 @@ public:
     bool m_formatWithWhitespaces;
     bool m_useNumericRefs;
 };
+
+// ------------- impl --------------
+template <typename T>
+void MakeXmlOpts::parseValue(
+        T &output, const QoreHashNode *hash,
+        const std::string &key, qore_type_t keyType,
+        bool mandatory) {
+    assert(hash);
+    bool exists = false;
+    auto value = hash->getValueKeyValueExistence(key.c_str(), exists);
+    if (!exists) {
+        if (mandatory)
+            throw InvalidHash(key);
+        return;
+    }
+    if (value.getType() != keyType)
+        throw InvalidHash(key);
+    output = value.get<typename std::remove_pointer<T>::type>();
+}
+
+// std::string specialization
+template <>
+void MakeXmlOpts::parseValue<std::string>(
+        std::string &output, const QoreHashNode *hash,
+        const std::string &key, qore_type_t keyType,
+        bool mandatory);
+
 
 #endif // !MAKE_XML_OPTS_H

@@ -14,7 +14,8 @@ noinst_HEADERS = src/QC_XmlDoc.h \
 	src/QoreXmlReader.h \
 	src/QoreXmlRpcReader.h \
 	src/ql_xml.h \
-	src/qore-xml-module.h
+	src/qore-xml-module.h \
+	src/MakeXmlOpts.h
 
 USER_MODULES = qlib/XmlRpcHandler.qm qlib/WSDL.qm qlib/SoapClient.qm qlib/SoapHandler.qm qlib/XmlRpcConnection.qm qlib/SalesforceSoapClient.qm
 
