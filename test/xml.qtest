@@ -96,7 +96,12 @@ class XmlTest inherits QUnit::Test {
         addTestCase("XmlCommentTestCase", \xmlCommentTestCase());
         addTestCase("getXmlValueTestCase", \getXmlValueTestCase());
         addTestCase("dtd test", \dtdTest());
-        addTestCase("make_xmlWithHashOpts", \make_xmlWithHashOptsTestCase());
+        addTestCase("make_xmlWithHashOptsGeneral", \make_xmlWithHashOptsGeneralTestCase());
+        addTestCase("make_xmlWithHashOptsArgumentDocVersion", \make_xmlWithHashOptsArgumentDocVersionTestCase());
+        addTestCase("make_xmlWithHashOptsArgumentEncoding", \make_xmlWithHashOptsArgumentEncodingTestCase());
+        addTestCase("make_xmlWithHashOptsArgumentFormatWithWhitespaces", \make_xmlWithHashOptsArgumentFormatWithWhitespacesTestCase());
+        addTestCase("make_xmlWithHashOptsArgumentUseNumericRefs", \make_xmlWithHashOptsArgumentUseNumericRefsTestCase());
+        addTestCase("make_xmlWithHashOptsArgumentDateFormat", \make_xmlWithHashOptsArgumentDateFormatTestCase());
         set_return_value(main());
     }
 
@@ -325,46 +330,26 @@ class XmlTest inherits QUnit::Test {
         assertEq(NOTHING, get_xml_value(rec.hashValue), "get_xml_value hashvalue");
     }
 
-    make_xmlWithHashOptsTestCase() {
-        # make_xmlWithHashOptsRaisesExceptionWhenCalledWithInvalidHash
+    make_xmlWithHashOptsGeneralTestCase() {
+        # raises exception when called with invalid hash
+        # no root element
         assertThrows("MAKE-XML-STRING-PARAMETER-EXCEPTION",
                      \make_xml(), ({}, {}));
+        # more root elements
         assertThrows("MAKE-XML-STRING-PARAMETER-EXCEPTION",
                      \make_xml(), ({"root1": "foo", "root2": "bar"}, {}));
+    }
 
-        # make_xmlWithHashOptsRaisesExceptionWhenCalledWithInvalidOptsArgument
+    make_xmlWithHashOptsArgumentDocVersionTestCase() {
+        # invalid value
         assertThrows("MAKE-XML-OPTS-INVALID",
                      "the opts hash passed is not valid; invalid argument: 'docVersion'",
                      \make_xml(), (
                          {"root": "foo"},
                          {"docVersion": False}
                      ));
-        assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'encoding'",
-                     \make_xml(), (
-                         {"root": "foo"},
-                         {"encoding": False}
-                     ));
-        assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'formatWithWhitespaces'",
-                     \make_xml(), (
-                         {"root": "foo"},
-                         {"formatWithWhitespaces": "No"}
-                     ));
-        assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'useNumericRefs'",
-                     \make_xml(), (
-                         {"root": "foo"},
-                         {"useNumericRefs": "No"}
-                     ));
-        assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'dateFormat'",
-                     \make_xml(), (
-                         {"root": "foo"},
-                         {"dateFormat": False}
-                     ));
 
-        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsDocVersion
+        # default value
         {
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo</root>";
             hash input = {
@@ -376,7 +361,7 @@ class XmlTest inherits QUnit::Test {
             assertEq(expected, xml);
         }
 
-        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsDocVersion
+        # specific value
         {
             string expected = "<?xml version=\"2.0\" encoding=\"UTF-8\"?><root>foo</root>";
             hash input = {
@@ -388,8 +373,18 @@ class XmlTest inherits QUnit::Test {
             string xml = make_xml(input, opts);
             assertEq(expected, xml);
         }
+    }
 
-        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsEncoding
+    make_xmlWithHashOptsArgumentEncodingTestCase() {
+        # invalid value
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'encoding'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"encoding": False}
+                     ));
+
+        # default value
         {
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo֍</root>";
             hash input = {
@@ -401,7 +396,7 @@ class XmlTest inherits QUnit::Test {
             assertEq(expected, xml);
         }
 
-        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsEncoding
+        # specific value
         {
             string expected = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><root>foo?</root>";
             hash input = {
@@ -413,8 +408,18 @@ class XmlTest inherits QUnit::Test {
             string xml = make_xml(input, opts);
             assertEq(expected, xml);
         }
+    }
 
-        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsFormatWithSpaces
+    make_xmlWithHashOptsArgumentFormatWithWhitespacesTestCase() {
+        # invalid value
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'formatWithWhitespaces'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"formatWithWhitespaces": "No"}
+                     ));
+
+        # default value
         {
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo</root>";
             hash input = {
@@ -426,7 +431,7 @@ class XmlTest inherits QUnit::Test {
             assertEq(expected, xml);
         }
 
-        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsFormatWithSpaces
+        # specific value
         {
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root>foo</root>";
             hash input = {
@@ -438,8 +443,18 @@ class XmlTest inherits QUnit::Test {
             string xml = make_xml(input, opts);
             assertEq(expected, xml);
         }
+    }
 
-        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsUseNumRefs
+    make_xmlWithHashOptsArgumentUseNumericRefsTestCase() {
+        # invalid value
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'useNumericRefs'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"useNumericRefs": "No"}
+                     ));
+
+        # default value
         {
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo֍</root>";
             hash input = {
@@ -451,7 +466,7 @@ class XmlTest inherits QUnit::Test {
             assertEq(expected, xml);
         }
 
-        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsOptsUseNumRefs
+        # specific value
         {
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo&#1421;</root>";
             hash input = {
@@ -463,8 +478,18 @@ class XmlTest inherits QUnit::Test {
             string xml = make_xml(input, opts);
             assertEq(expected, xml);
         }
+    }
 
-        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsUseDateFormat
+    make_xmlWithHashOptsArgumentDateFormatTestCase() {
+        # invalid value
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'dateFormat'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"dateFormat": False}
+                     ));
+
+        # default value
         {
             date d = now();
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>" +
@@ -478,7 +503,7 @@ class XmlTest inherits QUnit::Test {
             assertEq(expected, xml);
         }
 
-        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsOptsDateFormat
+        # specific value
         {
             date d = now();
             string format = "YYYY-MM-DDTHH:mm:SSZ";
