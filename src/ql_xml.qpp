@@ -241,7 +241,7 @@ static int concat_simple_value(ExceptionSink* xsink, QoreString &str, const Abst
 
       case NT_DATE: {
          const DateTimeNode* date = reinterpret_cast<const DateTimeNode*>(n);
-         str.concat(date);
+         date->format(str, opts.m_dateFormat.c_str());
          return 0;
       }
    }

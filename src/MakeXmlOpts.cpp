@@ -27,7 +27,8 @@ MakeXmlOpts::MakeXmlOpts() :
     m_docVersion("1.0"),
     m_encoding(QCS_DEFAULT),
     m_formatWithWhitespaces(false),
-    m_useNumericRefs(false)
+    m_useNumericRefs(false),
+    m_dateFormat("YYYYMMDDHHmmSS")
 {}
 
 
@@ -55,6 +56,8 @@ MakeXmlOpts MakeXmlOpts::createFromHash(const QoreHashNode *hash) {
     parseValue(opts.m_formatWithWhitespaces, hash, "formatWithWhitespaces", NT_BOOLEAN);
     // useNumericRefs
     parseValue(opts.m_useNumericRefs, hash, "useNumericRefs", NT_BOOLEAN);
+    // dateFormat
+    parseValue(opts.m_dateFormat , hash, "dateFormat", NT_STRING);
 
     return opts;
 }
