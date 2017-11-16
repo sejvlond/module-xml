@@ -70,6 +70,7 @@ set(CPP_SRC
     src/xml-module.cpp
     src/QoreXmlRpcReader.cpp
     src/QoreXmlReader.cpp
+    src/MakeXmlOpts.cpp
 )
 
 set(QMOD
