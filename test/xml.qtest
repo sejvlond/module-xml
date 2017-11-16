@@ -357,6 +357,12 @@ class XmlTest inherits QUnit::Test {
                          {"root": "foo"},
                          {"useNumericRefs": "No"}
                      ));
+        assertThrows("MAKE-XML-OPTS-INVALID",
+                     "the opts hash passed is not valid; invalid argument: 'dateFormat'",
+                     \make_xml(), (
+                         {"root": "foo"},
+                         {"dateFormat": False}
+                     ));
 
         # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsDocVersion
         {
@@ -458,5 +464,34 @@ class XmlTest inherits QUnit::Test {
             assertEq(expected, xml);
         }
 
+        # make_xmlWithHashOptsReturnsXmlUsingDefaultOptsUseDateFormat
+        {
+            date d = now();
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>" +
+                               format_date("YYYYMMDDHHmmSS", d) + "</root>";
+            hash input = {
+                "root": d,
+            };
+            hash opts = {
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
+
+        # make_xmlWithHashOptsReturnsXmlUsingPassedOptsOptsDateFormat
+        {
+            date d = now();
+            string format = "YYYY-MM-DDTHH:mm:SSZ";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>" +
+                               format_date(format, d) + "</root>";
+            hash input = {
+                "root": d,
+            };
+            hash opts = {
+                "dateFormat": format,
+            };
+            string xml = make_xml(input, opts);
+            assertEq(expected, xml);
+        }
     }
 }

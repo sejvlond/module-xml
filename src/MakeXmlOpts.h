@@ -76,6 +76,7 @@ public:
     const QoreEncoding *m_encoding;
     bool m_formatWithWhitespaces;
     bool m_useNumericRefs;
+    std::string m_dateFormat;
 };
 
 // ------------- impl --------------
