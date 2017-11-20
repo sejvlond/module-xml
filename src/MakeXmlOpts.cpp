@@ -42,9 +42,11 @@ MakeXmlOpts MakeXmlOpts::createFromFlags(int flags, const QoreEncoding* ccs) {
 
 
 MakeXmlOpts MakeXmlOpts::createFromHash(const QoreHashNode *hash) {
-    assert(hash);
-
     MakeXmlOpts opts;
+
+    if (!hash)
+        return opts;
+
     // docVersion
     parseValue(opts.m_docVersion , hash, "docVersion", NT_STRING);
     // encoding
