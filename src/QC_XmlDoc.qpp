@@ -141,14 +141,14 @@ qclass XmlDoc [arg=QoreXmlDocData* xd; ns=Qore::Xml];
 
 //! creates a new XmlDoc object from the hash value passed
 /** @param data the must have only one top-level key, as the XML string that will be used for the XmlDoc object will be created directly from the hash
-    @param opts optional formatting and other serialization settings; see @ref xml_generation_opts for more information TODO
+    @param opts optional formatting and other serialization settings; see @ref xml_generation_opts for more information
 
     @par Example:
     @code XmlDoc xd(hash); @endcode
 
     @throw XMLDOC-CONSTRUCTOR-ERROR error parsing XML string
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
-    @throw MAKE-XML-OPTS-INVALID the opts hash passed is not valid; see @ref xml_generation_opts for more information TODO
+    @throw MAKE-XML-OPTS-INVALID the opts hash passed is not valid; see @ref xml_generation_opts for more information
  */
 XmlDoc::constructor(hash data, *hash opts) {
    SimpleRefHolder<QoreStringNode> xml;

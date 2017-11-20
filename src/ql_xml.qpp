@@ -1502,6 +1502,12 @@ const XPF_PRESERVE_ORDER = XPF_PRESERVE_ORDER;
 const XPF_ADD_COMMENTS = XPF_ADD_COMMENTS;
 //@}
 
+/** @defgroup xml_generation_opts XML Generation options
+ * TODO write doc
+ */
+//@{
+//@}
+
 /** @defgroup xml_functions XML Functions
  */
 //@{
@@ -1562,12 +1568,12 @@ string make_xml(hash h, *int flags, *string encoding) [flags=RET_VALUE_ONLY] {
     @code string xml = make_xml(hash, opts); @endcode
 
     @param h a hash of data to serialize: the hash must have one top-level key and no more or an exception will be raised
-    @param opts formatting and other serialization settings; see @ref xml_generation_opts for more information TODO
+    @param opts formatting and other serialization settings; see @ref xml_generation_opts for more information
 
     @return an XML string corresponding to the input data
 
     @throw MAKE-XML-STRING-PARAMETER-EXCEPTION the hash passed does not have a single top-level key (either has no keys or more than one)
-    @throw MAKE-XML-OPTS-INVALID the opts hash passed is not valid; see @ref xml_generation_opts for more information TODO
+    @throw MAKE-XML-OPTS-INVALID the opts hash passed is not valid; see @ref xml_generation_opts for more information
     @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
 
     @see @ref serialization
