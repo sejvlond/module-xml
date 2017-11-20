@@ -102,6 +102,8 @@ class XmlTest inherits QUnit::Test {
         addTestCase("make_xmlWithHashOptsArgumentFormatWithWhitespaces", \make_xmlWithHashOptsArgumentFormatWithWhitespacesTestCase());
         addTestCase("make_xmlWithHashOptsArgumentUseNumericRefs", \make_xmlWithHashOptsArgumentUseNumericRefsTestCase());
         addTestCase("make_xmlWithHashOptsArgumentDateFormat", \make_xmlWithHashOptsArgumentDateFormatTestCase());
+        addTestCase("XmlDocConstructorFromHashTestCase", \XmlDocConstructorFromHashTestCase());
+        addTestCase("XmlDocConstructorFromStringTestCase", \XmlDocConstructorFromStringTestCase());
         set_return_value(main());
     }
 
@@ -343,7 +345,7 @@ class XmlTest inherits QUnit::Test {
     make_xmlWithHashOptsArgumentDocVersionTestCase() {
         # invalid value
         assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'docVersion'",
+                     ".*invalid argument: 'docVersion'",
                      \make_xml(), (
                          {"root": "foo"},
                          {"docVersion": False}
@@ -378,7 +380,7 @@ class XmlTest inherits QUnit::Test {
     make_xmlWithHashOptsArgumentEncodingTestCase() {
         # invalid value
         assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'encoding'",
+                     ".*invalid argument: 'encoding'",
                      \make_xml(), (
                          {"root": "foo"},
                          {"encoding": False}
@@ -413,7 +415,7 @@ class XmlTest inherits QUnit::Test {
     make_xmlWithHashOptsArgumentFormatWithWhitespacesTestCase() {
         # invalid value
         assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'formatWithWhitespaces'",
+                     ".*invalid argument: 'formatWithWhitespaces'",
                      \make_xml(), (
                          {"root": "foo"},
                          {"formatWithWhitespaces": "No"}
@@ -448,7 +450,7 @@ class XmlTest inherits QUnit::Test {
     make_xmlWithHashOptsArgumentUseNumericRefsTestCase() {
         # invalid value
         assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'useNumericRefs'",
+                     ".*invalid argument: 'useNumericRefs'",
                      \make_xml(), (
                          {"root": "foo"},
                          {"useNumericRefs": "No"}
@@ -483,7 +485,7 @@ class XmlTest inherits QUnit::Test {
     make_xmlWithHashOptsArgumentDateFormatTestCase() {
         # invalid value
         assertThrows("MAKE-XML-OPTS-INVALID",
-                     "the opts hash passed is not valid; invalid argument: 'dateFormat'",
+                     ".*invalid argument: 'dateFormat'",
                      \make_xml(), (
                          {"root": "foo"},
                          {"dateFormat": False}
@@ -517,6 +519,106 @@ class XmlTest inherits QUnit::Test {
             };
             string xml = make_xml(input, opts);
             assertEq(expected, xml);
+        }
+    }
+
+    XmlDocConstructorFromHashTestCase() {
+        # @throw XMLDOC-CONSTRUCTOR-ERROR error parsing XML string
+        {
+            assertThrows("XMLDOC-CONSTRUCTOR-ERROR",
+                         sub(){ XmlDoc doc({}); });
+        }
+
+        # @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
+        {
+            assertThrows("MAKE-XML-ERROR",
+                         sub(){ XmlDoc doc({"":""}); });
+        }
+
+        # @throw MAKE-XML-OPTS-INVALID the opts hash passed is not valid
+        {
+            assertThrows("MAKE-XML-OPTS-INVALID",
+                         ".*invalid argument: 'docVersion'",
+                         sub(){ XmlDoc doc({}, {"docVersion": False}); });
+        }
+
+        # default opts
+        {
+            date d = now();
+            hash input = {
+                "root": {
+                    "date": d,
+                    "utf": "֍"
+                }
+            };
+            XmlDoc doc(input);
+            string xml = doc.toString();
+            # TODO what about those new lines?
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                "<root>" +
+                "<date>" + format_date("YYYYMMDDHHmmSS", d) + "</date>" +
+                "<utf>֍</utf>" +
+                "</root>\n";
+            assertEq(expected, xml);
+
+            # dates are formatted as string
+            hash expectedHash = input;
+            expectedHash.root.date = format_date("YYYYMMDDHHmmSS", d);
+            assertEq(expectedHash, doc.toQore());
+        }
+
+        # specific opts
+        {
+            date d = now();
+            string format = "YYYY-MM-DD HH:mm:SS";
+            hash input = {
+                "root": {
+                    "date": d,
+                    "utf": "֍"
+                }
+            };
+            hash opts = {
+                "docVersion": "1.99",
+                "encoding": "ascii",
+                "useNumericRefs": True,
+                "formatWithWhitespaces": True,
+                "dateFormat": format,
+            };
+            XmlDoc doc(input, opts);
+            string xml = doc.toString();
+            string expected = "<?xml version=\"1.99\" encoding=\"US-ASCII\"?>\n"
+                "<root>\n" +
+                "  <date>" + format_date(format, d) + "</date>\n" +
+                "  <utf>&#1421;</utf>\n" +
+                "</root>\n";
+            assertEq(expected, xml);
+
+            # dates are formatted as string
+            hash expectedHash = input;
+            expectedHash.root.date = format_date(format, d);
+            assertEq(expectedHash, doc.toQore());
+        }
+    }
+
+    XmlDocConstructorFromStringTestCase() {
+        # @throw XMLDOC-CONSTRUCTOR-ERROR error parsing XML string
+        {
+            assertThrows("XMLDOC-CONSTRUCTOR-ERROR",
+                         sub(){ XmlDoc doc(""); });
+        }
+
+        # valid
+        {
+            date d = now();
+            string format = "YYYY-MM-DD HH:mm:SS";
+            string xml = "<?xml version=\"1.99\" encoding=\"US-ASCII\"?>\n"
+                "<root>\n" +
+                "  <date>" + format_date(format, d) + "</date>\n" +
+                "  <utf>&#1421;</utf>\n" +
+                "</root>\n";
+            # string must be explicitly converted to matched encoding
+            XmlDoc doc(convert_encoding(xml, "us-ascii"));
+            assertEq(xml, doc.toString());
         }
     }
 }

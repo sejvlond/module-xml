@@ -291,14 +291,10 @@ static int concat_simple_comment(QoreString &str, const AbstractQoreNode* n, Exc
 }
 
 static int make_xml(ExceptionSink* xsink, QoreString &str, const QoreHashNode &h, int indent, const MakeXmlOpts &opts);
+static QoreStringNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const MakeXmlOpts &opts);
 
-QoreStringNode* make_xml(ExceptionSink* xsink, const QoreEncoding* enc, const QoreHashNode &h, int flags) {
-   SimpleRefHolder<QoreStringNode> str(new QoreStringNode(enc));
-   str->sprintf("<?xml version=\"1.0\" encoding=\"%s\"?>", enc->getCode());
-   auto opts = MakeXmlOpts::createFromFlags(flags, enc);
-   if (opts.m_formatWithWhitespaces)
-       str->concat('\n');
-   return make_xml(xsink, *(*str), h, 0, opts) ? 0 : str.release();
+QoreStringNode* make_xml(ExceptionSink* xsink, const QoreHashNode &h, const MakeXmlOpts &opts) {
+   return make_xml_intern(xsink, nullptr, &h, opts);
 }
 
 static void add_xml_element(ExceptionSink* xsink, const char* key, QoreString &str, const AbstractQoreNode* n, int indent, const MakeXmlOpts &opts) {
@@ -582,7 +578,7 @@ static bool hash_ok(const QoreHashNode* h) {
    return count == 1;
 }
 
-static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const MakeXmlOpts &opts) {
+static QoreStringNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const MakeXmlOpts &opts) {
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(opts.m_encoding));
    str->sprintf("<?xml version=\"%s\" encoding=\"%s\"?>", opts.m_docVersion.c_str(),
         opts.m_encoding->getCode());
@@ -602,7 +598,7 @@ static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringN
    return str.release();
 }
 
-static AbstractQoreNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int flags = XGF_NONE) {
+static QoreStringNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNode* pstr, const QoreHashNode* pobj, const QoreEncoding* ccs, int flags = XGF_NONE) {
     auto opts = MakeXmlOpts::createFromFlags(flags, ccs);
     return make_xml_intern(xsink, pstr, pobj, opts);
 }
