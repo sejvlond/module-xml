@@ -353,7 +353,8 @@ class XmlTest inherits QUnit::Test {
 
         # default value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                              "<root>foo</root>";
             hash input = {
                 "root": "foo",
             };
@@ -365,7 +366,8 @@ class XmlTest inherits QUnit::Test {
 
         # specific value
         {
-            string expected = "<?xml version=\"2.0\" encoding=\"UTF-8\"?><root>foo</root>";
+            string expected = "<?xml version=\"2.0\" encoding=\"UTF-8\"?>"
+                              "<root>foo</root>";
             hash input = {
                 "root": "foo",
             };
@@ -388,7 +390,8 @@ class XmlTest inherits QUnit::Test {
 
         # default value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo֍</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                              "<root>foo֍</root>";
             hash input = {
                 "root": "foo֍",
             };
@@ -400,7 +403,8 @@ class XmlTest inherits QUnit::Test {
 
         # specific value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><root>foo?</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?>"
+                              "<root>foo?</root>";
             hash input = {
                 "root": "foo֍",
             };
@@ -423,7 +427,8 @@ class XmlTest inherits QUnit::Test {
 
         # default value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                              "<root>foo</root>";
             hash input = {
                 "root": "foo",
             };
@@ -435,7 +440,8 @@ class XmlTest inherits QUnit::Test {
 
         # specific value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root>foo</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                              "<root>foo</root>";
             hash input = {
                 "root": "foo",
             };
@@ -458,7 +464,8 @@ class XmlTest inherits QUnit::Test {
 
         # default value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo֍</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>"
+                              "foo֍</root>";
             hash input = {
                 "root": "foo֍",
             };
@@ -470,7 +477,8 @@ class XmlTest inherits QUnit::Test {
 
         # specific value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>foo&#1421;</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>"
+                              "foo&#1421;</root>";
             hash input = {
                 "root": "foo֍",
             };
@@ -494,8 +502,8 @@ class XmlTest inherits QUnit::Test {
         # default value
         {
             date d = now();
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>" +
-                               format_date("YYYYMMDDHHmmSS", d) + "</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>"
+                            + format_date("YYYYMMDDHHmmSS", d) + "</root>";
             hash input = {
                 "root": d,
             };
@@ -509,8 +517,8 @@ class XmlTest inherits QUnit::Test {
         {
             date d = now();
             string format = "YYYY-MM-DDTHH:mm:SSZ";
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>" +
-                               format_date(format, d) + "</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>"
+                            + format_date(format, d) + "</root>";
             hash input = {
                 "root": d,
             };
@@ -529,7 +537,7 @@ class XmlTest inherits QUnit::Test {
                          sub(){ XmlDoc doc({}); });
         }
 
-        # @throw MAKE-XML-ERROR An error occurred serializing the %Qore data to an XML string
+        # @throw MAKE-XML-ERROR An error occurred serializing the data
         {
             assertThrows("MAKE-XML-ERROR",
                          sub(){ XmlDoc doc({"":""}); });
@@ -555,10 +563,11 @@ class XmlTest inherits QUnit::Test {
             string xml = doc.toString();
             # TODO what about those new lines?
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                "<root>" +
-                "<date>" + format_date("YYYYMMDDHHmmSS", d) + "</date>" +
-                "<utf>֍</utf>" +
-                "</root>\n";
+                              "<root>"
+                              "<date>" + format_date("YYYYMMDDHHmmSS", d) +
+                              "</date>"
+                              "<utf>֍</utf>"
+                              "</root>\n";
             assertEq(expected, xml);
 
             # dates are formatted as string
@@ -587,10 +596,10 @@ class XmlTest inherits QUnit::Test {
             XmlDoc doc(input, opts);
             string xml = doc.toString();
             string expected = "<?xml version=\"1.99\" encoding=\"US-ASCII\"?>\n"
-                "<root>\n" +
-                "  <date>" + format_date(format, d) + "</date>\n" +
-                "  <utf>&#1421;</utf>\n" +
-                "</root>\n";
+                              "<root>\n"
+                              "  <date>" + format_date(format, d) + "</date>\n"
+                              "  <utf>&#1421;</utf>\n"
+                              "</root>\n";
             assertEq(expected, xml);
 
             # dates are formatted as string
@@ -612,10 +621,10 @@ class XmlTest inherits QUnit::Test {
             date d = now();
             string format = "YYYY-MM-DD HH:mm:SS";
             string xml = "<?xml version=\"1.99\" encoding=\"US-ASCII\"?>\n"
-                "<root>\n" +
-                "  <date>" + format_date(format, d) + "</date>\n" +
-                "  <utf>&#1421;</utf>\n" +
-                "</root>\n";
+                         "<root>\n"
+                         "  <date>" + format_date(format, d) + "</date>\n"
+                         "  <utf>&#1421;</utf>\n"
+                         "</root>\n";
             # string must be explicitly converted to matched encoding
             XmlDoc doc(convert_encoding(xml, "us-ascii"));
             assertEq(xml, doc.toString());
