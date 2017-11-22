@@ -64,13 +64,13 @@ set(QPP_SRC
     src/QC_XmlRpcClient.qpp
     src/ql_xml.qpp
     src/qc_option.qpp
+    src/MakeXmlOpts.qpp
 )
 
 set(CPP_SRC
     src/xml-module.cpp
     src/QoreXmlRpcReader.cpp
     src/QoreXmlReader.cpp
-    src/MakeXmlOpts.cpp
 )
 
 set(QMOD
