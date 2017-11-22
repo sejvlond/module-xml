@@ -34,8 +34,14 @@
 #include "qore-xml-module.h"
 
 
+/**
+ * Wrapper for xml generating options.
+ */
 class MakeXmlOpts final {
 public:
+    /**
+     * Exception that is thrown when the hash with options is not valid.
+     */
     class InvalidHash final : public std::invalid_argument {
     public:
         explicit InvalidHash(const std::string &what_arg) :
@@ -50,6 +56,9 @@ public:
     };
 
 public:
+    /**
+     * Constructs the wrapper with default options.
+     */
     explicit MakeXmlOpts();
 
     MakeXmlOpts(const MakeXmlOpts&) = default;
@@ -59,23 +68,57 @@ public:
     MakeXmlOpts& operator=(MakeXmlOpts &&) = default;
 
 public:
+    /**
+     * Creates the wrapper with options filled from flags and passed
+     * encoding.
+     * @param flags Formatting flags; see @ref xml_generation_constants for more
+     *              information.
+     * @param encoding An optional encoding for the output XML string
+     * @returns MakeXmlOpts with options parsed from flags and encoding,
+     *          not specified fields are defaulted.
+     */
     static MakeXmlOpts createFromFlags(
-            int flags, const QoreEncoding* ccs = nullptr);
+            int flags, const QoreEncoding* encoding = nullptr);
 
+    /**
+     * Creates the wrapper with options filled from hash.
+     * @param hash Hash with formatting options; see @ref xml_generation_opts
+     *             for more information about possible values.
+     * @returns MakeXmlOpts with options parsed from hash. Not specified
+     *          options are defaulted. Unknown options are skipped.
+     * @throws InvalidHash in case that known option is invalid (unknown options
+     *         are skipped).
+     */
     static MakeXmlOpts createFromHash(const QoreHashNode *hash);
 
 private:
+    /**
+     * Parses the value from @p hash and stores it into the @p output variable.
+     * @tparam T Type of the output variable
+     * @param hash The hash from which the value should be parsed
+     * @param key The key which value should be parsed
+     * @param valueType What type shall be the parsed value
+     * @param mandatory True, if the value shall be presented in the hash.
+     * @throws InvalidHash in case that the value is mandatory but not presented
+     *         in the hash or type of the value is not @p valueType.
+     */
     template <typename T>
     static void parseValue(
             T &output, const QoreHashNode *hash,
-            const std::string &key, qore_type_t keyType,
+            const std::string &key, qore_type_t valueType,
             bool mandatory = false);
 
 public:
+    /// xml document version as a string
     std::string m_docVersion;
+    /// encoding used for the output xml
     const QoreEncoding *m_encoding;
+    /// True, if the output xml shall be formatted with white spaces.
     bool m_formatWithWhitespaces;
+    /// Use numeric character references instead of native characters for
+    /// non-ascii character when generating XML
     bool m_useNumericRefs;
+    /// format of dates when serializing into xml
     std::string m_dateFormat;
 };
 
@@ -83,7 +126,7 @@ public:
 template <typename T>
 void MakeXmlOpts::parseValue(
         T &output, const QoreHashNode *hash,
-        const std::string &key, qore_type_t keyType,
+        const std::string &key, qore_type_t valueType,
         bool mandatory) {
     assert(hash);
     bool exists = false;
@@ -93,7 +136,7 @@ void MakeXmlOpts::parseValue(
             throw InvalidHash(key);
         return;
     }
-    if (value.getType() != keyType)
+    if (value.getType() != valueType)
         throw InvalidHash(key);
     output = value.get<typename std::remove_pointer<T>::type>();
 }
@@ -102,7 +145,7 @@ void MakeXmlOpts::parseValue(
 template <>
 void MakeXmlOpts::parseValue<std::string>(
         std::string &output, const QoreHashNode *hash,
-        const std::string &key, qore_type_t keyType,
+        const std::string &key, qore_type_t valueType,
         bool mandatory);
 
 
