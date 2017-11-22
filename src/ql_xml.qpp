@@ -1578,7 +1578,7 @@ string make_xml(hash h, *int flags, *string encoding) [flags=RET_VALUE_ONLY] {
 
     @see @ref serialization
 
-    @since xml 1.XXX TODO
+    @since xml 1.4
  */
 string make_xml(hash h, hash opts) [flags=RET_VALUE_ONLY] {
    if (!hash_ok(h)) {
