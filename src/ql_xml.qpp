@@ -582,8 +582,7 @@ static QoreStringNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNod
    SimpleRefHolder<QoreStringNode> str(new QoreStringNode(opts.m_encoding));
    str->sprintf("<?xml version=\"%s\" encoding=\"%s\"?>", opts.m_docVersion.c_str(),
         opts.m_encoding->getCode());
-   if (opts.m_formatWithWhitespaces)
-      str->concat('\n');
+   str->concat('\n'); // always separate the header with new line
    if (pstr) {
       TempEncodingHelper key(pstr, QCS_UTF8, xsink);
       if (!key)
@@ -592,6 +591,8 @@ static QoreStringNode* make_xml_intern(ExceptionSink* xsink, const QoreStringNod
    }
    else
       make_xml(xsink, *(*str), *pobj, 0, opts);
+
+   str->concat('\n'); // add new line after last line of xml
 
    //printd(5, "make_xml_intern() returning %s\n", str->getBuffer());
 

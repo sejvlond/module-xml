@@ -194,7 +194,7 @@ class XmlTest inherits QUnit::Test {
 
         # #1326: module-xml: make_xml() is too strict for tag names, resulting in MAKE-XML-ERROR: tag: "_some_tag" is not a valid XML tag element name if tag starts with underscore
         hash underscore = ( "foo" : ("_underscore_test" : 1, ) );
-        string underscoreResult = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><foo><_underscore_test>1</_underscore_test></foo>";
+        string underscoreResult = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<foo><_underscore_test>1</_underscore_test></foo>\n";
         assertEq(underscoreResult, make_xml(underscore), "_underscore_test");
 
         assertThrows("MAKE-XML-STRING-PARAMETER-EXCEPTION", \make_xml(), ( ("a": 1, "b": 2)), "top-level multi hash");
@@ -265,7 +265,8 @@ class XmlTest inherits QUnit::Test {
     <name>test2</name>
   </record>
   <!--file 2-->
-</file>";
+</file>
+";
 
         hash rec = (
             "file": (
@@ -353,8 +354,8 @@ class XmlTest inherits QUnit::Test {
 
         # default value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-                              "<root>foo</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                              "<root>foo</root>\n";
             hash input = {
                 "root": "foo",
             };
@@ -366,8 +367,8 @@ class XmlTest inherits QUnit::Test {
 
         # specific value
         {
-            string expected = "<?xml version=\"2.0\" encoding=\"UTF-8\"?>"
-                              "<root>foo</root>";
+            string expected = "<?xml version=\"2.0\" encoding=\"UTF-8\"?>\n"
+                              "<root>foo</root>\n";
             hash input = {
                 "root": "foo",
             };
@@ -390,8 +391,8 @@ class XmlTest inherits QUnit::Test {
 
         # default value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-                              "<root>foo֍</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                              "<root>foo֍</root>\n";
             hash input = {
                 "root": "foo֍",
             };
@@ -403,8 +404,8 @@ class XmlTest inherits QUnit::Test {
 
         # specific value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?>"
-                              "<root>foo?</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"US-ASCII\"?>\n"
+                              "<root>foo?</root>\n";
             hash input = {
                 "root": "foo֍",
             };
@@ -427,10 +428,12 @@ class XmlTest inherits QUnit::Test {
 
         # default value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-                              "<root>foo</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                              "<root><foo>bar</foo></root>\n";
             hash input = {
-                "root": "foo",
+                "root": {
+                    "foo": "bar",
+                },
             };
             hash opts = {
             };
@@ -441,9 +444,13 @@ class XmlTest inherits QUnit::Test {
         # specific value
         {
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                              "<root>foo</root>";
+                              "<root>\n"
+                              "  <foo>bar</foo>\n"
+                              "</root>\n";
             hash input = {
-                "root": "foo",
+                "root": {
+                    "foo": "bar",
+                },
             };
             hash opts = {
                 "formatWithWhitespaces": True,
@@ -464,8 +471,8 @@ class XmlTest inherits QUnit::Test {
 
         # default value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>"
-                              "foo֍</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                              "<root>foo֍</root>\n";
             hash input = {
                 "root": "foo֍",
             };
@@ -477,8 +484,8 @@ class XmlTest inherits QUnit::Test {
 
         # specific value
         {
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>"
-                              "foo&#1421;</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                              "<root>foo&#1421;</root>\n";
             hash input = {
                 "root": "foo֍",
             };
@@ -502,8 +509,9 @@ class XmlTest inherits QUnit::Test {
         # default value
         {
             date d = now();
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>"
-                            + format_date("YYYYMMDDHHmmSS", d) + "</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                              "<root>" + format_date("YYYYMMDDHHmmSS", d) +
+                              "</root>\n";
             hash input = {
                 "root": d,
             };
@@ -517,8 +525,8 @@ class XmlTest inherits QUnit::Test {
         {
             date d = now();
             string format = "YYYY-MM-DDTHH:mm:SSZ";
-            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root>"
-                            + format_date(format, d) + "</root>";
+            string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                              "<root>" + format_date(format, d) + "</root>\n";
             hash input = {
                 "root": d,
             };
@@ -561,7 +569,6 @@ class XmlTest inherits QUnit::Test {
             };
             XmlDoc doc(input);
             string xml = doc.toString();
-            # TODO what about those new lines?
             string expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                               "<root>"
                               "<date>" + format_date("YYYYMMDDHHmmSS", d) +
