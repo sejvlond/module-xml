@@ -1503,12 +1503,6 @@ const XPF_PRESERVE_ORDER = XPF_PRESERVE_ORDER;
 const XPF_ADD_COMMENTS = XPF_ADD_COMMENTS;
 //@}
 
-/** @defgroup xml_generation_opts XML Generation options
- * TODO write doc
- */
-//@{
-//@}
-
 /** @defgroup xml_functions XML Functions
  */
 //@{

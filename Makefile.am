@@ -30,6 +30,7 @@ EXTRA_DIST = COPYING.LGPL COPYING.MIT AUTHORS README \
 	src/QC_InputStreamSaxIterator.qpp \
 	src/ql_xml.qpp \
 	src/qc_option.qpp \
+	src/MakeXmlOpts.qpp \
 	test/xml.qtest \
 	test/soap.qtest \
 	test/test.wsdl \
