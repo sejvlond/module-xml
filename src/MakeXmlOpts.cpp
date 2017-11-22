@@ -68,10 +68,10 @@ MakeXmlOpts MakeXmlOpts::createFromHash(const QoreHashNode *hash) {
 template <>
 void MakeXmlOpts::parseValue<std::string>(
         std::string &output, const QoreHashNode *hash,
-        const std::string &key, qore_type_t keyType,
+        const std::string &key, qore_type_t valueType,
         bool mandatory) {
     QoreStringNode *value = nullptr;
-    parseValue(value, hash, key, keyType);
+    parseValue(value, hash, key, valueType);
     if (value)
         output = value->c_str();
 }
